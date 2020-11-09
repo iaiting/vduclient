@@ -1,5 +1,6 @@
 #include <winfsp/winfsp.hpp>
 #include <strsafe.h>
+#include <winnt.h>
 
 #define PROGNAME                        "vdufs"
 #define ALLOCATION_UNIT                 4096
@@ -250,17 +251,20 @@ NTSTATUS Vdufs::Init(PVOID Host0)
 NTSTATUS Vdufs::GetVolumeInfo(
     VolumeInfo* VolumeInfo)
 {
-    WCHAR Root[MAX_PATH];
     ULARGE_INTEGER TotalSize, FreeSize;
 
-    if (!GetVolumePathName(_Path, Root, MAX_PATH))
+   //if (!GetVolumePathName(_Path, Root, MAX_PATH))
+    //    return NtStatusFromWin32(GetLastError());
+
+    if (!GetDiskFreeSpaceEx(_Path, 0, &TotalSize, &FreeSize))
         return NtStatusFromWin32(GetLastError());
 
-    if (!GetDiskFreeSpaceEx(Root, 0, &TotalSize, &FreeSize))
-        return NtStatusFromWin32(GetLastError());
+    //GetFileSizeEx()
 
-    VolumeInfo->TotalSize = TotalSize.QuadPart;
+    /*VolumeInfo->TotalSize = TotalSize.QuadPart;
     VolumeInfo->FreeSize = FreeSize.QuadPart;
+    swprintf_s(VolumeInfo->VolumeLabel, L"VDU");
+    VolumeInfo->VolumeLabelLength = wcslen(VolumeInfo->VolumeLabel);*/
 
     return STATUS_SUCCESS;
 }
@@ -862,73 +866,25 @@ VdufsService::VdufsService() : Service((PWSTR)L"" PROGNAME), fs(), _Host(fs)
 
 NTSTATUS VdufsService::OnStart(ULONG argc, PWSTR* argv)
 {
-#define argtos(v)                       if (arge > ++argp) v = *argp; else goto usage
-#define argtol(v)                       if (arge > ++argp) v = wcstol_deflt(*argp, v); else goto usage
 
-    wchar_t** argp, ** arge;
-    PWSTR DebugLogFile = 0;
+    PWSTR DebugLogFile = (PWSTR)L"vfsdebug.log";
     ULONG DebugFlags = 0;
-    PWSTR VolumePrefix = 0;
-    PWSTR PassThrough = 0;
-    PWSTR MountPoint = 0;
+    //PWSTR VolumePrefix = (PWSTR)L"\\?\\"; /* \\?\C:\ */
+    PWSTR MountPoint = (PWSTR)L"X:";
     HANDLE DebugLogHandle = INVALID_HANDLE_VALUE;
-    WCHAR PassThroughBuf[MAX_PATH];
+    WCHAR PathBuf[MAX_PATH];
     NTSTATUS Result;
 
-    for (argp = argv + 1, arge = argv + argc; arge > argp; argp++)
-    {
-        if (L'-' != argp[0][0])
-            break;
-        switch (argp[0][1])
-        {
-        case L'?':
-            goto usage;
-        case L'd':
-            argtol(DebugFlags);
-            break;
-        case L'D':
-            argtos(DebugLogFile);
-            break;
-        case L'm':
-            argtos(MountPoint);
-            break;
-        case L'p':
-            argtos(PassThrough);
-            break;
-        case L'u':
-            argtos(VolumePrefix);
-            break;
-        default:
-            goto usage;
-        }
-    }
+    PWSTR localappdata;
+    size_t len;
+    _wdupenv_s(&localappdata, &len, L"localappdata");
 
-    if (arge > argp)
-        goto usage;
+    swprintf_s(PathBuf, L"%s/%s", localappdata, L"VDU");
 
-    if (0 == PassThrough && 0 != VolumePrefix)
-    {
-        PWSTR P;
+    CreateDirectory(PathBuf, NULL); //TODO: Check success?
 
-        P = wcschr(VolumePrefix, L'\\');
-        if (0 != P && L'\\' != P[1])
-        {
-            P = wcschr(P + 1, L'\\');
-            if (0 != P &&
-                (
-                    (L'A' <= P[1] && P[1] <= L'Z') ||
-                    (L'a' <= P[1] && P[1] <= L'z')
-                    ) &&
-                L'$' == P[2])
-            {
-                StringCbPrintf(PassThroughBuf, sizeof PassThroughBuf, L"%c:%s", P[1], P + 3);
-                PassThrough = PassThroughBuf;
-            }
-        }
-    }
-
-    if (0 == PassThrough || 0 == MountPoint)
-        goto usage;
+    SetFileAttributes(PathBuf, FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM
+        | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
 
     EnableBackupRestorePrivileges();
 
@@ -938,18 +894,20 @@ NTSTATUS VdufsService::OnStart(ULONG argc, PWSTR* argv)
         if (!NT_SUCCESS(Result))
         {
             fail(L"cannot open debug log file");
-            goto usage;
+            return STATUS_UNSUCCESSFUL;
         }
     }
 
-    Result = fs.SetPath(PassThrough);
+    Result = fs.SetPath(PathBuf);
     if (!NT_SUCCESS(Result))
     {
         fail(L"cannot create file system");
         return Result;
     }
 
-    _Host.SetPrefix(VolumePrefix);
+
+    _Host.SetFileSystemName((PWSTR)L"VDU");
+    //_Host.SetPrefix(VolumePrefix);
     Result = _Host.Mount(MountPoint, 0, FALSE, DebugFlags);
     if (!NT_SUCCESS(Result))
     {
@@ -957,33 +915,9 @@ NTSTATUS VdufsService::OnStart(ULONG argc, PWSTR* argv)
         return Result;
     }
 
-    MountPoint = _Host.MountPoint();
-    info(L"%s%s%s -p %s -m %s",
-        L"" PROGNAME,
-        0 != VolumePrefix && L'\0' != VolumePrefix[0] ? L" -u " : L"",
-        0 != VolumePrefix && L'\0' != VolumePrefix[0] ? VolumePrefix : L"",
-        PassThrough,
-        MountPoint);
+    //MountPoint = _Host.MountPoint();
 
     return STATUS_SUCCESS;
-
-usage:
-    static wchar_t usage[] = L""
-        "usage: %s OPTIONS\n"
-        "\n"
-        "options:\n"
-        "    -d DebugFlags       [-1: enable all debug logs]\n"
-        "    -D DebugLogFile     [file path; use - for stderr]\n"
-        "    -u \\Server\\Share    [UNC prefix (single backslash)]\n"
-        "    -p Directory        [directory to expose as pass through file system]\n"
-        "    -m MountPoint       [X:|*|directory]\n";
-
-    fail(usage, L"" PROGNAME);
-
-    return STATUS_UNSUCCESSFUL;
-
-#undef argtos
-#undef argtol
 }
 
 NTSTATUS VdufsService::OnStop()

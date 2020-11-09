@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <tchar.h>
+#include "resource.h"
 
 // Global variables
 #define APPLICATION_NAME = "VDUClient"
@@ -10,9 +11,10 @@
 static TCHAR szWindowClass[] = _T("VDUClientWindow");
 
 // The string that appears in the application's title bar.
-static TCHAR szTitle[] = _T("VDUClient");
+static TCHAR szTitle[0x100];
 
 HINSTANCE hInst;
+NOTIFYICONDATA nid = { 0 };
 
 // Forward declarations of functions included in this code module:
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -27,7 +29,6 @@ int CALLBACK WinMain(
 )
 {
     WNDCLASSEX wcex;
-
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.style = CS_HREDRAW | CS_VREDRAW;
     wcex.lpfnWndProc = WndProc;
@@ -40,6 +41,8 @@ int CALLBACK WinMain(
     wcex.lpszMenuName = NULL;
     wcex.lpszClassName = szWindowClass;
     wcex.hIconSm = LoadIcon(wcex.hInstance, IDI_APPLICATION);
+
+    LoadString(hInst, IDS_VDUCLIENT, szTitle, 256);
 
     if (!RegisterClassEx(&wcex))
     {
@@ -59,8 +62,9 @@ int CALLBACK WinMain(
     // NULL: the parent of this window
     // NULL: this application does not have a menu bar
     // hInstance: the first parameter from WinMain
-    // NULL: not used in this application
-    HWND hWnd = CreateWindow(
+    // NULL: not used in this applicationž
+    HWND hWnd = CreateWindowEx(
+        WS_EX_TOOLWINDOW | WS_EX_APPWINDOW,
         szWindowClass,
         szTitle,
         WS_OVERLAPPEDWINDOW,
@@ -74,10 +78,7 @@ int CALLBACK WinMain(
 
     if (!hWnd)
     {
-        MessageBox(NULL,
-            _T("Call to CreateWindow failed!"), szTitle,
-            NULL);
-
+        MessageBox(NULL, _T("Call to CreateWindow failed!"), szTitle, NULL);
         return 1;
     }
 
@@ -87,7 +88,6 @@ int CALLBACK WinMain(
     if (hvfs == INVALID_HANDLE_VALUE || !hvfs)
     {
         MessageBox(NULL, _T("Call to CreateThread failed!"), szTitle, NULL);
-
         return 1;
     }
 
@@ -124,6 +124,43 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message)
     {
+    case WM_CREATE:
+        nid.cbSize = NOTIFYICONDATAA_V3_SIZE;
+        nid.hWnd = hWnd;
+        nid.uFlags = NIF_ICON | NIF_INFO | NIF_MESSAGE;
+        nid.uCallbackMessage = WM_USER + 1;
+        nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+        wcscpy_s(nid.szInfo, 256, L"Info");
+        wcscpy_s(nid.szInfoTitle, 64, L"Title");
+        nid.dwInfoFlags = NIIF_INFO;
+        Shell_NotifyIcon(NIM_ADD, &nid);
+        break;
+    case WM_SYSCOMMAND:
+        switch (wParam)
+        {
+        case SC_MINIMIZE:
+        case SC_CLOSE:
+        {
+            SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) & ~WS_EX_APPWINDOW);
+            ShowWindow(hWnd, SW_HIDE);
+            break;
+        }
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
+        }
+        break;
+    case WM_USER + 1:
+        switch (lParam)
+        {
+        case WM_LBUTTONDOWN:
+            SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) | WS_EX_APPWINDOW);
+            ShowWindow(hWnd, SW_RESTORE);
+            SetForegroundWindow(hWnd);
+            break;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
+        }
+        break;
     case WM_PAINT:
         hdc = BeginPaint(hWnd, &ps);
 
@@ -136,6 +173,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         EndPaint(hWnd, &ps);
         break;
     case WM_DESTROY:
+        Shell_NotifyIcon(NIM_DELETE, &nid);
         PostQuitMessage(0);
         break;
     default:
