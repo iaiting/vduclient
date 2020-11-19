@@ -1,7 +1,3 @@
-
-// VDUClientDlg.cpp : implementation file
-//
-
 #include "pch.h"
 #include "framework.h"
 #include "VDUClient.h"
@@ -11,7 +7,6 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
-
 
 // CAboutDlg dialog used for App About
 class CAboutDlg : public CDialogEx
@@ -45,8 +40,8 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
 #define ID_SYSTEMTRAY 0x1000
-#define ID_ICON_TRAY_INITIAL 0x2000
 #define WM_TRAYICON_EVENT (WM_APP + 1)
+#define WM_TRAY_EXIT (WM_APP + 2)
 
 // CVDUClientDlg dialog
 CVDUClientDlg::CVDUClientDlg(CWnd* pParent /*=nullptr*/) : CDialogEx(IDD_VDUCLIENT_DIALOG, pParent)
@@ -67,7 +62,7 @@ BEGIN_MESSAGE_MAP(CVDUClientDlg, CDialogEx)
 	ON_MESSAGE(WM_TRAYICON_EVENT, &CVDUClientDlg::OnTrayEvent)
 	ON_EN_CHANGE(IDC_SERVER_ADDRESS, &CVDUClientDlg::OnEnChangeServerAddress)
 	ON_BN_CLICKED(IDC_CONNECT, &CVDUClientDlg::OnBnClickedConnect)
-	ON_COMMAND(ID_SYSTEMTRAY, &CVDUClientDlg::OnTrayExitCommand)
+	ON_COMMAND(WM_TRAY_EXIT, &CVDUClientDlg::OnTrayExitCommand)
 END_MESSAGE_MAP()
 
 // CVDUClientDlg message handlers
@@ -91,7 +86,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 		if (!strAboutMenu.IsEmpty())
 		{
 			pSysMenu->AppendMenu(MF_SEPARATOR);
-			pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
+			pSysMenu->AppendMenu(MF_STRING, WM_TRAY_EXIT, strAboutMenu);
 		}
 	}
 
@@ -108,17 +103,19 @@ BOOL CVDUClientDlg::OnInitDialog()
 	ASSERT(IsWindow(GetSafeHwnd()));
 	m_trayData.hWnd = GetSafeHwnd();
 	m_trayData.uCallbackMessage = WM_TRAYICON_EVENT;
-	StringCchCopy(m_trayData.szTip, sizeof(m_trayData.szTip) / sizeof(*m_trayData.szTip), L"VDU Client");
+	if (StringCchCopy(m_trayData.szTip, ARRAYSIZE(m_trayData.szTip), L"VDU Client") != S_OK)
+		return FALSE;
 	m_trayData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 	m_trayData.hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_trayData.uVersion = NOTIFYICON_VERSION_4;
 	Shell_NotifyIcon(NIM_ADD, &m_trayData);
-	//	Shell_NotifyIcon(NIM_SETVERSION, &m_trayData);
+	//Shell_NotifyIcon(NIM_SETVERSION, &m_trayData);
+
 
 	if (m_trayMenu = new CMenu())
 	{
 		m_trayMenu->CreatePopupMenu();
-		m_trayMenu->AppendMenu(MF_STRING, ID_SYSTEMTRAY, L"Exit");
+		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_EXIT, L"Exit");
 	}
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
@@ -133,6 +130,44 @@ void CVDUClientDlg::PostNcDestroy()
 BOOL CVDUClientDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 {
 	return CDialogEx::OnCommand(wParam, lParam);
+}
+
+BOOL CVDUClientDlg::TrayTip(LPCTSTR szTip)
+{
+	m_trayData.uFlags |= NIF_TIP | NIF_SHOWTIP;
+
+	if (StringCchCopy(m_trayData.szTip, ARRAYSIZE(m_trayData.szTip), szTip) != S_OK)
+		return FALSE;
+
+	return Shell_NotifyIcon(NIM_MODIFY, &m_trayData);
+}
+
+BOOL CVDUClientDlg::TrayNotify(LPCTSTR szTitle, LPCTSTR szText, SHSTOCKICONID siid)
+{
+	m_trayData.uFlags |= NIF_INFO | NIF_MESSAGE;// | NIF_GUID;
+	m_trayData.uTimeout = 1000;
+	m_trayData.dwInfoFlags |= NIIF_INFO | NIIF_USER | NIIF_LARGE_ICON;
+	//HRESULT hr = CoCreateGuid(&m_trayData.guidItem);
+
+	SHSTOCKICONINFO shii;
+	ZeroMemory(&shii, sizeof(shii));
+	shii.cbSize = sizeof(shii);
+	if (SHGetStockIconInfo(siid, SHGSI_ICON, &shii) != S_OK)
+		return FALSE;
+
+	m_trayData.hBalloonIcon = shii.hIcon;
+
+	if (StringCchCopy(m_trayData.szInfoTitle, ARRAYSIZE(m_trayData.szInfoTitle), szTitle) != S_OK)
+		return FALSE;
+
+	if (StringCchCopy(m_trayData.szInfo, ARRAYSIZE(m_trayData.szInfo), szText) != S_OK)
+		return FALSE;
+
+	BOOL res = Shell_NotifyIcon(NIM_MODIFY, &m_trayData);
+
+	DestroyIcon(m_trayData.hBalloonIcon);
+
+	return res;
 }
 
 void CVDUClientDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -246,5 +281,7 @@ void CVDUClientDlg::OnEnChangeServerAddress()
 
 void CVDUClientDlg::OnBnClickedConnect()
 {
-	GetDlgItem(IDC_CONNECT)->SetWindowText(L"dfdffdfddf");
+	TrayNotify(L"Yeet",L"Connect\ned");
+	//TrayTip(L"VDUUUUUUUUUUUUUU\n\n\n\tasd");
+	//GetDlgItem(IDC_CONNECT)->SetWindowText(L"dfdffdfddf");
 }

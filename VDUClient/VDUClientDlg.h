@@ -27,8 +27,9 @@ protected:
 	CMenu* m_trayMenu;
 	NOTIFYICONDATA m_trayData;
 
-	//Creates the tray icon
-	BOOL TrayNotify();
+	//Creates a notification bubble
+	BOOL TrayNotify(LPCTSTR szTitle, LPCTSTR szText, SHSTOCKICONID siid = SIID_DRIVENET);
+	BOOL TrayTip(LPCTSTR szTip);
 
 	// Generated message map functions
 	virtual BOOL OnInitDialog();
