@@ -1,0 +1,423 @@
+openapi: 3.0.0
+info:
+  version: '1.0'
+  title: VDU
+  contact: {}
+  description: Formal description of VDU API
+servers:
+  - url: 'https://localhost:4443'
+paths:
+  /ping:
+    get:
+      summary: Ping
+      operationId: doPing
+      tags:
+        - Ping
+      parameters: []
+      responses:
+        '204':
+          description: >-
+            The server successfully processed the request, and is not returning
+            any content
+          headers:
+            Date:
+              description: >-
+                The date and time at which the message was originated (in
+                "HTTP-date" format as defined by RFC 7231 Date/Time Formats)
+              schema:
+                type: string
+                format: date
+            X-Client-Ip:
+              description: >-
+                The originating IP address of the request sent by a client
+                connecting to a server
+              schema:
+                type: string
+                example: 127.0.0.1
+          content: {}
+      description: To test a connection (to do a ping).
+  /auth/key:
+    get:
+      summary: Renew key
+      operationId: renewAuthKey
+      tags:
+        - Authorization
+      security:
+        - ApiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: 'OK: the success'
+          headers:
+            X-Api-Key:
+              description: The new auth key token
+              schema:
+                type: string
+                format: apiKey
+            Date:
+              description: >-
+                The date and time at which the message was originated (in
+                "HTTP-date" format as defined by RFC 7231 Date/Time Formats)
+              schema:
+                type: string
+                format: date
+            Expires:
+              description: >-
+                Gives the date/time after which the response is considered stale
+                (in "HTTP-date" format as defined by RFC 7231)
+              schema:
+                type: string
+                format: date
+          content: {}
+        '401':
+          description: 'Unauthorized: invalid X-API-Key'
+      description: Authorization token (key) renewal
+    post:
+      summary: Generate Key
+      operationId: generateAuthKey
+      tags:
+        - Authorization
+      parameters:
+        - name: From
+          in: header
+          required: true
+          description: The email address/username/etc. of the user making the request
+          schema:
+            type: string
+            example: user@example.com
+      requestBody:
+        required: false
+        description: >-
+          The user’s client secret (can be an empty content in the case of
+          client certificate/TLS authentication)
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: abcdef0123456789
+      responses:
+        '201':
+          description: 'Created: the success'
+          headers:
+            X-Api-Key:
+              description: The new auth key token
+              schema:
+                type: string
+            Date:
+              description: >-
+                The date and time at which the message was originated (in
+                "HTTP-date" format as defined by RFC 7231 Date/Time Formats)
+              schema:
+                type: string
+                format: date
+            Expires:
+              description: >-
+                Gives the date/time after which the response is considered stale
+                (in "HTTP-date" format as defined by RFC 7231)
+              schema:
+                type: string
+                format: date
+          content: {}
+        '401':
+          description: 'Unauthorized: invalid From and/or the user’s client secret'
+          content: {}
+      description: Generate a new authorization token (key) for the first time.
+    delete:
+      summary: Invalidate key
+      tags:
+        - Authorization
+      description: Authorization token (key) invalidation.
+      parameters: []
+      operationId: invalidateAuthKey
+      responses:
+        '204':
+          description: 'No Content: the success'
+          headers:
+            Date:
+                description: >-
+                  The date and time at which the message was originated (in
+                  "HTTP-date" format as defined by RFC 7231 Date/Time Formats)
+                schema:
+                  type: string
+                  format: date
+          content: {}
+        '401':
+          description: 'Unauthorized: invalid X-API-Key'
+      security:
+        - ApiKeyAuth: []
+  /file/{file-access-token}:
+    get:
+      summary: Get file
+      description: Get the content of a file available by the given access token.
+      parameters:
+        - name: file-access-token
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'abcdef98765'
+      operationId: getFileByAccessToken
+      responses:
+        '200':
+          description: 'OK: the success'
+          headers:
+            Allow:
+              description: >-
+                Valid methods for a specified resource (GET for read-only, POST for write-only,
+                GET POST for the ability to read multiple times and also write).
+              schema:
+                type: string
+            Content-Encoding:
+              description: >-
+                The type of encoding used on the data
+              schema:
+                type: string
+            Content-Length:
+              description: >-
+                The length of the response body in octets (8-bit bytes)
+              schema:
+                type: integer
+            Content-Location:
+              description: >-
+                An alternate location for the returned data (a filename)
+              schema:
+                type: string
+            Content-MD5:
+              description: >-
+                A Base64-encoded binary MD5 sum of the content of the response
+              schema:
+                type: string
+                format: Base64
+            Content-Type:
+              description: >-
+                The MIME type of this content
+              schema:
+                type: string
+                format: MIME
+            Date:
+              description: >-
+                The date and time at which the message was originated (in
+                "HTTP-date" format as defined by RFC 7231 Date/Time Formats)
+              schema:
+                type: string
+                format: date
+            Expires:
+              description: >-
+                Gives the date/time after which the response is considered stale
+                (in "HTTP-date" format as defined by RFC 7231)
+              schema:
+                type: string
+                format: date
+            Last-Modified:
+              description: >-
+                The last modified date for the requested object (in "HTTP-date" format as defined by RFC 7231)
+              schema:
+                type: string
+                format: date
+            ETag:
+              description: >-
+                An identifier for a specific version of a resource, i.e., a version number.
+              schema:
+                type: string
+          content:
+            '*/*':
+              schema: 
+                description: 'File contents'
+        '401':
+          description: 'Unauthorized: invalid X-API-Key'
+        '404':
+          description: >-
+            Not Found: The requested resource by the file-access-token could not
+            be found.
+        '405':
+          description: >-
+            Method Not Allowed: A request method is not supported for the
+            requested resource, i.e., the resource is write-only (could be read
+            before, but cannot be read now).
+        '408':
+          description: >-
+            Request Timeout: The client did not produce a request within the
+            time that the server was prepared to wait for the upload.
+      tags:
+        - FileSystem
+      security:
+        - ApiKeyAuth: []
+    post:
+      summary: Upload file
+      description: Post/upload the content of a file available by the given access token.
+      parameters:
+        - name: Content-Encoding
+          in: header
+          required: true
+          schema:
+            type: string
+          description: The type of encoding used on the data.
+        - name: Content-Length
+          in: header
+          required: true
+          schema:
+            type: string
+          description: The length of the request body in octets (8-bit bytes)
+        - name: Content-Location
+          in: header
+          required: false
+          schema:
+            type: string
+          description: >-
+            An alternate location for the data (a new filename if renamed by the
+            client)
+        - name: Content-MD5
+          in: header
+          required: true
+          schema:
+            type: string
+          description: A Base64-encoded binary MD5 sum of the content of the request.
+        - name: Content-Type
+          in: header
+          required: true
+          schema:
+            type: string
+          description: The MIME type of this content.
+        - name: file-access-token
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'abcdef98765'
+      operationId: uploadFileByAccessToken
+      responses:
+        '201':
+          description: 'Created: the success and the file access token remains valid.'
+          headers:
+            Allow:
+              description: >-
+                Valid methods for a specified resource (GET for read-only, POST for write-only,
+                GET POST for the ability to read multiple times and also write).
+              schema:
+                type: string
+            Date:
+              description: >-
+                The date and time at which the message was originated (in
+                "HTTP-date" format as defined by RFC 7231 Date/Time Formats)
+              schema:
+                type: string
+                format: date
+            Expires:
+              description: >-
+                Gives the date/time after which the response is considered stale
+                (in "HTTP-date" format as defined by RFC 7231)
+              schema:
+                type: string
+                format: date
+            ETag:
+              description: >-
+                An identifier for a specific version of a resource, i.e., a version number.
+              schema:
+                type: string
+        '205':
+          description: >-
+            Reset Content: the success and the file access token was
+            invalidated.
+          headers:
+            Allow:
+              description: >-
+                Valid methods for a specified resource (GET for read-only, POST for write-only,
+                GET POST for the ability to read multiple times and also write).
+              schema:
+                type: string
+            Date:
+              description: >-
+                The date and time at which the message was originated (in
+                "HTTP-date" format as defined by RFC 7231 Date/Time Formats)
+              schema:
+                type: string
+                format: date
+            Expires:
+              description: >-
+                Gives the date/time after which the response is considered stale
+                (in "HTTP-date" format as defined by RFC 7231)
+              schema:
+                type: string
+                format: date
+            ETag:
+              description: >-
+                An identifier for a specific version of a resource, i.e., a version number.
+              schema:
+                type: string
+        '401':
+          description: 'Unauthorized: invalid X-API-Key'
+        '404':
+          description: >-
+            Not Found: The requested resource by the file-access-token could not
+            be found.
+        '405':
+          description: >-
+            Method Not Allowed: A request method is not supported for the
+            requested resource, i.e., the resource is read-only.
+        '408':
+          description: >-
+            Request Timeout: The client did not produce a request within the
+            time that the server was prepared to wait for the upload.
+        '409':
+          description: >-
+            Conflict: Indicates that the request could not be processed because
+            of conflict in the current state of the resource, such as an edit
+            conflict between multiple simultaneous updates.
+      tags:
+        - FileSystem
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: false
+        content:
+          '*/*':
+            schema: {}
+        description: The content of the file uploaded in the request
+    delete:
+      summary: Invalidate file token
+      description: To invalid the given file access token.
+      tags:
+      - FileSystem
+      parameters:
+        - name: file-access-token
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'abcdef98765'
+      operationId: deleteFileByAccessToken
+      responses:
+        '204':
+          description: 'No Content: the success'
+          headers:
+            Date:
+              description: >-
+                The date and time at which the message was originated (in
+                "HTTP-date" format as defined by RFC 7231 Date/Time Formats)
+              schema:
+                type: string
+                format: date
+        '401':
+          description: 'Unauthorized: invalid X-API-Key'
+        '404':
+          description: >-
+            Not Found: The requested resource by the file-access-token could not
+            be found.
+        '408':
+          description: >-
+            Request Timeout: The client did not produce a request within the
+            time that the server was prepared to wait for the upload.
+      security:
+        - ApiKeyAuth: []
+components:
+  schemas: {}
+  securitySchemes:
+    ApiKeyAuth:
+      description: Authorization key token
+      type: apiKey
+      in: header
+      name: X-Api-Key
+  links: {}
+  callbacks: {}
+security: []
+tags: []

@@ -67,6 +67,7 @@ BEGIN_MESSAGE_MAP(CVDUClientDlg, CDialogEx)
 	ON_MESSAGE(WM_TRAYICON_EVENT, &CVDUClientDlg::OnTrayEvent)
 	ON_EN_CHANGE(IDC_SERVER_ADDRESS, &CVDUClientDlg::OnEnChangeServerAddress)
 	ON_BN_CLICKED(IDC_CONNECT, &CVDUClientDlg::OnBnClickedConnect)
+	ON_COMMAND(ID_SYSTEMTRAY, &CVDUClientDlg::OnTrayExitCommand)
 END_MESSAGE_MAP()
 
 // CVDUClientDlg message handlers
@@ -117,9 +118,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 	if (m_trayMenu = new CMenu())
 	{
 		m_trayMenu->CreatePopupMenu();
-		m_trayMenu->AppendMenu(MF_SEPARATOR);
 		m_trayMenu->AppendMenu(MF_STRING, ID_SYSTEMTRAY, L"Exit");
-		m_trayMenu->AppendMenu(MF_SEPARATOR);
 	}
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
@@ -144,6 +143,10 @@ void CVDUClientDlg::OnSysCommand(UINT nID, LPARAM lParam)
 		dlgAbout.DoModal();
 	}
 	else if ((nID & 0xFFF0) == SC_MINIMIZE)
+	{
+		AfxGetMainWnd()->ShowWindow(SW_MINIMIZE);
+	}
+	else if ((nID & 0xFFF0) == SC_CLOSE)
 	{
 		AfxGetMainWnd()->ShowWindow(SW_MINIMIZE);
 		AfxGetMainWnd()->ShowWindow(SW_HIDE);
@@ -216,13 +219,8 @@ LRESULT CVDUClientDlg::OnTrayEvent(WPARAM wParam, LPARAM lParam)
 			POINT curPoint;
 			GetCursorPos(&curPoint);
 			AfxGetMainWnd()->SetForegroundWindow();
-			m_trayMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RETURNCMD | TPM_RIGHTBUTTON, curPoint.x, curPoint.y, this);
+			m_trayMenu->TrackPopupMenu(GetSystemMetrics(SM_MENUDROPALIGNMENT), curPoint.x, curPoint.y, this);
 			AfxGetMainWnd()->PostMessage(WM_NULL, 0, 0);
-			break;
-		}
-		case IDM_ABOUTBOX:
-		{
-			printf("a");
 			break;
 		}
 	}
@@ -230,6 +228,10 @@ LRESULT CVDUClientDlg::OnTrayEvent(WPARAM wParam, LPARAM lParam)
 	return ERROR_SUCCESS;
 }
 
+void CVDUClientDlg::OnTrayExitCommand()
+{
+	AfxGetMainWnd()->PostMessage(WM_QUIT, 0, 0);
+}
 
 void CVDUClientDlg::OnEnChangeServerAddress()
 {
