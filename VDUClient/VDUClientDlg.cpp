@@ -3,6 +3,7 @@
 #include "VDUClient.h"
 #include "VDUClientDlg.h"
 #include "afxdialogex.h"
+#include <afxinet.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -38,6 +39,100 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
+
+//Declares valid VDU api types
+enum class VDUAPIType
+{
+	GET_PING, //Ping the server
+	GET_AUTH_KEY, 
+	POST_AUTH_KEY,
+	DELETE_AUTH_KEY,
+	GET_FILE,
+	POST_FILE,
+	DELETE_FILE,
+};
+
+class CVDUConnection
+{
+protected:
+	CVDUClientDlg* m_wnd;
+	LPCTSTR m_serverURL;
+	CInternetSession* m_session;
+	VDUAPIType m_type;
+public:
+	//Sets up the connection
+	CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type);
+	~CVDUConnection();
+
+	//Processess the connection
+	void Process();
+};
+
+void CVDUConnection::Process()
+{
+	m_session = new CInternetSession(L"VDUClient 1.0, Windows");
+	int httpVerb;
+	LPCTSTR apiPath = NULL;
+
+	m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Not Connected");
+
+	switch (m_type)
+	{
+	case VDUAPIType::GET_PING:
+		httpVerb = CHttpConnection::HTTP_VERB_GET;
+		apiPath = L"/ping";
+		break;
+	default:
+		MessageBox(m_wnd->GetSafeHwnd(), L"Invalid VDUAPI Type", L"VDU Connection", MB_ICONASTERISK);
+		return;
+	}
+	CHttpConnection* con = m_session->GetHttpConnection(m_serverURL, (INTERNET_PORT)4443, NULL, NULL);
+	CHttpFile* pFile = con->OpenRequest(httpVerb, apiPath, NULL, 1, NULL, NULL, INTERNET_FLAG_SECURE
+//#ifdef _DEBUG
+		| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
+	DWORD opt;
+	pFile->QueryOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
+	opt |= SECURITY_FLAG_IGNORE_UNKNOWN_CA;
+	pFile->SetOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
+/*#else 
+		);
+#endif*/
+
+	if (!pFile->SendRequest())
+	{
+		MessageBox(m_wnd->GetSafeHwnd(), L"Failed to send request", L"VDU Connection", MB_ICONASTERISK);
+		return;
+	}
+
+	DWORD statusCode;
+	if (!pFile->QueryInfoStatusCode(statusCode))
+	{
+		MessageBox(m_wnd->GetSafeHwnd(), L"Failed to query status code", L"VDU Connection", MB_ICONASTERISK);
+		return;
+	}
+
+	m_wnd->TrayNotify(L"Connected", m_serverURL, SIID_DRIVENET);
+	m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Connected");
+
+	pFile->Close();
+	con->Close();
+	m_session->Close();
+}
+
+CVDUConnection::CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type)
+{
+	m_session = NULL;
+	m_serverURL = serverURL;
+	m_wnd = mainWnd;
+	m_type = type;
+}
+
+CVDUConnection::~CVDUConnection()
+{
+	if (m_session != NULL)
+		delete m_session;
+}
+
 
 #define ID_SYSTEMTRAY 0x1000
 #define WM_TRAYICON_EVENT (WM_APP + 1)
@@ -111,12 +206,35 @@ BOOL CVDUClientDlg::OnInitDialog()
 	Shell_NotifyIcon(NIM_ADD, &m_trayData);
 	//Shell_NotifyIcon(NIM_SETVERSION, &m_trayData);
 
-
 	if (m_trayMenu = new CMenu())
 	{
 		m_trayMenu->CreatePopupMenu();
 		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_EXIT, L"Exit");
 	}
+
+	ULONG type = REG_SZ;
+	TCHAR lastServerName[0x400] = L"lol";
+	DWORD size = sizeof(lastServerName);
+	LPCTSTR path = L"SOFTWARE\\VDU Client";
+	HKEY hkey;
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_READ, &hkey) != ERROR_SUCCESS)
+	{
+		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
+		{
+			MessageBox(L"Failed to read registry", L"VDU Client", MB_ICONASTERISK);
+			return FALSE;
+		}
+	}
+
+	if (RegQueryValueEx(hkey, L"lastServerName", 0, &type, (LPBYTE)lastServerName, &size) != ERROR_SUCCESS)
+	{
+		RegSetValueEx(hkey, L"lastServerName", 0, type, (BYTE*)lastServerName, sizeof(wchar_t) * (wcslen(lastServerName) + 1));
+	}
+
+	//TOTO: Set default server
+
+
+	RegCloseKey(hkey);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -276,12 +394,29 @@ void CVDUClientDlg::OnEnChangeServerAddress()
 	// with the ENM_CHANGE flag ORed into the mask.
 
 	// TODO:  Add your control notification handler code here
+	CString serverAddr;
+	GetDlgItem(IDC_SERVER_ADDRESS)->GetWindowText(serverAddr);
+
+	//TODO: Set default server
+
+}
+
+UINT conthreadproc(LPVOID pCon)
+{
+	CVDUConnection* con = (CVDUConnection*)pCon;
+	con->Process();
+	delete con;
+	return EXIT_SUCCESS;
 }
 
 
 void CVDUClientDlg::OnBnClickedConnect()
 {
-	TrayNotify(L"Yeet",L"Connect\ned");
+	CString serverAddr;
+	GetDlgItem(IDC_SERVER_ADDRESS)->GetWindowText(serverAddr);
+	AfxBeginThread(conthreadproc, LPVOID(new CVDUConnection(this, serverAddr, VDUAPIType::GET_PING)));
+	//TrayNotify(L"Yeet",L"Connected");
+	//TrayNotify(L"Notice", L"Full!", SIID_RECYCLERFULL);
 	//TrayTip(L"VDUUUUUUUUUUUUUU\n\n\n\tasd");
 	//GetDlgItem(IDC_CONNECT)->SetWindowText(L"dfdffdfddf");
 }

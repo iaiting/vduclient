@@ -1,9 +1,4 @@
-
-// VDUClientDlg.h : header file
-//
-
 #pragma once
-
 
 // CVDUClientDlg dialog
 class CVDUClientDlg : public CDialogEx
@@ -23,13 +18,12 @@ public:
 
 // Implementation
 protected:
+	BOOL m_connected;
 	HICON m_hIcon;
 	CMenu* m_trayMenu;
 	NOTIFYICONDATA m_trayData;
 
-	//Creates a notification bubble
-	BOOL TrayNotify(LPCTSTR szTitle, LPCTSTR szText, SHSTOCKICONID siid = SIID_DRIVENET);
-	BOOL TrayTip(LPCTSTR szTip);
+	//UINT conthreadproc(LPVOID);
 
 	// Generated message map functions
 	virtual BOOL OnInitDialog();
@@ -44,4 +38,9 @@ protected:
 public:
 	afx_msg void OnEnChangeServerAddress();
 	afx_msg void OnBnClickedConnect();
+
+	//Creates a notification bubble
+	BOOL TrayNotify(LPCTSTR szTitle, LPCTSTR szText, SHSTOCKICONID siid = SIID_DRIVENET);
+	//Sets the tray hover tip
+	BOOL TrayTip(LPCTSTR szTip);
 };
