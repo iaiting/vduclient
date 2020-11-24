@@ -18,6 +18,7 @@ public:
 
 // Implementation
 protected:
+	TCHAR m_server[256];
 	BOOL m_connected;
 	HICON m_hIcon;
 	CMenu* m_trayMenu;
@@ -39,6 +40,8 @@ public:
 	afx_msg void OnEnChangeServerAddress();
 	afx_msg void OnBnClickedConnect();
 
+	BOOL GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out_value, DWORD maxOutvalueSize = 0x400);
+	BOOL SetRegValueSz(LPCTSTR name, LPCTSTR value);
 	//Creates a notification bubble
 	BOOL TrayNotify(LPCTSTR szTitle, LPCTSTR szText, SHSTOCKICONID siid = SIID_DRIVENET);
 	//Sets the tray hover tip

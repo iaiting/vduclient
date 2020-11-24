@@ -56,7 +56,7 @@ class CVDUConnection
 {
 protected:
 	CVDUClientDlg* m_wnd;
-	LPCTSTR m_serverURL;
+	WCHAR m_serverURL[INTERNET_MAX_HOST_NAME_LENGTH];
 	CInternetSession* m_session;
 	VDUAPIType m_type;
 public:
@@ -122,7 +122,7 @@ void CVDUConnection::Process()
 CVDUConnection::CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type)
 {
 	m_session = NULL;
-	m_serverURL = serverURL;
+	StringCchCopy(m_serverURL, ARRAYSIZE(m_serverURL), serverURL);
 	m_wnd = mainWnd;
 	m_type = type;
 }
@@ -212,12 +212,23 @@ BOOL CVDUClientDlg::OnInitDialog()
 		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_EXIT, L"Exit");
 	}
 
+	//TOTO: Set default server
+	if (StringCchCopy(m_server, ARRAYSIZE(m_server), L"lol") != S_OK)
+		return FALSE;
+
+	GetRegValueSz(L"LastServerAddress", m_server, m_server, ARRAYSIZE(m_server));
+
+	GetDlgItem(IDC_SERVER_ADDRESS)->SetWindowText(m_server);
+
+	return TRUE;  // return TRUE  unless you set the focus to a control
+}
+
+BOOL CVDUClientDlg::GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out_value, DWORD maxOutvalueSize)
+{
 	ULONG type = REG_SZ;
-	TCHAR lastServerName[0x400] = L"lol";
-	DWORD size = sizeof(lastServerName);
 	LPCTSTR path = L"SOFTWARE\\VDU Client";
 	HKEY hkey;
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_READ, &hkey) != ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
 	{
 		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
 		{
@@ -226,17 +237,34 @@ BOOL CVDUClientDlg::OnInitDialog()
 		}
 	}
 
-	if (RegQueryValueEx(hkey, L"lastServerName", 0, &type, (LPBYTE)lastServerName, &size) != ERROR_SUCCESS)
+	if (RegQueryValueEx(hkey, name, 0, &type, (LPBYTE)out_value, &maxOutvalueSize) != ERROR_SUCCESS)
 	{
-		RegSetValueEx(hkey, L"lastServerName", 0, type, (BYTE*)lastServerName, sizeof(wchar_t) * (wcslen(lastServerName) + 1));
+		RegSetValueEx(hkey, name, 0, type, (BYTE*)defaultValue, sizeof(wchar_t) * (wcslen(defaultValue) + 1));
 	}
-
-	//TOTO: Set default server
-
 
 	RegCloseKey(hkey);
 
-	return TRUE;  // return TRUE  unless you set the focus to a control
+	return TRUE;
+}
+
+BOOL CVDUClientDlg::SetRegValueSz(LPCTSTR name, LPCTSTR value)
+{
+	ULONG type = REG_SZ;
+	LPCTSTR path = L"SOFTWARE\\VDU Client";
+	HKEY hkey;
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_WRITE, &hkey) != ERROR_SUCCESS)
+	{
+		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
+		{
+			MessageBox(L"Failed to read registry", L"VDU Client", MB_ICONASTERISK);
+			return FALSE;
+		}
+	}
+
+	RegSetValueEx(hkey, name, 0, type, (BYTE*)value, sizeof(wchar_t) * (wcslen(value) + 1));
+
+	RegCloseKey(hkey);
+	return TRUE;
 }
 
 void CVDUClientDlg::PostNcDestroy()
@@ -394,11 +422,13 @@ void CVDUClientDlg::OnEnChangeServerAddress()
 	// with the ENM_CHANGE flag ORed into the mask.
 
 	// TODO:  Add your control notification handler code here
+
+
 	CString serverAddr;
 	GetDlgItem(IDC_SERVER_ADDRESS)->GetWindowText(serverAddr);
+	SetRegValueSz(L"LastServerAddress", serverAddr);
 
 	//TODO: Set default server
-
 }
 
 UINT conthreadproc(LPVOID pCon)
@@ -412,6 +442,8 @@ UINT conthreadproc(LPVOID pCon)
 
 void CVDUClientDlg::OnBnClickedConnect()
 {
+	//TODO: WINDOW TEXT IS NOT STATIC LOCATION DOESNT EXIST
+
 	CString serverAddr;
 	GetDlgItem(IDC_SERVER_ADDRESS)->GetWindowText(serverAddr);
 	AfxBeginThread(conthreadproc, LPVOID(new CVDUConnection(this, serverAddr, VDUAPIType::GET_PING)));
