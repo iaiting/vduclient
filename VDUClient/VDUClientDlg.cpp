@@ -214,10 +214,11 @@ BOOL CVDUClientDlg::OnInitDialog()
 	GetDlgItem(IDC_SERVER_ADDRESS)->SetWindowText(m_server);
 	GetDlgItem(IDC_USERNAME)->SetWindowText(m_username);
 
-	SetRegValueI(L"AutoLogin", 1);
-
 	DWORD autoLogin = FALSE;
 	GetRegValueI(L"AutoLogin", autoLogin, &autoLogin);
+
+	DWORD useCertToLogin = FALSE;
+	GetRegValueI(L"UseCertToLogin", useCertToLogin, &useCertToLogin);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -235,14 +236,14 @@ BOOL CVDUClientDlg::GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out
 		}
 	}
 
-	if (RegQueryValueEx(hkey, name, 0, &type, (LPBYTE)out_value, &maxOutvalueSize) != ERROR_SUCCESS)
+	LSTATUS res;
+	if ((res = RegQueryValueEx(hkey, name, 0, &type, (LPBYTE)out_value, &maxOutvalueSize)) != ERROR_SUCCESS)
 	{
-		RegSetValueEx(hkey, name, 0, type, (BYTE*)defaultValue, (DWORD)(sizeof(wchar_t) * (wcslen(defaultValue) + 1)));
+		res = RegSetValueEx(hkey, name, 0, type, (BYTE*)defaultValue, maxOutvalueSize);
 	}
 
 	RegCloseKey(hkey);
-
-	return TRUE;
+	return res == ERROR_SUCCESS;
 }
 
 BOOL CVDUClientDlg::GetRegValueI(LPCTSTR name, DWORD defaultValue, PDWORD out_value)
@@ -259,22 +260,23 @@ BOOL CVDUClientDlg::GetRegValueI(LPCTSTR name, DWORD defaultValue, PDWORD out_va
 	}
 
 	DWORD maxOutvalueSize = sizeof(defaultValue);
-	if (RegQueryValueEx(hkey, name, 0, &type, (LPBYTE)out_value, &maxOutvalueSize) != ERROR_SUCCESS)
+	LSTATUS res;
+	if ((res = RegQueryValueEx(hkey, name, 0, &type, (LPBYTE)out_value, &maxOutvalueSize)) != ERROR_SUCCESS)
 	{
-		RegSetValueEx(hkey, name, 0, type, (BYTE*)defaultValue, maxOutvalueSize);
+		res = RegSetValueEx(hkey, name, 0, type, (BYTE*)&defaultValue, maxOutvalueSize);
 	}
 
 	RegCloseKey(hkey);
-	return TRUE;
+	return res == ERROR_SUCCESS;
 }
 
 BOOL CVDUClientDlg::SetRegValueI(LPCTSTR name, DWORD value)
 {
 	ULONG type = REG_DWORD;
 	HKEY hkey;
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, KEY_ALL_ACCESS, &hkey) != ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
 	{
-		if (RegCreateKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hkey, NULL) != ERROR_SUCCESS)
+		if (RegCreateKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
 		{
 			MessageBox(L"Failed to read registry", L"VDU Client", MB_ICONASTERISK);
 			return FALSE;
@@ -282,29 +284,29 @@ BOOL CVDUClientDlg::SetRegValueI(LPCTSTR name, DWORD value)
 	}
 
 	DWORD maxOutvalueSize = sizeof(value);
-	RegSetValueEx(hkey, name, 0, type, (BYTE*)value, maxOutvalueSize);
+	LSTATUS res = RegSetValueEx(hkey, name, 0, type, (BYTE*)&value, maxOutvalueSize);
 
 	RegCloseKey(hkey);
-	return TRUE;
+	return res == ERROR_SUCCESS;
 }
 
 BOOL CVDUClientDlg::SetRegValueSz(LPCTSTR name, LPCTSTR value)
 {
 	ULONG type = REG_SZ;
 	HKEY hkey;
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, KEY_ALL_ACCESS, &hkey) != ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
 	{
-		if (RegCreateKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hkey, NULL) != ERROR_SUCCESS)
+		if (RegCreateKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
 		{
 			MessageBox(L"Failed to read registry", L"VDU Client", MB_ICONASTERISK);
 			return FALSE;
 		}
 	}
 
-	RegSetValueEx(hkey, name, 0, type, (BYTE*)value, DWORD(sizeof(wchar_t) * (wcslen(value) + 1)));
+	LSTATUS res = RegSetValueEx(hkey, name, 0, type, (BYTE*)value, DWORD(sizeof(wchar_t) * (wcslen(value) + 1)));
 
 	RegCloseKey(hkey);
-	return TRUE;
+	return res == ERROR_SUCCESS;
 }
 
 void CVDUClientDlg::PostNcDestroy()
@@ -558,10 +560,10 @@ void CVDUClientDlg::OnBnClickedCheckCertificate()
 
 	if (useCert)
 	{
-		GetDlgItem(IDC_BROWSE_CERT)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BROWSE_CERT)->EnableWindow(TRUE);
 	}
 	else
 	{
-		GetDlgItem(IDC_BROWSE_CERT)->EnableWindow(TRUE);
+		GetDlgItem(IDC_BROWSE_CERT)->EnableWindow(FALSE);
 	}
 }
