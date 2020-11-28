@@ -5,40 +5,6 @@
 #include "afxdialogex.h"
 #include <afxinet.h>
 
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#endif
-
-// CAboutDlg dialog used for App About
-class CAboutDlg : public CDialogEx
-{
-public:
-	CAboutDlg();
-
-// Dialog Data
-#ifdef AFX_DESIGN_TIME
-	enum { IDD = IDD_ABOUTBOX };
-#endif
-
-	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-
-// Implementation
-protected:
-	DECLARE_MESSAGE_MAP()
-};
-
-CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
-{
-}
-
-void CAboutDlg::DoDataExchange(CDataExchange* pDX)
-{
-	CDialogEx::DoDataExchange(pDX);
-}
-
-BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
-END_MESSAGE_MAP()
 
 //Declares valid VDU api types
 enum class VDUAPIType
@@ -74,7 +40,9 @@ void CVDUConnection::Process()
 	int httpVerb;
 	LPCTSTR apiPath = NULL;
 
-	m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Not Connected");
+	m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Connecting...");
+	CProgressCtrl* pBar = (CProgressCtrl*)m_wnd->GetDlgItem(IDC_PROGRESSBAR);
+	pBar->SetPos(0);
 
 	switch (m_type)
 	{
@@ -83,37 +51,54 @@ void CVDUConnection::Process()
 		apiPath = L"/ping";
 		break;
 	default:
-		MessageBox(m_wnd->GetSafeHwnd(), L"Invalid VDUAPI Type", L"VDU Connection", MB_ICONASTERISK);
+		m_wnd->MessageBox(L"Invalid VDUAPI Type", L"VDU Connection", MB_ICONASTERISK);
 		return;
 	}
 	CHttpConnection* con = m_session->GetHttpConnection(m_serverURL, (INTERNET_PORT)4443, NULL, NULL);
 	CHttpFile* pFile = con->OpenRequest(httpVerb, apiPath, NULL, 1, NULL, NULL, INTERNET_FLAG_SECURE
-//#ifdef _DEBUG
+#ifdef _DEBUG
 		| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
 	DWORD opt;
 	pFile->QueryOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
 	opt |= SECURITY_FLAG_IGNORE_UNKNOWN_CA;
 	pFile->SetOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
-/*#else 
+#else 
 		);
-#endif*/
+#endif
 
-	if (!pFile->SendRequest())
+	TRY
 	{
-		MessageBox(m_wnd->GetSafeHwnd(), L"Failed to send request", L"VDU Connection", MB_ICONASTERISK);
-		return;
-	}
+		pBar->SetPos(50);
 
-	DWORD statusCode;
-	if (!pFile->QueryInfoStatusCode(statusCode))
+		if (!pFile->SendRequest())
+		{
+			m_wnd->MessageBox(L"Failed to send request", L"VDU Connection", MB_ICONASTERISK);
+			return;
+		}
+
+		DWORD statusCode;
+		if (!pFile->QueryInfoStatusCode(statusCode))
+		{
+			m_wnd->MessageBox(L"Failed to query status code", L"VDU Connection", MB_ICONASTERISK);
+			return;
+		}
+
+		m_wnd->TrayNotify(m_serverURL, L"Connected successfuly.", SIID_DRIVENET);
+		m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Connected");
+		pBar->SetPos(100);
+		pBar->SetState(PBST_NORMAL);
+		m_wnd->SetConnected(TRUE);
+	}
+	CATCH(CInternetException, e)
 	{
-		MessageBox(m_wnd->GetSafeHwnd(), L"Failed to query status code", L"VDU Connection", MB_ICONASTERISK);
-		return;
+		m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Not connected to server");
+		m_wnd->SetConnected(FALSE);
+		pBar->SetPos(100);
+		pBar->SetState(PBST_ERROR);
+		m_wnd->MessageBox(L"Failed to connect to server\r\nPlease check the server address", L"VDU Connection", MB_ICONASTERISK);
+		//THROW(e);
 	}
-
-	m_wnd->TrayNotify(L"Connected", m_serverURL, SIID_DRIVENET);
-	m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Connected");
-
+	END_CATCH;
 	pFile->Close();
 	con->Close();
 	m_session->Close();
@@ -137,6 +122,8 @@ CVDUConnection::~CVDUConnection()
 #define ID_SYSTEMTRAY 0x1000
 #define WM_TRAYICON_EVENT (WM_APP + 1)
 #define WM_TRAY_EXIT (WM_APP + 2)
+#define WM_TRAY_AUTORUN_TOGGLE (WM_APP + 3)
+#define WM_TRAY_AUTOLOGIN_TOGGLE (WM_APP + 4)
 
 // CVDUClientDlg dialog
 CVDUClientDlg::CVDUClientDlg(CWnd* pParent /*=nullptr*/) : CDialogEx(IDD_VDUCLIENT_DIALOG, pParent)
@@ -158,6 +145,9 @@ BEGIN_MESSAGE_MAP(CVDUClientDlg, CDialogEx)
 	ON_EN_CHANGE(IDC_SERVER_ADDRESS, &CVDUClientDlg::OnEnChangeServerAddress)
 	ON_BN_CLICKED(IDC_CONNECT, &CVDUClientDlg::OnBnClickedConnect)
 	ON_COMMAND(WM_TRAY_EXIT, &CVDUClientDlg::OnTrayExitCommand)
+	ON_BN_CLICKED(IDC_BUTTON_LOGIN, &CVDUClientDlg::OnBnClickedButtonLogin)
+	ON_EN_CHANGE(IDC_USERNAME, &CVDUClientDlg::OnEnChangeUsername)
+	ON_BN_CLICKED(IDC_CHECK_CERTIFICATE, &CVDUClientDlg::OnBnClickedCheckCertificate)
 END_MESSAGE_MAP()
 
 // CVDUClientDlg message handlers
@@ -212,13 +202,22 @@ BOOL CVDUClientDlg::OnInitDialog()
 		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_EXIT, L"Exit");
 	}
 
-	//TOTO: Set default server
-	if (StringCchCopy(m_server, ARRAYSIZE(m_server), L"lol") != S_OK)
+	if (StringCchCopy(m_server, ARRAYSIZE(m_server), L"") != S_OK)
+		return FALSE;
+
+	if (StringCchCopy(m_username, ARRAYSIZE(m_username), L"") != S_OK)
 		return FALSE;
 
 	GetRegValueSz(L"LastServerAddress", m_server, m_server, ARRAYSIZE(m_server));
+	GetRegValueSz(L"LastUserName", m_username, m_username, ARRAYSIZE(m_username));
 
 	GetDlgItem(IDC_SERVER_ADDRESS)->SetWindowText(m_server);
+	GetDlgItem(IDC_USERNAME)->SetWindowText(m_username);
+
+	SetRegValueI(L"AutoLogin", 1);
+
+	DWORD autoLogin = FALSE;
+	GetRegValueI(L"AutoLogin", autoLogin, &autoLogin);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -226,11 +225,10 @@ BOOL CVDUClientDlg::OnInitDialog()
 BOOL CVDUClientDlg::GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out_value, DWORD maxOutvalueSize)
 {
 	ULONG type = REG_SZ;
-	LPCTSTR path = L"SOFTWARE\\VDU Client";
 	HKEY hkey;
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
 	{
-		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
+		if (RegCreateKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
 		{
 			MessageBox(L"Failed to read registry", L"VDU Client", MB_ICONASTERISK);
 			return FALSE;
@@ -239,7 +237,7 @@ BOOL CVDUClientDlg::GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out
 
 	if (RegQueryValueEx(hkey, name, 0, &type, (LPBYTE)out_value, &maxOutvalueSize) != ERROR_SUCCESS)
 	{
-		RegSetValueEx(hkey, name, 0, type, (BYTE*)defaultValue, sizeof(wchar_t) * (wcslen(defaultValue) + 1));
+		RegSetValueEx(hkey, name, 0, type, (BYTE*)defaultValue, (DWORD)(sizeof(wchar_t) * (wcslen(defaultValue) + 1)));
 	}
 
 	RegCloseKey(hkey);
@@ -247,21 +245,63 @@ BOOL CVDUClientDlg::GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out
 	return TRUE;
 }
 
-BOOL CVDUClientDlg::SetRegValueSz(LPCTSTR name, LPCTSTR value)
+BOOL CVDUClientDlg::GetRegValueI(LPCTSTR name, DWORD defaultValue, PDWORD out_value)
 {
-	ULONG type = REG_SZ;
-	LPCTSTR path = L"SOFTWARE\\VDU Client";
+	ULONG type = REG_DWORD;
 	HKEY hkey;
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_WRITE, &hkey) != ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
 	{
-		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
+		if (RegCreateKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
 		{
 			MessageBox(L"Failed to read registry", L"VDU Client", MB_ICONASTERISK);
 			return FALSE;
 		}
 	}
 
-	RegSetValueEx(hkey, name, 0, type, (BYTE*)value, sizeof(wchar_t) * (wcslen(value) + 1));
+	DWORD maxOutvalueSize = sizeof(defaultValue);
+	if (RegQueryValueEx(hkey, name, 0, &type, (LPBYTE)out_value, &maxOutvalueSize) != ERROR_SUCCESS)
+	{
+		RegSetValueEx(hkey, name, 0, type, (BYTE*)defaultValue, maxOutvalueSize);
+	}
+
+	RegCloseKey(hkey);
+	return TRUE;
+}
+
+BOOL CVDUClientDlg::SetRegValueI(LPCTSTR name, DWORD value)
+{
+	ULONG type = REG_DWORD;
+	HKEY hkey;
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, KEY_ALL_ACCESS, &hkey) != ERROR_SUCCESS)
+	{
+		if (RegCreateKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hkey, NULL) != ERROR_SUCCESS)
+		{
+			MessageBox(L"Failed to read registry", L"VDU Client", MB_ICONASTERISK);
+			return FALSE;
+		}
+	}
+
+	DWORD maxOutvalueSize = sizeof(value);
+	RegSetValueEx(hkey, name, 0, type, (BYTE*)value, maxOutvalueSize);
+
+	RegCloseKey(hkey);
+	return TRUE;
+}
+
+BOOL CVDUClientDlg::SetRegValueSz(LPCTSTR name, LPCTSTR value)
+{
+	ULONG type = REG_SZ;
+	HKEY hkey;
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, KEY_ALL_ACCESS, &hkey) != ERROR_SUCCESS)
+	{
+		if (RegCreateKeyEx(HKEY_CURRENT_USER, VDU_REGPATH, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hkey, NULL) != ERROR_SUCCESS)
+		{
+			MessageBox(L"Failed to read registry", L"VDU Client", MB_ICONASTERISK);
+			return FALSE;
+		}
+	}
+
+	RegSetValueEx(hkey, name, 0, type, (BYTE*)value, DWORD(sizeof(wchar_t) * (wcslen(value) + 1)));
 
 	RegCloseKey(hkey);
 	return TRUE;
@@ -273,9 +313,53 @@ void CVDUClientDlg::PostNcDestroy()
 	CDialogEx::PostNcDestroy();
 }
 
+void CVDUClientDlg::SetConnected(BOOL bConnected)
+{
+	//if (m_connected == bConnected)
+	//	return;
+
+	m_connected = bConnected;
+	
+	if (m_connected)
+	{
+		GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(FALSE);
+		GetDlgItem(IDC_CONNECT)->EnableWindow(TRUE);
+		GetDlgItem(IDC_CONNECT)->SetWindowText(L"Disconnect");
+		GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
+		//GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
+		GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
+		GetDlgItem(IDC_CHECK_CERTIFICATE)->EnableWindow(TRUE);
+	}
+	else
+	{
+		GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
+		GetDlgItem(IDC_CONNECT)->EnableWindow(TRUE);
+		GetDlgItem(IDC_CONNECT)->SetWindowText(L"Connect");
+		GetDlgItem(IDC_USERNAME)->EnableWindow(FALSE);
+		//GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(FALSE);
+		GetDlgItem(IDC_CHECK_CERTIFICATE)->EnableWindow(FALSE);
+	}
+}
+
+BOOL CVDUClientDlg::IsConnected()
+{
+	return m_connected;
+}
+
 BOOL CVDUClientDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 {
 	return CDialogEx::OnCommand(wParam, lParam);
+}
+
+void CVDUClientDlg::OnOK()
+{
+
+}
+
+void CVDUClientDlg::OnCancel()
+{
+
 }
 
 BOOL CVDUClientDlg::TrayTip(LPCTSTR szTip)
@@ -320,8 +404,8 @@ void CVDUClientDlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
 	if ((nID & 0xFFF0) == IDM_ABOUTBOX)
 	{
-		CAboutDlg dlgAbout;
-		dlgAbout.DoModal();
+		//CAboutDlg dlgAbout;
+		//dlgAbout.DoModal();
 	}
 	else if ((nID & 0xFFF0) == SC_MINIMIZE)
 	{
@@ -416,19 +500,9 @@ void CVDUClientDlg::OnTrayExitCommand()
 
 void CVDUClientDlg::OnEnChangeServerAddress()
 {
-	// TODO:  If this is a RICHEDIT control, the control will not
-	// send this notification unless you override the CDialogEx::OnInitDialog()
-	// function and call CRichEditCtrl().SetEventMask()
-	// with the ENM_CHANGE flag ORed into the mask.
-
-	// TODO:  Add your control notification handler code here
-
-
 	CString serverAddr;
 	GetDlgItem(IDC_SERVER_ADDRESS)->GetWindowText(serverAddr);
 	SetRegValueSz(L"LastServerAddress", serverAddr);
-
-	//TODO: Set default server
 }
 
 UINT conthreadproc(LPVOID pCon)
@@ -442,13 +516,52 @@ UINT conthreadproc(LPVOID pCon)
 
 void CVDUClientDlg::OnBnClickedConnect()
 {
-	//TODO: WINDOW TEXT IS NOT STATIC LOCATION DOESNT EXIST
+	if (IsConnected())
+	{
+		SetConnected(FALSE);
+	}
+	else
+	{
+		CString serverAddr;
+		GetDlgItem(IDC_SERVER_ADDRESS)->GetWindowText(serverAddr);
 
-	CString serverAddr;
-	GetDlgItem(IDC_SERVER_ADDRESS)->GetWindowText(serverAddr);
-	AfxBeginThread(conthreadproc, LPVOID(new CVDUConnection(this, serverAddr, VDUAPIType::GET_PING)));
-	//TrayNotify(L"Yeet",L"Connected");
-	//TrayNotify(L"Notice", L"Full!", SIID_RECYCLERFULL);
-	//TrayTip(L"VDUUUUUUUUUUUUUU\n\n\n\tasd");
-	//GetDlgItem(IDC_CONNECT)->SetWindowText(L"dfdffdfddf");
+		if (serverAddr.IsEmpty())
+		{
+			MessageBox(L"Invalid server address", VDU_TITLENAME, MB_ICONERROR);
+			return;
+		}
+
+		AfxBeginThread(conthreadproc, LPVOID(new CVDUConnection(this, serverAddr, VDUAPIType::GET_PING)));
+		GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(FALSE);
+		GetDlgItem(IDC_CONNECT)->EnableWindow(FALSE);
+	}
+}
+
+
+void CVDUClientDlg::OnBnClickedButtonLogin()
+{
+	// TODO: Add your control notification handler code here
+}
+
+
+void CVDUClientDlg::OnEnChangeUsername()
+{
+	CString name;
+	GetDlgItem(IDC_USERNAME)->GetWindowText(name);
+	SetRegValueSz(L"LastUserName", name);
+}
+
+
+void CVDUClientDlg::OnBnClickedCheckCertificate()
+{
+	BOOL useCert = ((CButton*)GetDlgItem(IDC_CHECK_CERTIFICATE))->GetCheck();
+
+	if (useCert)
+	{
+		GetDlgItem(IDC_BROWSE_CERT)->EnableWindow(FALSE);
+	}
+	else
+	{
+		GetDlgItem(IDC_BROWSE_CERT)->EnableWindow(TRUE);
+	}
 }
