@@ -715,7 +715,6 @@ NTSTATUS VdufsService::OnStart(ULONG argc, PWSTR* argv)
     PWSTR DebugLogFile = (PWSTR)L"vfsdebug.log";
     ULONG DebugFlags = 0;
     //PWSTR VolumePrefix = (PWSTR)L"\\?\\"; /* \\?\C:\ */
-    PWSTR MountPoint = (PWSTR)L"X:";
     HANDLE DebugLogHandle = INVALID_HANDLE_VALUE;
     WCHAR PathBuf[MAX_PATH];
     NTSTATUS Result;
@@ -724,7 +723,7 @@ NTSTATUS VdufsService::OnStart(ULONG argc, PWSTR* argv)
     size_t len;
     _wdupenv_s(&localappdata, &len, L"localappdata");
 
-    swprintf_s(PathBuf, L"%s/%s", localappdata, L"VDU");
+    swprintf_s(PathBuf, L"%s/%s", localappdata, L"$VDUClient");
 
     CreateDirectory(PathBuf, NULL); //TODO: Check success?
 
@@ -750,10 +749,9 @@ NTSTATUS VdufsService::OnStart(ULONG argc, PWSTR* argv)
         return Result;
     }
 
-
     _Host.SetFileSystemName((PWSTR)L"VDU");
-    //_Host.SetPrefix(VolumePrefix);
-    Result = _Host.Mount(MountPoint, 0, FALSE, DebugFlags);
+
+    Result = _Host.Mount(L"A:", 0, FALSE, DebugFlags);
     if (!NT_SUCCESS(Result))
     {
         fail(L"cannot mount file system");
