@@ -17,19 +17,24 @@ enum class VDUAPIType
 	DELETE_FILE, //Invalidate file token
 };
 
+typedef void (*VDU_CONNECTION_CALLBACK)(CHttpFile* httpResponse);
+
+//A single connection to a VDU server, halts thread it is executed on
 class CVDUConnection
 {
 protected:
-	CVDUClientDlg* m_wnd;
-	WCHAR m_serverURL[INTERNET_MAX_HOST_NAME_LENGTH];
-	CInternetSession* m_session;
-	VDUAPIType m_type;
+	CVDUClientDlg* m_wnd; //Main window
+	TCHAR m_serverURL[INTERNET_MAX_HOST_NAME_LENGTH]; //Server url to connect to
+	CInternetSession* m_session; //Current internet session
+	VDUAPIType m_type; //Which API to call
+	TCHAR m_parameter[INTERNET_MAX_HOST_NAME_LENGTH]; //Http path parameter
+	VDU_CONNECTION_CALLBACK m_callback; //Function to call after http file is received
 public:
 	//Sets up the connection
-	CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type);
-	//~CVDUConnection();
+	CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type, LPCTSTR parameter, VDU_CONNECTION_CALLBACK callback);
 
-	//Processess the connection
+	//Processes the connection and halts executing thread until done
+	//Should NOT be run in main thread
 	void Process();
 };
 
@@ -53,7 +58,25 @@ void CVDUConnection::Process()
 	case VDUAPIType::POST_AUTH_KEY:
 	{
 		httpVerb = CHttpConnection::HTTP_VERB_POST;
-		apiPath = L"/ping";
+		apiPath = L"/auth/key";
+		break;
+	}
+	case VDUAPIType::GET_AUTH_KEY:
+	{
+		httpVerb = CHttpConnection::HTTP_VERB_GET;
+		apiPath = L"/auth/key";
+		break;
+	}
+	case VDUAPIType::DELETE_AUTH_KEY:
+	{
+		httpVerb = CHttpConnection::HTTP_VERB_DELETE;
+		apiPath = L"/auth/key";
+		break;
+	}
+	case VDUAPIType::GET_FILE:
+	{
+		httpVerb = CHttpConnection::HTTP_VERB_GET;
+		apiPath = L"/file/";
 		break;
 	}
 	default:
@@ -61,6 +84,9 @@ void CVDUConnection::Process()
 		return;
 	}
 
+
+	TCHAR httpObjectPath[INTERNET_MAX_HOST_NAME_LENGTH];
+	wsprintfW(httpObjectPath, L"%s%s", apiPath, m_parameter);
 	CHttpConnection* con = m_session->GetHttpConnection(m_serverURL, (INTERNET_PORT)4443, NULL, NULL);
 	CHttpFile* pFile = con->OpenRequest(httpVerb, apiPath, NULL, 1, NULL, NULL, INTERNET_FLAG_SECURE
 #ifdef _DEBUG //Ignores certificates in debug mode
@@ -83,12 +109,12 @@ void CVDUConnection::Process()
 			return;
 		}
 
-		DWORD statusCode;
+		/*DWORD statusCode;
 		if (!pFile->QueryInfoStatusCode(statusCode))
 		{
 			m_wnd->MessageBox(L"Failed to query status code", L"VDU Connection", MB_ICONWARNING);
 			return;
-		}
+		}*/
 
 		m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Connected");
 		m_wnd->GetProgressBar()->SetPos(100);
@@ -107,6 +133,10 @@ void CVDUConnection::Process()
 	}
 	END_CATCH;
 
+	//Call our callback
+	if (m_callback != nullptr)
+		m_callback(pFile);
+
 	pFile->Close();
 	con->Close();
 	m_session->Close();
@@ -114,13 +144,17 @@ void CVDUConnection::Process()
 }
 
 //Constructing connection does not initiate it
-CVDUConnection::CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type)
+CVDUConnection::CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type, LPCTSTR parameter, VDU_CONNECTION_CALLBACK callback) :
+	m_session(nullptr), m_wnd(mainWnd), m_type(type), m_callback(callback)
 {
-	m_session = NULL;
 	StringCchCopy(m_serverURL, ARRAYSIZE(m_serverURL), serverURL);
-	m_wnd = mainWnd;
-	m_type = type;
+	StringCchCopy(m_parameter, ARRAYSIZE(m_parameter), parameter);
 }
+
+class CVDUSession
+{
+public:
+};
 
 #define ID_SYSTEMTRAY 0x1000
 #define WM_TRAYICON_EVENT (WM_APP + 1)
@@ -270,7 +304,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 		for (int i = 0; i < ARRAYSIZE(letters); i++)
 		{
 			const TCHAR* letter = letters[i];
-			BOOL isTaken = drives & (1 << i);
+			BOOL isTaken = (drives & (1 << i)) != 0;
 
 			if (!isTaken)
 			{
@@ -283,6 +317,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 		}
 
 		comboDriveLetter->EnableWindow(TRUE);
+		GetDlgItem(IDC_STATIC_DRIVELETTER)->EnableWindow(TRUE);
 	}
 
 	return !silent;  // return TRUE  unless you set the focus to a control
@@ -374,7 +409,6 @@ BOOL CVDUClientDlg::SetRegValueSz(LPCTSTR name, LPCTSTR value, LPCTSTR path)
 	return res == ERROR_SUCCESS;
 }
 
-
 void CVDUClientDlg::PostNcDestroy()
 {
 	Shell_NotifyIcon(NIM_DELETE, &m_trayData);
@@ -386,7 +420,6 @@ BOOL CVDUClientDlg::IsLoginUsingCertificate()
 	return ((CButton*)GetDlgItem(IDC_CHECK_CERTIFICATE))->GetCheck();
 }
 
-
 CProgressCtrl* CVDUClientDlg::GetProgressBar()
 {
 	return m_progressBar;
@@ -394,9 +427,6 @@ CProgressCtrl* CVDUClientDlg::GetProgressBar()
 
 void CVDUClientDlg::SetConnected(BOOL bConnected)
 {
-	//if (m_connected == bConnected)
-	//	return;
-
 	m_connected = bConnected;
 	
 	if (m_connected)
@@ -501,10 +531,6 @@ void CVDUClientDlg::OnSysCommand(UINT nID, LPARAM lParam)
 		CDialogEx::OnSysCommand(nID, lParam);
 	}
 }
-
-// If you add a minimize button to your dialog, you will need the code below
-//  to draw the icon.  For MFC applications using the document/view model,
-//  this is automatically done for you by the framework.
 
 void CVDUClientDlg::OnPaint()
 {
@@ -634,6 +660,7 @@ void CVDUClientDlg::OnBnClickedConnect()
 		}
 
 		AfxBeginThread(conthreadproc, LPVOID(new CVDUConnection(this, serverAddr, VDUAPIType::GET_PING)));
+		GetDlgItem(IDC_CONNECT)->GetFocus();
 		GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(FALSE);
 		GetDlgItem(IDC_CONNECT)->EnableWindow(FALSE);
 	}

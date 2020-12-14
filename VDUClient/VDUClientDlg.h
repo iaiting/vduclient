@@ -36,8 +36,6 @@ protected:
 	NOTIFYICONDATA m_trayData;
 	CProgressCtrl* m_progressBar;
 
-	//UINT conthreadproc(LPVOID);
-
 	// Generated message map functions
 	virtual BOOL OnInitDialog();
 	afx_msg BOOL OnCommand(WPARAM wParam, LPARAM lParam);
@@ -53,24 +51,29 @@ protected:
 	afx_msg void OnAutologinToggleCommand();
 	DECLARE_MESSAGE_MAP()
 public:
+	/*Registry handling functions*/
 	BOOL GetRegValueI(LPCTSTR name, DWORD defaultValue, PDWORD out_value, LPCTSTR path = VDU_REGPATH);
 	BOOL SetRegValueI(LPCTSTR name, DWORD value, LPCTSTR path = VDU_REGPATH);
-	BOOL GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out_value, DWORD maxOutvalueSize = 0x400, LPCTSTR path = VDU_REGPATH);
+	BOOL GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, LPCTSTR path = VDU_REGPATH);
 	BOOL SetRegValueSz(LPCTSTR name, LPCTSTR value, LPCTSTR path = VDU_REGPATH);
+
 	//Creates a notification bubble
 	BOOL TrayNotify(LPCTSTR szTitle, LPCTSTR szText, SHSTOCKICONID siid = SIID_DRIVENET);
 	//Sets the tray hover tip
 	BOOL TrayTip(LPCTSTR szTip);
 
+	//Bottom progress bar
 	CProgressCtrl* GetProgressBar();
 
+	//Is connected to the server
 	void SetConnected(BOOL bConnected);
 	BOOL IsConnected();
 
+	//Uses certificate to log in
 	BOOL IsLoginUsingCertificate();
 
 	//Set the client status text, in multiple places
-	BOOL SetStatusText(LPCTSTR szText);
+	BOOL SetStatus(LPCTSTR szText);
 
 public:
 	afx_msg void OnEnChangeServerAddress();
