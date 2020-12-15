@@ -36,6 +36,12 @@
     <ClInclude Include="VDUFilesystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="VDUConnection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VDUSession.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VDUClient.cpp">
@@ -48,6 +54,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="VDUFilesystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VDUConnection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VDUSession.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -4,7 +4,7 @@
 #define new DEBUG_NEW
 #endif
 
-#include <afxinet.h>
+#include "VDUSession.h"
 
 #define VDU_TITLENAME L"VDU Client"
 #define VDU_REGPATH L"SOFTWARE\\VDU Client"
@@ -35,6 +35,7 @@ protected:
 	CMenu* m_trayMenu;
 	NOTIFYICONDATA m_trayData;
 	CProgressCtrl* m_progressBar;
+	CVDUSession* m_session;
 
 	// Generated message map functions
 	virtual BOOL OnInitDialog();
@@ -54,8 +55,8 @@ public:
 	/*Registry handling functions*/
 	BOOL GetRegValueI(LPCTSTR name, DWORD defaultValue, PDWORD out_value, LPCTSTR path = VDU_REGPATH);
 	BOOL SetRegValueI(LPCTSTR name, DWORD value, LPCTSTR path = VDU_REGPATH);
-	BOOL GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, LPCTSTR path = VDU_REGPATH);
-	BOOL SetRegValueSz(LPCTSTR name, LPCTSTR value, LPCTSTR path = VDU_REGPATH);
+	BOOL GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, LPCTSTR path = VDU_REGPATH, ULONG type = REG_SZ);
+	BOOL SetRegValueSz(LPCTSTR name, LPCTSTR value, LPCTSTR path = VDU_REGPATH, ULONG type = REG_SZ);
 
 	//Creates a notification bubble
 	BOOL TrayNotify(LPCTSTR szTitle, LPCTSTR szText, SHSTOCKICONID siid = SIID_DRIVENET);
@@ -64,7 +65,10 @@ public:
 
 	//Bottom progress bar
 	CProgressCtrl* GetProgressBar();
+	//Return VDU session
+	CVDUSession* GetSession();
 
+	void TryConnectSession();
 	//Is connected to the server
 	void SetConnected(BOOL bConnected);
 	BOOL IsConnected();

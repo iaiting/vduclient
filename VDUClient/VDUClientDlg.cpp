@@ -4,158 +4,6 @@
 #include "VDUClientDlg.h"
 #include "afxdialogex.h"
 
-
-//Declares valid VDU api types
-enum class VDUAPIType
-{
-	GET_PING, //Ping the server
-	GET_AUTH_KEY, //Refresh auth key
-	POST_AUTH_KEY, //Get auth key for the first time
-	DELETE_AUTH_KEY, //Invalidate auth key
-	GET_FILE, //Download file
-	POST_FILE, //Upload file
-	DELETE_FILE, //Invalidate file token
-};
-
-typedef void (*VDU_CONNECTION_CALLBACK)(CHttpFile* httpResponse);
-
-//A single connection to a VDU server, halts thread it is executed on
-class CVDUConnection
-{
-protected:
-	CVDUClientDlg* m_wnd; //Main window
-	TCHAR m_serverURL[INTERNET_MAX_HOST_NAME_LENGTH]; //Server url to connect to
-	CInternetSession* m_session; //Current internet session
-	VDUAPIType m_type; //Which API to call
-	TCHAR m_parameter[INTERNET_MAX_HOST_NAME_LENGTH]; //Http path parameter
-	VDU_CONNECTION_CALLBACK m_callback; //Function to call after http file is received
-public:
-	//Sets up the connection
-	CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type, LPCTSTR parameter, VDU_CONNECTION_CALLBACK callback);
-
-	//Processes the connection and halts executing thread until done
-	//Should NOT be run in main thread
-	void Process();
-};
-
-void CVDUConnection::Process()
-{
-	m_session = new CInternetSession(L"VDUClient 1.0, Windows");
-	int httpVerb;
-	LPCTSTR apiPath = NULL;
-
-	m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Connecting...");
-	m_wnd->GetProgressBar()->SetPos(0);
-
-	switch (m_type)
-	{
-	case VDUAPIType::GET_PING:
-	{
-		httpVerb = CHttpConnection::HTTP_VERB_GET;
-		apiPath = L"/ping";
-		break; 
-	}
-	case VDUAPIType::POST_AUTH_KEY:
-	{
-		httpVerb = CHttpConnection::HTTP_VERB_POST;
-		apiPath = L"/auth/key";
-		break;
-	}
-	case VDUAPIType::GET_AUTH_KEY:
-	{
-		httpVerb = CHttpConnection::HTTP_VERB_GET;
-		apiPath = L"/auth/key";
-		break;
-	}
-	case VDUAPIType::DELETE_AUTH_KEY:
-	{
-		httpVerb = CHttpConnection::HTTP_VERB_DELETE;
-		apiPath = L"/auth/key";
-		break;
-	}
-	case VDUAPIType::GET_FILE:
-	{
-		httpVerb = CHttpConnection::HTTP_VERB_GET;
-		apiPath = L"/file/";
-		break;
-	}
-	default:
-		m_wnd->MessageBox(L"Invalid VDUAPI Type", L"VDU Connection", MB_ICONWARNING);
-		return;
-	}
-
-
-	TCHAR httpObjectPath[INTERNET_MAX_HOST_NAME_LENGTH];
-	wsprintfW(httpObjectPath, L"%s%s", apiPath, m_parameter);
-	CHttpConnection* con = m_session->GetHttpConnection(m_serverURL, (INTERNET_PORT)4443, NULL, NULL);
-	CHttpFile* pFile = con->OpenRequest(httpVerb, apiPath, NULL, 1, NULL, NULL, INTERNET_FLAG_SECURE
-#ifdef _DEBUG //Ignores certificates in debug mode
-		| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
-	DWORD opt;
-	pFile->QueryOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
-	opt |= SECURITY_FLAG_IGNORE_UNKNOWN_CA;
-	pFile->SetOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
-#else 
-		);
-#endif
-
-	TRY
-	{
-		m_wnd->GetProgressBar()->SetPos(50);
-
-		if (!pFile->SendRequest())
-		{
-			m_wnd->MessageBox(L"Failed to send request", L"VDU Connection", MB_ICONWARNING);
-			return;
-		}
-
-		/*DWORD statusCode;
-		if (!pFile->QueryInfoStatusCode(statusCode))
-		{
-			m_wnd->MessageBox(L"Failed to query status code", L"VDU Connection", MB_ICONWARNING);
-			return;
-		}*/
-
-		m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Connected");
-		m_wnd->GetProgressBar()->SetPos(100);
-		m_wnd->GetProgressBar()->SetState(PBST_NORMAL);
-		m_wnd->SetConnected(TRUE);
-		m_wnd->TrayNotify(m_serverURL, L"Connected successfuly.", SIID_DRIVENET);
-	}
-	CATCH(CInternetException, e)
-	{
-		m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Not connected to server");
-		m_wnd->SetConnected(FALSE);
-		m_wnd->GetProgressBar()->SetPos(100);
-		m_wnd->GetProgressBar()->SetState(PBST_ERROR);
-		m_wnd->MessageBox(L"Failed to connect to server\r\nPlease check the server address", L"VDU Connection", MB_ICONWARNING);
-		//THROW(e);
-	}
-	END_CATCH;
-
-	//Call our callback
-	if (m_callback != nullptr)
-		m_callback(pFile);
-
-	pFile->Close();
-	con->Close();
-	m_session->Close();
-	delete m_session;
-}
-
-//Constructing connection does not initiate it
-CVDUConnection::CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type, LPCTSTR parameter, VDU_CONNECTION_CALLBACK callback) :
-	m_session(nullptr), m_wnd(mainWnd), m_type(type), m_callback(callback)
-{
-	StringCchCopy(m_serverURL, ARRAYSIZE(m_serverURL), serverURL);
-	StringCchCopy(m_parameter, ARRAYSIZE(m_parameter), parameter);
-}
-
-class CVDUSession
-{
-public:
-};
-
 #define ID_SYSTEMTRAY 0x1000
 #define WM_TRAYICON_EVENT (WM_APP + 1)
 #define WM_TRAY_EXIT (WM_APP + 2)
@@ -223,6 +71,9 @@ BOOL CVDUClientDlg::OnInitDialog()
 	}
 	LocalFree(argv);
 
+	//No session by default
+	m_session = nullptr;
+
 	//Set up tray icon
 	ZeroMemory(&m_trayData, sizeof(m_trayData));
 	m_trayData.cbSize = sizeof(m_trayData);
@@ -256,7 +107,12 @@ BOOL CVDUClientDlg::OnInitDialog()
 		}
 
 		DWORD autoRun = FALSE;
-		GetRegValueI(L"AutoRun", autoRun, &autoRun);
+		//GetRegValueI(L"VDU Client", autoRun, &autoRun, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run");
+
+		if (autoRun == 2)
+		{
+			m_trayMenu->CheckMenuItem(2, MF_BYPOSITION | MF_CHECKED);
+		}
 	}
 
 	if (StringCchCopy(m_server, ARRAYSIZE(m_server), L"") != S_OK)
@@ -298,6 +154,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 			L"M:", L"N:", L"O:", L"P:", L"Q:", L"R:", L"S:", L"T:", L"U:", L"V:", L"W:", L"X:", L"Y:", L"Z:" }; //All available drive letters
 
 		CComboBox* comboDriveLetter = (CComboBox*)GetDlgItem(IDC_COMBO_DRIVELETTER);
+		comboDriveLetter->ModifyStyle(0, CBS_DROPDOWNLIST);
 		TCHAR preferredLetter[128] = {'\0'};
 		GetRegValueSz(L"PreferredDriveLetter", preferredLetter, preferredLetter, ARRAYSIZE(preferredLetter));
 
@@ -323,9 +180,8 @@ BOOL CVDUClientDlg::OnInitDialog()
 	return !silent;  // return TRUE  unless you set the focus to a control
 }
 
-BOOL CVDUClientDlg::GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, LPCTSTR path)
+BOOL CVDUClientDlg::GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, LPCTSTR path, ULONG type)
 {
-	ULONG type = REG_SZ;
 	HKEY hkey;
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
 	{
@@ -390,9 +246,8 @@ BOOL CVDUClientDlg::SetRegValueI(LPCTSTR name, DWORD value, LPCTSTR path)
 	return res == ERROR_SUCCESS;
 }
 
-BOOL CVDUClientDlg::SetRegValueSz(LPCTSTR name, LPCTSTR value, LPCTSTR path)
+BOOL CVDUClientDlg::SetRegValueSz(LPCTSTR name, LPCTSTR value, LPCTSTR path, ULONG type)
 {
-	ULONG type = REG_SZ;
 	HKEY hkey;
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
 	{
@@ -427,8 +282,11 @@ CProgressCtrl* CVDUClientDlg::GetProgressBar()
 
 void CVDUClientDlg::SetConnected(BOOL bConnected)
 {
+	if (bConnected == m_connected)
+		return;
+
 	m_connected = bConnected;
-	
+
 	if (m_connected)
 	{
 		GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(FALSE);
@@ -438,6 +296,11 @@ void CVDUClientDlg::SetConnected(BOOL bConnected)
 		//GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
 		GetDlgItem(IDC_CHECK_CERTIFICATE)->EnableWindow(TRUE);
+
+		if (m_session)
+			delete m_session;
+
+		m_session = new CVDUSession(this, m_server);
 	}
 	else
 	{
@@ -448,12 +311,19 @@ void CVDUClientDlg::SetConnected(BOOL bConnected)
 		//GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(FALSE);
 		GetDlgItem(IDC_CHECK_CERTIFICATE)->EnableWindow(FALSE);
+		delete m_session;
+		m_session = nullptr;
 	}
 }
 
 BOOL CVDUClientDlg::IsConnected()
 {
 	return m_connected;
+}
+
+CVDUSession* CVDUClientDlg::GetSession()
+{
+	return m_session;
 }
 
 BOOL CVDUClientDlg::OnCommand(WPARAM wParam, LPARAM lParam)
@@ -606,7 +476,7 @@ void CVDUClientDlg::OnTrayExitCommand()
 
 void CVDUClientDlg::OnAutorunToggleCommand()
 {
-	TCHAR autoRun[256];
+	//TCHAR autoRun[256];
 
 }
 
@@ -617,13 +487,9 @@ void CVDUClientDlg::OnAutologinToggleCommand()
 	autoLogin = !autoLogin;
 	SetRegValueI(L"AutoLogin", autoLogin);
 	if (autoLogin)
-	{
 		m_trayMenu->CheckMenuItem(1, MF_BYPOSITION | MF_CHECKED);
-	}
 	else
-	{
 		m_trayMenu->CheckMenuItem(1, MF_BYPOSITION | MF_UNCHECKED);
-	}
 }
 
 void CVDUClientDlg::OnEnChangeServerAddress()
@@ -633,14 +499,10 @@ void CVDUClientDlg::OnEnChangeServerAddress()
 	SetRegValueSz(L"LastServerAddress", serverAddr);
 }
 
-UINT conthreadproc(LPVOID pCon)
+void CVDUClientDlg::TryConnectSession()
 {
-	CVDUConnection* con = (CVDUConnection*)pCon;
-	con->Process();
-	delete con;
-	return EXIT_SUCCESS;
+	/*CWinThread* t = */AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(this, m_server, VDUAPIType::GET_PING, L"", &CVDUSession::CallbackPing));
 }
-
 
 void CVDUClientDlg::OnBnClickedConnect()
 {
@@ -659,7 +521,7 @@ void CVDUClientDlg::OnBnClickedConnect()
 			return;
 		}
 
-		AfxBeginThread(conthreadproc, LPVOID(new CVDUConnection(this, serverAddr, VDUAPIType::GET_PING)));
+		TryConnectSession();
 		GetDlgItem(IDC_CONNECT)->GetFocus();
 		GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(FALSE);
 		GetDlgItem(IDC_CONNECT)->EnableWindow(FALSE);
@@ -669,7 +531,8 @@ void CVDUClientDlg::OnBnClickedConnect()
 
 void CVDUClientDlg::OnBnClickedButtonLogin()
 {
-	AfxBeginThread(vdufs_main, 0);
+	//TODO: REMOVE MOVE
+	//AfxBeginThread(vdufs_main, 0);
 }
 
 void CVDUClientDlg::OnEnChangeUsername()

@@ -198,7 +198,9 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="VDUClient.h" />
     <ClInclude Include="VDUClientDlg.h" />
+    <ClInclude Include="VDUConnection.h" />
     <ClInclude Include="VDUFilesystem.h" />
+    <ClInclude Include="VDUSession.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -209,7 +211,9 @@
     </ClCompile>
     <ClCompile Include="VDUClient.cpp" />
     <ClCompile Include="VDUClientDlg.cpp" />
+    <ClCompile Include="VDUConnection.cpp" />
     <ClCompile Include="VDUFilesystem.cpp" />
+    <ClCompile Include="VDUSession.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="VDUClient.rc" />
