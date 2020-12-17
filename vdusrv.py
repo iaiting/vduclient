@@ -17,7 +17,7 @@ def Log(msg):
 def GenerateRandomToken(duplicateCheckDict = None):
     token = ""
     while True:
-        token = token.join(random.choice("abcdefghijklmnopqrstuvwxyz0123456789") for i in range(8))
+        token = token.join(random.choice("abcdefghijklmnopqrstuvwxyz0123456789") for i in range(64))
         if (duplicateCheckDict == None or token not in duplicateCheckDict):
             break
     return token

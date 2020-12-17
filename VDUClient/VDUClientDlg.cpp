@@ -177,6 +177,9 @@ BOOL CVDUClientDlg::OnInitDialog()
 		GetDlgItem(IDC_STATIC_DRIVELETTER)->EnableWindow(TRUE);
 	}
 
+	SetWindowTheme(GetSafeHwnd(), L"Explorer", NULL);
+	SendMessage(WM_THEMECHANGED, 0, 0);
+
 	return !silent;  // return TRUE  unless you set the focus to a control
 }
 
@@ -282,8 +285,8 @@ CProgressCtrl* CVDUClientDlg::GetProgressBar()
 
 void CVDUClientDlg::SetConnected(BOOL bConnected)
 {
-	if (bConnected == m_connected)
-		return;
+	//if (bConnected == m_connected)
+	//	return;
 
 	m_connected = bConnected;
 
@@ -293,9 +296,10 @@ void CVDUClientDlg::SetConnected(BOOL bConnected)
 		GetDlgItem(IDC_CONNECT)->EnableWindow(TRUE);
 		GetDlgItem(IDC_CONNECT)->SetWindowText(L"Disconnect");
 		GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
-		//GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
+		GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
 		GetDlgItem(IDC_CHECK_CERTIFICATE)->EnableWindow(TRUE);
+		GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(FALSE);
 
 		if (m_session)
 			delete m_session;
@@ -308,10 +312,14 @@ void CVDUClientDlg::SetConnected(BOOL bConnected)
 		GetDlgItem(IDC_CONNECT)->EnableWindow(TRUE);
 		GetDlgItem(IDC_CONNECT)->SetWindowText(L"Connect");
 		GetDlgItem(IDC_USERNAME)->EnableWindow(FALSE);
-		//GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(FALSE);
+		GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(FALSE);
 		GetDlgItem(IDC_CHECK_CERTIFICATE)->EnableWindow(FALSE);
-		delete m_session;
+		GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
+
+		if (m_session)
+			delete m_session;
+
 		m_session = nullptr;
 	}
 }
@@ -525,6 +533,7 @@ void CVDUClientDlg::OnBnClickedConnect()
 		GetDlgItem(IDC_CONNECT)->GetFocus();
 		GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(FALSE);
 		GetDlgItem(IDC_CONNECT)->EnableWindow(FALSE);
+		GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(FALSE);
 	}
 }
 

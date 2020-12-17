@@ -6,7 +6,9 @@ class CVDUSession
 {
 protected:
 	CVDUClientDlg* m_wnd; //Main window
-	TCHAR m_serverURL[INTERNET_MAX_HOST_NAME_LENGTH]; //Server url
+	CString m_serverURL; //Server url
+	BOOL m_loggedIn; //Is user logged in
+	CString m_user; //Logged in user
 	CWinThread* m_fsThread; //File system thread
 public:
 
@@ -14,6 +16,8 @@ public:
 	~CVDUSession();
 
 	static void CallbackPing(CVDUClientDlg* wnd, CHttpFile* file);
+	static void CallbackLogin(CVDUClientDlg* wnd, CHttpFile* file);
+	static void CallbackLoginRefresh(CVDUClientDlg* wnd, CHttpFile* file);
 
 	//Login to server using user and ceritificate
 	BOOL Login(LPCTSTR user, LPCTSTR cert);

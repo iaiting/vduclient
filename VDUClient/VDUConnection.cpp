@@ -47,15 +47,16 @@ void CVDUConnection::Process()
 		break;
 	}
 	default:
-		m_wnd->MessageBox(L"Invalid VDUAPI Type", L"VDU Connection", MB_ICONWARNING);
+		m_wnd->MessageBox(L"Invalid VDUAPI Type", VDU_TITLENAME, MB_ICONWARNING);
 		return;
 	}
 
+	CString httpObjectPath;
+	httpObjectPath += apiPath;
+	httpObjectPath += m_parameter;
 
-	TCHAR httpObjectPath[INTERNET_MAX_HOST_NAME_LENGTH];
-	wsprintfW(httpObjectPath, L"%s%s", apiPath, m_parameter);
 	CHttpConnection* con = m_session->GetHttpConnection(m_serverURL, (INTERNET_PORT)4443, NULL, NULL);
-	CHttpFile* pFile = con->OpenRequest(httpVerb, apiPath, NULL, 1, NULL, NULL, INTERNET_FLAG_SECURE
+	CHttpFile* pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL, INTERNET_FLAG_SECURE
 #ifdef _DEBUG //Ignores certificates in debug mode
 		| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
 	DWORD opt;
@@ -68,38 +69,19 @@ void CVDUConnection::Process()
 
 	TRY
 	{
-		//m_wnd->GetProgressBar()->SetPos(50);
-
-		if (!pFile->SendRequest())
-		{
-			m_wnd->MessageBox(L"Failed to send request", L"VDU Connection", MB_ICONWARNING);
-			return;
-		}
-
-		/*DWORD statusCode;
-		if (!pFile->QueryInfoStatusCode(statusCode))
-		{
-			m_wnd->MessageBox(L"Failed to query status code", L"VDU Connection", MB_ICONWARNING);
-			return;
-		}*/
-
-		/*m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Connected");
-		m_wnd->GetProgressBar()->SetPos(100);
-		m_wnd->GetProgressBar()->SetState(PBST_NORMAL);
-		m_wnd->SetConnected(TRUE);
-		m_wnd->TrayNotify(m_serverURL, L"Connected successfuly.", SIID_DRIVENET);*/
+		pFile->SendRequest();
 	}
-		CATCH(CInternetException, e)
+	CATCH(CInternetException, e)
 	{
-		//pFile = nullptr;
+		TCHAR errmsg[0x400];
+		e->GetErrorMessage(errmsg, ARRAYSIZE(errmsg));
+		m_wnd->MessageBox(errmsg, VDU_TITLENAME, MB_ICONWARNING);
 
-
-		/*m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Not connected to server");
-		m_wnd->SetConnected(FALSE);
-		m_wnd->GetProgressBar()->SetPos(100);
-		m_wnd->GetProgressBar()->SetState(PBST_ERROR);
-		m_wnd->MessageBox(L"Failed to connect to server\r\nPlease check the server address", L"VDU Connection", MB_ICONWARNING);*/
 		//THROW(e);
+		if (pFile)
+			pFile->Close();
+		pFile = nullptr;
+		e->Delete();
 	}
 	END_CATCH;
 
@@ -107,7 +89,8 @@ void CVDUConnection::Process()
 	if (m_callback != nullptr)
 		m_callback(m_wnd, pFile);
 
-	pFile->Close();
+	if (pFile)
+		pFile->Close();
 	con->Close();
 	m_session->Close();
 	delete m_session;
