@@ -19,14 +19,11 @@
 #define ConcatPath(FN, FP)              (0 == StringCbPrintfW(FP, sizeof FP, L"%s%s", _Path, FN))
 #define HandleFromFileDesc(FD)          ((PtfsFileDesc *)(FD))->Handle
 
-
-UINT vdufs_main(LPVOID);
-
-class Vdufs : public Fsp::FileSystemBase
+class CVDUFileSystem : public Fsp::FileSystemBase
 {
 public:
-    Vdufs();
-    ~Vdufs();
+    CVDUFileSystem();
+    ~CVDUFileSystem();
     NTSTATUS SetPath(PWSTR Path);
 
 protected:
@@ -148,6 +145,7 @@ protected:
         DirInfo* DirInfo);
 
 private:
+
     PWSTR _Path;
     UINT64 _CreationTime;
 };
@@ -160,8 +158,23 @@ struct PtfsFileDesc
     ~PtfsFileDesc()
     {
         CloseHandle(Handle);
-        Vdufs::DeleteDirectoryBuffer(&DirBuffer);
+        CVDUFileSystem::DeleteDirectoryBuffer(&DirBuffer);
     }
     HANDLE Handle;
     PVOID DirBuffer;
+};
+
+class CVDUFileSystemService : public Fsp::Service
+{
+public:
+    CVDUFileSystemService(PWSTR DriveLetter);
+
+protected:
+    NTSTATUS OnStart(ULONG Argc, PWSTR* Argv);
+    NTSTATUS OnStop();
+
+private:
+    CVDUFileSystem fs;
+    Fsp::FileSystemHost _Host;
+    TCHAR _DriveLetter[128];
 };

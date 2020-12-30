@@ -540,8 +540,10 @@ void CVDUClientDlg::OnBnClickedConnect()
 
 void CVDUClientDlg::OnBnClickedButtonLogin()
 {
-	//TODO: REMOVE MOVE
-	//AfxBeginThread(vdufs_main, 0);
+	ASSERT(m_session);
+	CString user;
+	GetDlgItem(IDC_USERNAME)->GetWindowText(user);
+	m_session->Login(user, L""); //TODO: Add certificate 
 }
 
 void CVDUClientDlg::OnEnChangeUsername()

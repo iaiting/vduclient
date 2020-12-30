@@ -1,16 +1,16 @@
 #include "pch.h"
 #include "VDUFilesystem.h"
 
-Vdufs::Vdufs() : FileSystemBase(), _Path()
+CVDUFileSystem::CVDUFileSystem() : FileSystemBase(), _Path()
 {
 }
 
-Vdufs::~Vdufs()
+CVDUFileSystem::~CVDUFileSystem()
 {
     delete[] _Path;
 }
 
-NTSTATUS Vdufs::SetPath(PWSTR Path)
+NTSTATUS CVDUFileSystem::SetPath(PWSTR Path)
 {
     WCHAR FullPath[MAX_PATH];
     ULONG Length;
@@ -52,7 +52,7 @@ NTSTATUS Vdufs::SetPath(PWSTR Path)
     return STATUS_SUCCESS;
 }
 
-NTSTATUS Vdufs::GetFileInfoInternal(HANDLE Handle, FileInfo* FileInfo)
+NTSTATUS CVDUFileSystem::GetFileInfoInternal(HANDLE Handle, FileInfo* FileInfo)
 {
     BY_HANDLE_FILE_INFORMATION ByHandleFileInfo;
 
@@ -75,7 +75,7 @@ NTSTATUS Vdufs::GetFileInfoInternal(HANDLE Handle, FileInfo* FileInfo)
     return STATUS_SUCCESS;
 }
 
-NTSTATUS Vdufs::Init(PVOID Host0)
+NTSTATUS CVDUFileSystem::Init(PVOID Host0)
 {
     Fsp::FileSystemHost* Host = (Fsp::FileSystemHost*)Host0;
     Host->SetSectorSize(ALLOCATION_UNIT);
@@ -93,7 +93,7 @@ NTSTATUS Vdufs::Init(PVOID Host0)
     return STATUS_SUCCESS;
 }
 
-NTSTATUS Vdufs::GetVolumeInfo(
+NTSTATUS CVDUFileSystem::GetVolumeInfo(
     VolumeInfo* VolumeInfo)
 {
     ULARGE_INTEGER TotalSize, FreeSize;
@@ -114,7 +114,7 @@ NTSTATUS Vdufs::GetVolumeInfo(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS Vdufs::GetSecurityByName(
+NTSTATUS CVDUFileSystem::GetSecurityByName(
     PWSTR FileName,
     PUINT32 PFileAttributes/* or ReparsePointIndex */,
     PSECURITY_DESCRIPTOR SecurityDescriptor,
@@ -173,7 +173,7 @@ exit:
     return Result;
 }
 
-NTSTATUS Vdufs::Create(
+NTSTATUS CVDUFileSystem::Create(
     PWSTR FileName,
     UINT32 CreateOptions,
     UINT32 GrantedAccess,
@@ -233,7 +233,7 @@ NTSTATUS Vdufs::Create(
     return GetFileInfoInternal(FileDesc->Handle, &OpenFileInfo->FileInfo);
 }
 
-NTSTATUS Vdufs::Open(
+NTSTATUS CVDUFileSystem::Open(
     PWSTR FileName,
     UINT32 CreateOptions,
     UINT32 GrantedAccess,
@@ -268,7 +268,7 @@ NTSTATUS Vdufs::Open(
     return GetFileInfoInternal(FileDesc->Handle, &OpenFileInfo->FileInfo);
 }
 
-NTSTATUS Vdufs::Overwrite(
+NTSTATUS CVDUFileSystem::Overwrite(
     PVOID FileNode,
     PVOID FileDesc,
     UINT32 FileAttributes,
@@ -313,7 +313,7 @@ NTSTATUS Vdufs::Overwrite(
     return GetFileInfoInternal(Handle, FileInfo);
 }
 
-VOID Vdufs::Cleanup(
+VOID CVDUFileSystem::Cleanup(
     PVOID FileNode,
     PVOID FileDesc,
     PWSTR FileName,
@@ -330,7 +330,7 @@ VOID Vdufs::Cleanup(
     }
 }
 
-VOID Vdufs::Close(
+VOID CVDUFileSystem::Close(
     PVOID FileNode,
     PVOID FileDesc0)
 {
@@ -339,7 +339,7 @@ VOID Vdufs::Close(
     delete FileDesc;
 }
 
-NTSTATUS Vdufs::Read(
+NTSTATUS CVDUFileSystem::Read(
     PVOID FileNode,
     PVOID FileDesc,
     PVOID Buffer,
@@ -359,7 +359,7 @@ NTSTATUS Vdufs::Read(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS Vdufs::Write(
+NTSTATUS CVDUFileSystem::Write(
     PVOID FileNode,
     PVOID FileDesc,
     PVOID Buffer,
@@ -394,7 +394,7 @@ NTSTATUS Vdufs::Write(
     return GetFileInfoInternal(Handle, FileInfo);
 }
 
-NTSTATUS Vdufs::Flush(
+NTSTATUS CVDUFileSystem::Flush(
     PVOID FileNode,
     PVOID FileDesc,
     FileInfo* FileInfo)
@@ -411,7 +411,7 @@ NTSTATUS Vdufs::Flush(
     return GetFileInfoInternal(Handle, FileInfo);
 }
 
-NTSTATUS Vdufs::GetFileInfo(
+NTSTATUS CVDUFileSystem::GetFileInfo(
     PVOID FileNode,
     PVOID FileDesc,
     FileInfo* FileInfo)
@@ -421,7 +421,7 @@ NTSTATUS Vdufs::GetFileInfo(
     return GetFileInfoInternal(Handle, FileInfo);
 }
 
-NTSTATUS Vdufs::SetBasicInfo(
+NTSTATUS CVDUFileSystem::SetBasicInfo(
     PVOID FileNode,
     PVOID FileDesc,
     UINT32 FileAttributes,
@@ -452,7 +452,7 @@ NTSTATUS Vdufs::SetBasicInfo(
     return GetFileInfoInternal(Handle, FileInfo);
 }
 
-NTSTATUS Vdufs::SetFileSize(
+NTSTATUS CVDUFileSystem::SetFileSize(
     PVOID FileNode,
     PVOID FileDesc,
     UINT64 NewSize,
@@ -494,7 +494,7 @@ NTSTATUS Vdufs::SetFileSize(
     return GetFileInfoInternal(Handle, FileInfo);
 }
 
-NTSTATUS Vdufs::CanDelete(
+NTSTATUS CVDUFileSystem::CanDelete(
     PVOID FileNode,
     PVOID FileDesc,
     PWSTR FileName)
@@ -513,7 +513,7 @@ NTSTATUS Vdufs::CanDelete(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS Vdufs::Rename(
+NTSTATUS CVDUFileSystem::Rename(
     PVOID FileNode,
     PVOID FileDesc,
     PWSTR FileName,
@@ -534,7 +534,7 @@ NTSTATUS Vdufs::Rename(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS Vdufs::GetSecurity(
+NTSTATUS CVDUFileSystem::GetSecurity(
     PVOID FileNode,
     PVOID FileDesc,
     PSECURITY_DESCRIPTOR SecurityDescriptor,
@@ -556,7 +556,7 @@ NTSTATUS Vdufs::GetSecurity(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS Vdufs::SetSecurity(
+NTSTATUS CVDUFileSystem::SetSecurity(
     PVOID FileNode,
     PVOID FileDesc,
     SECURITY_INFORMATION SecurityInformation,
@@ -570,7 +570,7 @@ NTSTATUS Vdufs::SetSecurity(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS Vdufs::ReadDirectory(
+NTSTATUS CVDUFileSystem::ReadDirectory(
     PVOID FileNode,
     PVOID FileDesc0,
     PWSTR Pattern,
@@ -584,7 +584,7 @@ NTSTATUS Vdufs::ReadDirectory(
         FileNode, FileDesc, Pattern, Marker, Buffer, Length, PBytesTransferred);
 }
 
-NTSTATUS Vdufs::ReadDirectoryEntry(
+NTSTATUS CVDUFileSystem::ReadDirectoryEntry(
     PVOID FileNode,
     PVOID FileDesc0,
     PWSTR Pattern,
@@ -634,7 +634,7 @@ NTSTATUS Vdufs::ReadDirectoryEntry(
 
     memset(DirInfo, 0, sizeof * DirInfo);
     Length = (ULONG)wcslen(FindData.cFileName);
-    DirInfo->Size = (UINT16)(FIELD_OFFSET(Vdufs::DirInfo, FileNameBuf) + Length * sizeof(WCHAR));
+    DirInfo->Size = (UINT16)(FIELD_OFFSET(CVDUFileSystem::DirInfo, FileNameBuf) + Length * sizeof(WCHAR));
     DirInfo->FileInfo.FileAttributes = FindData.dwFileAttributes;
     DirInfo->FileInfo.ReparseTag = 0;
     DirInfo->FileInfo.FileSize =
@@ -652,19 +652,6 @@ NTSTATUS Vdufs::ReadDirectoryEntry(
     return STATUS_SUCCESS;
 }
 
-class VdufsService : public Fsp::Service
-{
-public:
-    VdufsService();
-
-protected:
-    NTSTATUS OnStart(ULONG Argc, PWSTR* Argv);
-    NTSTATUS OnStop();
-
-private:
-    Vdufs fs;
-    Fsp::FileSystemHost _Host;
-};
 
 static NTSTATUS EnableBackupRestorePrivileges(VOID)
 {
@@ -705,11 +692,12 @@ static ULONG wcstol_deflt(wchar_t* w, ULONG deflt)
     return L'\0' != w[0] && L'\0' == *endp ? ul : deflt;
 }
 
-VdufsService::VdufsService() : Service((PWSTR)L"" PROGNAME), fs(), _Host(fs)
+CVDUFileSystemService::CVDUFileSystemService(PWSTR DriveLetter) : Service((PWSTR)L"" PROGNAME), fs(), _Host(fs)
 {
+    StringCchCopy(_DriveLetter, ARRAYSIZE(_DriveLetter), DriveLetter);
 }
 
-NTSTATUS VdufsService::OnStart(ULONG argc, PWSTR* argv)
+NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
 {
 
     PWSTR DebugLogFile = (PWSTR)L"vfsdebug.log";
@@ -729,6 +717,7 @@ NTSTATUS VdufsService::OnStart(ULONG argc, PWSTR* argv)
 
     SetFileAttributes(PathBuf, FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM
         | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
+    //EncryptFile(PathBuf);
 
     EnableBackupRestorePrivileges();
 
@@ -751,7 +740,7 @@ NTSTATUS VdufsService::OnStart(ULONG argc, PWSTR* argv)
 
     _Host.SetFileSystemName((PWSTR)L"VDU");
 
-    Result = _Host.Mount(L"A:", 0, FALSE, DebugFlags);
+    Result = _Host.Mount(_DriveLetter, 0, FALSE, DebugFlags);
     if (!NT_SUCCESS(Result))
     {
         fail(L"cannot mount file system");
@@ -763,13 +752,8 @@ NTSTATUS VdufsService::OnStart(ULONG argc, PWSTR* argv)
     return STATUS_SUCCESS;
 }
 
-NTSTATUS VdufsService::OnStop()
+NTSTATUS CVDUFileSystemService::OnStop()
 {
     _Host.Unmount();
     return STATUS_SUCCESS;
-}
-
-UINT vdufs_main(LPVOID)
-{
-    return VdufsService().Run();
 }
