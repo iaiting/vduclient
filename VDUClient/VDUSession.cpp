@@ -6,7 +6,7 @@
 #include "afxdialogex.h"
 
 CVDUSession::CVDUSession(CVDUClientDlg* mainWnd, LPCTSTR serverURL) :
-	m_wnd(mainWnd), m_svcThread(nullptr), m_serverURL(serverURL), m_user(L""), m_loggedIn(FALSE), m_svc(nullptr)
+	m_wnd(mainWnd), m_svcThread(nullptr), m_serverURL(serverURL), m_user(_T("")), m_loggedIn(FALSE), m_svc(nullptr)
 {
 }
 
@@ -35,11 +35,11 @@ void CVDUSession::CallbackPing(CVDUClientDlg* wnd, CHttpFile* file)
 			CString date;
 			file->QueryInfo(HTTP_QUERY_DATE, date);
 			wnd->SetConnected(TRUE);
-			wnd->TrayNotify(date, L"Connection established.", SIID_WORLD);
+			wnd->TrayNotify(date, _T("Connection established."), SIID_WORLD);
 			return;
 		}
 		else
-			wnd->MessageBox(L"Invalid Ping response", VDU_TITLENAME, MB_ICONASTERISK);
+			wnd->MessageBox(_T("Invalid Ping response"), VDU_TITLENAME, MB_ICONASTERISK);
 	}
 
 	wnd->SetConnected(FALSE);
@@ -66,8 +66,7 @@ BOOL CVDUSession::Login(LPCTSTR user, LPCTSTR cert)
 	//TODO: Login request
 
 	//Spawn file system service on a separate thread
-	TCHAR preferredLetter[128] = { '\0' };
-	m_wnd->GetRegValueSz(L"PreferredDriveLetter", preferredLetter, preferredLetter, ARRAYSIZE(preferredLetter));
+	CString preferredLetter = AfxGetApp()->GetProfileString(VDU_SECTION_SETTINGS, _T("PreferredDriveLetter"), _T(""));
 	AfxBeginThread(CVDUSession::ThreadProcFilesystemService, (LPVOID)(new CVDUFileSystemService(preferredLetter)));
 
 	return TRUE;

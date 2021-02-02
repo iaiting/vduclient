@@ -12,6 +12,10 @@
 #include "VDUFilesystem.h"
 
 
+#define VDU _T("VDU")
+#define VDU_SECTION_SETTINGS _T("Settings")
+#define VDU_TITLENAME _T("VDU Client")
+
 // VDUClient:
 // See VDUClient.cpp for the implementation of this class
 //

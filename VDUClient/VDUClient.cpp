@@ -64,7 +64,7 @@ BOOL VDUClient::InitInstance()
 	// Change the registry key under which our settings are stored
 	// TODO: You should modify this string to be something appropriate
 	// such as the name of your company or organization
-	SetRegistryKey(_T("VDU Client"));
+	SetRegistryKey(VDU);
 
 	CVDUClientDlg dlg;
 	m_pMainWnd = &dlg;
@@ -79,8 +79,8 @@ BOOL VDUClient::InitInstance()
 	}
 	else if (nResponse == -1)
 	{
-		TRACE(traceAppMsg, 0, "Warning: dialog creation failed, so application is terminating unexpectedly.\n");
-		TRACE(traceAppMsg, 0, "Warning: if you are using MFC controls on the dialog, you cannot #define _AFX_NO_MFC_CONTROLS_IN_DIALOGS.\n");
+		TRACE(traceAppMsg, 0, _T("Warning: dialog creation failed, so application is terminating unexpectedly.\n"));
+		TRACE(traceAppMsg, 0, _T("Warning: if you are using MFC controls on the dialog, you cannot #define _AFX_NO_MFC_CONTROLS_IN_DIALOGS.\n"));
 	}
 
 	// Delete the shell manager created above.

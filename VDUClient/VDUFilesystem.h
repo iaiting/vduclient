@@ -10,13 +10,18 @@
 #include <bcrypt.h>
 #include <winfsp/winfsp.hpp>
 
+#ifdef _DEBUG
+#include <ctime>
+#define DEBUG_PRINT_FILESYSTEM_CALLS //Should print fn calls of filesystem
+#endif
+
 #define PROGNAME                        "vdufs"
 #define ALLOCATION_UNIT                 4096
 #define FULLPATH_SIZE                   (MAX_PATH + FSP_FSCTL_TRANSACT_PATH_SIZEMAX / sizeof(WCHAR))
 #define info(format, ...)               Service::Log(EVENTLOG_INFORMATION_TYPE, (PWSTR)format, __VA_ARGS__)
 #define warn(format, ...)               Service::Log(EVENTLOG_WARNING_TYPE, (PWSTR)format, __VA_ARGS__)
 #define fail(format, ...)               Service::Log(EVENTLOG_ERROR_TYPE,(PWSTR)format, __VA_ARGS__)
-#define ConcatPath(FN, FP)              (0 == StringCbPrintfW(FP, sizeof FP, L"%s%s", _Path, FN))
+#define ConcatPath(FN, FP)              (0 == StringCbPrintfW(FP, sizeof FP, _T("%s%s"), _Path, FN))
 #define HandleFromFileDesc(FD)          ((PtfsFileDesc *)(FD))->Handle
 
 class CVDUFileSystem : public Fsp::FileSystemBase
@@ -167,7 +172,7 @@ struct PtfsFileDesc
 class CVDUFileSystemService : public Fsp::Service
 {
 public:
-    CVDUFileSystemService(PWSTR DriveLetter);
+    CVDUFileSystemService(CString DriveLetter);
 
 protected:
     NTSTATUS OnStart(ULONG Argc, PWSTR* Argv);

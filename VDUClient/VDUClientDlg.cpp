@@ -11,8 +11,8 @@
 #define WM_TRAY_AUTOLOGIN_TOGGLE (WM_APP + 4)
 
 // CVDUClientDlg dialog
-CVDUClientDlg::CVDUClientDlg(CWnd* pParent /*=nullptr*/) : CDialogEx(IDD_VDUCLIENT_DIALOG, pParent), m_progressBar(nullptr),
-m_connected(FALSE), m_server{0}, m_statusText{0}  
+CVDUClientDlg::CVDUClientDlg(CWnd* pParent /*=nullptr*/) : CDialogEx(IDD_VDUCLIENT_DIALOG, pParent), m_progressBar(nullptr), 
+m_connected(FALSE), m_session(NULL), m_trayData{0}, m_trayMenu(NULL)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -58,21 +58,21 @@ BOOL CVDUClientDlg::OnInitDialog()
 	int argc;
 	LPWSTR* argv = CommandLineToArgvW(AfxGetApp()->m_lpCmdLine, &argc);
 	if (argv == nullptr)
-		MessageBox(L"Failed to read command line", VDU_TITLENAME, MB_ICONASTERISK);
+		MessageBox(_T("Failed to read command line"), VDU_TITLENAME, MB_ICONASTERISK);
 	else
 	{
 		for (int i = 0; i < argc; i++)
 		{
 			LPWSTR arg = argv[i];
 
-			if (!wcscmp(arg, L"-silent"))
+			if (!wcscmp(arg, _T("-silent")))
 				silent = TRUE;
 		}
 	}
 	LocalFree(argv);
 
 	//No session by default
-	m_session = nullptr;
+	m_session = NULL;
 
 	//Set up tray icon
 	ZeroMemory(&m_trayData, sizeof(m_trayData));
@@ -81,7 +81,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 	ASSERT(IsWindow(GetSafeHwnd()));
 	m_trayData.hWnd = GetSafeHwnd();
 	m_trayData.uCallbackMessage = WM_TRAYICON_EVENT;
-	if (StringCchCopy(m_trayData.szTip, ARRAYSIZE(m_trayData.szTip), L"VDU Client") != S_OK)
+	if (StringCchCopy(m_trayData.szTip, ARRAYSIZE(m_trayData.szTip), VDU_TITLENAME) != S_OK)
 		return FALSE;
 	m_trayData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 	m_trayData.hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
@@ -93,21 +93,21 @@ BOOL CVDUClientDlg::OnInitDialog()
 	if (m_trayMenu = new CMenu())
 	{
 		m_trayMenu->CreatePopupMenu();
-		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_AUTORUN_TOGGLE, L"Auto-run");
-		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_AUTOLOGIN_TOGGLE, L"Auto-login");
-		m_trayMenu->AppendMenu(MF_SEPARATOR);
-		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_EXIT, L"Exit");
+		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_AUTORUN_TOGGLE, _T("Auto-run")); //1
+		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_AUTOLOGIN_TOGGLE, _T("Auto-login")); //2
+		m_trayMenu->AppendMenu(MF_SEPARATOR); //3
+		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_EXIT, _T("Exit")); //4
 
 
-		DWORD autoLogin = FALSE;
-		GetRegValueI(L"AutoLogin", autoLogin, &autoLogin);
+		int autoLogin = AfxGetApp()->GetProfileInt(VDU_SECTION_SETTINGS, _T("AutoLogin"), FALSE);
 		if (autoLogin)
 		{
 			m_trayMenu->CheckMenuItem(1, MF_BYPOSITION | MF_CHECKED);
 		}
 
+		//TODO AUTORUN FIX
 		DWORD autoRun = FALSE;
-		//GetRegValueI(L"VDU Client", autoRun, &autoRun, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run");
+		//GetRegValueI(_T("VDU Client"), autoRun, &autoRun, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run");
 
 		if (autoRun == 2)
 		{
@@ -115,48 +115,40 @@ BOOL CVDUClientDlg::OnInitDialog()
 		}
 	}
 
-	if (StringCchCopy(m_server, ARRAYSIZE(m_server), L"") != S_OK)
-		return FALSE;
-
-	if (StringCchCopy(m_username, ARRAYSIZE(m_username), L"") != S_OK)
-		return FALSE;
-
 	CString moduleFileName;
 	AfxGetModuleFileName(NULL, moduleFileName);
 
 	//Create an entry on windows startup
-	SetRegValueSz(L"VDU Client", moduleFileName, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
+	//SetRegValueSz(_T("VDUClient"), moduleFileName, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"));
 
-	//Pre type last values
-	GetRegValueSz(L"LastServerAddress", m_server, m_server, ARRAYSIZE(m_server));
-	GetRegValueSz(L"LastUserName", m_username, m_username, ARRAYSIZE(m_username));
+	m_server = AfxGetApp()->GetProfileString(VDU_SECTION_SETTINGS, _T("LastServerAddress"), _T(""));
+	m_username = AfxGetApp()->GetProfileString(VDU_SECTION_SETTINGS, _T("LastUserName"), _T(""));
 
 	GetDlgItem(IDC_SERVER_ADDRESS)->SetWindowText(m_server);
 	GetDlgItem(IDC_USERNAME)->SetWindowText(m_username);
 
-	DWORD useCertToLogin = FALSE;
-	GetRegValueI(L"UseCertToLogin", useCertToLogin, &useCertToLogin);
+	int useCertToLogin = AfxGetApp()->GetProfileInt(VDU_SECTION_SETTINGS, _T("UseCertToLogin"), FALSE);
 	((CButton*)GetDlgItem(IDC_CHECK_CERTIFICATE))->SetCheck(useCertToLogin);
 
 	GetDlgItem(IDC_CONNECT)->SetFocus();
 
-	if (silent)
+	if (silent) //TODO: FIX
 	{
 		ShowWindow(SW_HIDE);
 	}
 
 	DWORD drives = GetLogicalDrives();
 	if (drives == NULL)
-		MessageBox(L"Failed to read logical drives", VDU_TITLENAME, MB_ICONWARNING);
+		MessageBox(_T("Failed to read logical drives"), VDU_TITLENAME, MB_ICONWARNING);
 	else
 	{
-		const TCHAR* letters[] = { L"A:", L"B:", L"C:", L"D:", L"E:", L"F:", L"G:", L"H:", L"I:", L"J:", L"K:", L"L:",
-			L"M:", L"N:", L"O:", L"P:", L"Q:", L"R:", L"S:", L"T:", L"U:", L"V:", L"W:", L"X:", L"Y:", L"Z:" }; //All available drive letters
+		const TCHAR* letters[] = { _T("A:"), _T("B:"), _T("C:"), _T("D:"), _T("E:"), _T("F:"), _T("G:"), _T("H:"), _T("I:"), _T("J:"), _T("K:"), _T("L:"),
+			_T("M:"), _T("N:"), _T("O:"), _T("P:"), _T("Q:"), _T("R:"), _T("S:"), _T("T:"), _T("U:"), _T("V:"), _T("W:"), _T("X:"), _T("Y:"), _T("Z:") }; //All available drive letters
 
 		CComboBox* comboDriveLetter = (CComboBox*)GetDlgItem(IDC_COMBO_DRIVELETTER);
 		comboDriveLetter->ModifyStyle(0, CBS_DROPDOWNLIST);
-		TCHAR preferredLetter[128] = {'\0'};
-		GetRegValueSz(L"PreferredDriveLetter", preferredLetter, preferredLetter, ARRAYSIZE(preferredLetter));
+
+		CString preferredLetter = AfxGetApp()->GetProfileString(VDU_SECTION_SETTINGS, _T("PreferredDriveLetter"), _T("V:"));
 
 		for (int i = 0; i < ARRAYSIZE(letters); i++)
 		{
@@ -177,8 +169,15 @@ BOOL CVDUClientDlg::OnInitDialog()
 		GetDlgItem(IDC_STATIC_DRIVELETTER)->EnableWindow(TRUE);
 	}
 
-	SetWindowTheme(GetSafeHwnd(), L"Explorer", NULL);
-	SendMessage(WM_THEMECHANGED, 0, 0);
+	//Try dark mode
+	/*HMODULE hUxtheme = LoadLibraryEx(_T("uxtheme.dll"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+	if (hUxtheme)
+	{
+		using TYPE_AllowDarkModeForWindow = bool (WINAPI*)(HWND a_HWND, bool a_Allow);
+		static const TYPE_AllowDarkModeForWindow AllowDarkModeForWindow = (TYPE_AllowDarkModeForWindow)GetProcAddress(hUxtheme, MAKEINTRESOURCEA(133));
+		AllowDarkModeForWindow(GetSafeHwnd(), true);
+		SetWindowTheme(GetSafeHwnd(), L"Explorer", NULL);
+	}*/
 
 	return !silent;  // return TRUE  unless you set the focus to a control
 }
@@ -190,7 +189,7 @@ BOOL CVDUClientDlg::GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out
 	{
 		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
 		{
-			MessageBox(L"Failed to read registry", L"VDU Client", MB_ICONASTERISK);
+			MessageBox(_T("Failed to read registry"), _T("VDU Client"), MB_ICONASTERISK);
 			return FALSE;
 		}
 	}
@@ -213,7 +212,7 @@ BOOL CVDUClientDlg::GetRegValueI(LPCTSTR name, DWORD defaultValue, PDWORD out_va
 	{
 		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
 		{
-			MessageBox(L"Failed to read registry", L"VDU Client", MB_ICONASTERISK);
+			MessageBox(_T("Failed to read registry"), _T("VDU Client"), MB_ICONASTERISK);
 			return FALSE;
 		}
 	}
@@ -237,7 +236,7 @@ BOOL CVDUClientDlg::SetRegValueI(LPCTSTR name, DWORD value, LPCTSTR path)
 	{
 		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
 		{
-			MessageBox(L"Failed to read registry", L"VDU Client", MB_ICONASTERISK);
+			MessageBox(_T("Failed to read registry"), _T("VDU Client"), MB_ICONASTERISK);
 			return FALSE;
 		}
 	}
@@ -256,7 +255,7 @@ BOOL CVDUClientDlg::SetRegValueSz(LPCTSTR name, LPCTSTR value, LPCTSTR path, ULO
 	{
 		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
 		{
-			MessageBox(L"Failed to read registry", L"VDU Client", MB_ICONASTERISK);
+			MessageBox(_T("Failed to read registry"), _T("VDU Client"), MB_ICONASTERISK);
 			return FALSE;
 		}
 	}
@@ -294,7 +293,7 @@ void CVDUClientDlg::SetConnected(BOOL bConnected)
 	{
 		GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(FALSE);
 		GetDlgItem(IDC_CONNECT)->EnableWindow(TRUE);
-		GetDlgItem(IDC_CONNECT)->SetWindowText(L"Disconnect");
+		GetDlgItem(IDC_CONNECT)->SetWindowText(_T("Disconnect"));
 		GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
 		GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
@@ -310,7 +309,7 @@ void CVDUClientDlg::SetConnected(BOOL bConnected)
 	{
 		GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
 		GetDlgItem(IDC_CONNECT)->EnableWindow(TRUE);
-		GetDlgItem(IDC_CONNECT)->SetWindowText(L"Connect");
+		GetDlgItem(IDC_CONNECT)->SetWindowText(_T("Connect"));
 		GetDlgItem(IDC_USERNAME)->EnableWindow(FALSE);
 		GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(FALSE);
@@ -382,7 +381,7 @@ BOOL CVDUClientDlg::TrayNotify(LPCTSTR szTitle, LPCTSTR szText, SHSTOCKICONID si
 
 	BOOL res = Shell_NotifyIcon(NIM_MODIFY, &m_trayData);
 
-	DestroyIcon(m_trayData.hBalloonIcon);
+	DestroyIcon(shii.hIcon);
 
 	return res;
 }
@@ -490,10 +489,9 @@ void CVDUClientDlg::OnAutorunToggleCommand()
 
 void CVDUClientDlg::OnAutologinToggleCommand()
 {
-	DWORD autoLogin = FALSE;
-	GetRegValueI(L"AutoLogin", autoLogin, &autoLogin);
+	int autoLogin = AfxGetApp()->GetProfileInt(VDU_SECTION_SETTINGS, _T("AutoLogin"), FALSE);
 	autoLogin = !autoLogin;
-	SetRegValueI(L"AutoLogin", autoLogin);
+	AfxGetApp()->WriteProfileInt(VDU_SECTION_SETTINGS, _T("AutoLogin"), autoLogin);
 	if (autoLogin)
 		m_trayMenu->CheckMenuItem(1, MF_BYPOSITION | MF_CHECKED);
 	else
@@ -504,12 +502,13 @@ void CVDUClientDlg::OnEnChangeServerAddress()
 {
 	CString serverAddr;
 	GetDlgItem(IDC_SERVER_ADDRESS)->GetWindowText(serverAddr);
-	SetRegValueSz(L"LastServerAddress", serverAddr);
+	m_server = serverAddr;
+	AfxGetApp()->WriteProfileString(VDU_SECTION_SETTINGS, _T("LastServerAddress"), serverAddr);
 }
 
 void CVDUClientDlg::TryConnectSession()
 {
-	/*CWinThread* t = */AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(this, m_server, VDUAPIType::GET_PING, L"", &CVDUSession::CallbackPing));
+	/*CWinThread* t = */AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(this, m_server, VDUAPIType::GET_PING, _T(""), _T(""), &CVDUSession::CallbackPing));
 }
 
 void CVDUClientDlg::OnBnClickedConnect()
@@ -525,7 +524,7 @@ void CVDUClientDlg::OnBnClickedConnect()
 
 		if (serverAddr.IsEmpty())
 		{
-			MessageBox(L"Invalid server address", VDU_TITLENAME, MB_ICONERROR);
+			MessageBox(_T("Invalid server address"), VDU_TITLENAME, MB_ICONERROR);
 			return;
 		}
 
@@ -543,14 +542,15 @@ void CVDUClientDlg::OnBnClickedButtonLogin()
 	ASSERT(m_session);
 	CString user;
 	GetDlgItem(IDC_USERNAME)->GetWindowText(user);
-	m_session->Login(user, L""); //TODO: Add certificate 
+	m_session->Login(user, _T("")); //TODO: Add certificate 
 }
 
 void CVDUClientDlg::OnEnChangeUsername()
 {
 	CString name;
 	GetDlgItem(IDC_USERNAME)->GetWindowText(name);
-	SetRegValueSz(L"LastUserName", name);
+	m_username = name;
+	AfxGetApp()->WriteProfileString(VDU_SECTION_SETTINGS, _T("LastUserName"), name);
 }
 
 void CVDUClientDlg::OnBnClickedCheckCertificate()
@@ -558,12 +558,12 @@ void CVDUClientDlg::OnBnClickedCheckCertificate()
 	if (IsLoginUsingCertificate())
 	{
 		GetDlgItem(IDC_BROWSE_CERT)->EnableWindow(TRUE);
-		SetRegValueI(L"UseCertToLogin", TRUE);
+		AfxGetApp()->WriteProfileInt(VDU_SECTION_SETTINGS, _T("UseCertToLogin"), TRUE);
 	}
 	else
 	{
 		GetDlgItem(IDC_BROWSE_CERT)->EnableWindow(FALSE);
-		SetRegValueI(L"UseCertToLogin", FALSE);
+		AfxGetApp()->WriteProfileInt(VDU_SECTION_SETTINGS, _T("UseCertToLogin"), FALSE);
 	}
 }
 
@@ -573,5 +573,5 @@ void CVDUClientDlg::OnCbnSelchangeComboDriveletter()
 	CComboBox* comboDriveLetter = (CComboBox*)GetDlgItem(IDC_COMBO_DRIVELETTER);
 	CString letter;
 	comboDriveLetter->GetLBText(comboDriveLetter->GetCurSel(), letter);
-	SetRegValueSz(L"PreferredDriveLetter", letter);
+	AfxGetApp()->WriteProfileString(VDU_SECTION_SETTINGS, _T("PreferredDriveLetter"), letter);
 }

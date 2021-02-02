@@ -7,11 +7,11 @@
 
 void CVDUConnection::Process()
 {
-	m_session = new CInternetSession(L"VDUClient 1.0, Windows");
+	m_session = new CInternetSession(_T("VDUClient 1.0, Windows"));
 	int httpVerb;
 	LPCTSTR apiPath = NULL;
 
-	//m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(L"Connecting...");
+	//m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(_T("Connecting...");
 	//m_wnd->GetProgressBar()->SetPos(0);
 
 	switch (m_type)
@@ -19,35 +19,47 @@ void CVDUConnection::Process()
 	case VDUAPIType::GET_PING:
 	{
 		httpVerb = CHttpConnection::HTTP_VERB_GET;
-		apiPath = L"/ping";
+		apiPath = _T("/ping");
 		break;
 	}
 	case VDUAPIType::POST_AUTH_KEY:
 	{
 		httpVerb = CHttpConnection::HTTP_VERB_POST;
-		apiPath = L"/auth/key";
+		apiPath = _T("/auth/key");
 		break;
 	}
 	case VDUAPIType::GET_AUTH_KEY:
 	{
 		httpVerb = CHttpConnection::HTTP_VERB_GET;
-		apiPath = L"/auth/key";
+		apiPath = _T("/auth/key");
 		break;
 	}
 	case VDUAPIType::DELETE_AUTH_KEY:
 	{
 		httpVerb = CHttpConnection::HTTP_VERB_DELETE;
-		apiPath = L"/auth/key";
+		apiPath = _T("/auth/key");
 		break;
 	}
 	case VDUAPIType::GET_FILE:
 	{
 		httpVerb = CHttpConnection::HTTP_VERB_GET;
-		apiPath = L"/file/";
+		apiPath = _T("/file/");
+		break;
+	}
+	case VDUAPIType::POST_FILE:
+	{
+		httpVerb = CHttpConnection::HTTP_VERB_POST;
+		apiPath = _T("/file/");
+		break;
+	}
+	case VDUAPIType::DELETE_FILE:
+	{
+		httpVerb = CHttpConnection::HTTP_VERB_DELETE;
+		apiPath = _T("/file/");
 		break;
 	}
 	default:
-		m_wnd->MessageBox(L"Invalid VDUAPI Type", VDU_TITLENAME, MB_ICONWARNING);
+		m_wnd->MessageBox(_T("Invalid VDUAPI Type"), VDU_TITLENAME, MB_ICONWARNING);
 		return;
 	}
 
@@ -66,6 +78,8 @@ void CVDUConnection::Process()
 #else 
 		);
 #endif
+
+	pFile->AddRequestHeaders(m_requestHeaders);
 
 	TRY
 	{
@@ -97,8 +111,8 @@ void CVDUConnection::Process()
 }
 
 //Constructing connection does not initiate it
-CVDUConnection::CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type, LPCTSTR parameter, VDU_CONNECTION_CALLBACK callback) :
-	m_session(nullptr), m_wnd(mainWnd), m_type(type), m_callback(callback)
+CVDUConnection::CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type, LPCTSTR parameter, CString requestHeaders, VDU_CONNECTION_CALLBACK callback) :
+	m_session(nullptr), m_wnd(mainWnd), m_type(type), m_requestHeaders(requestHeaders), m_callback(callback)
 {
 	StringCchCopy(m_serverURL, ARRAYSIZE(m_serverURL), serverURL);
 	StringCchCopy(m_parameter, ARRAYSIZE(m_parameter), parameter);
@@ -112,6 +126,6 @@ UINT CVDUConnection::ThreadProc(LPVOID pCon)
 		delete pCon;
 	}
 	else
-		MessageBox(NULL, L"Connection::ThreadProc: pCon was null", VDU_TITLENAME, MB_ICONERROR);
+		MessageBox(NULL, _T("Connection::ThreadProc: pCon was null"), VDU_TITLENAME, MB_ICONERROR);
 	return EXIT_SUCCESS;
 }

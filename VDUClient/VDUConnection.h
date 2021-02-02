@@ -27,10 +27,11 @@ protected:
 	CInternetSession* m_session; //Current internet session
 	VDUAPIType m_type; //Which API to call
 	TCHAR m_parameter[INTERNET_MAX_HOST_NAME_LENGTH]; //Http path parameter
+	CString m_requestHeaders; //HTTP Request headers
 	VDU_CONNECTION_CALLBACK m_callback; //Function to call after http file is received
 public:
 	//Sets up the connection
-	CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type, LPCTSTR parameter, VDU_CONNECTION_CALLBACK callback);
+	CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type, LPCTSTR parameter, CString requestHeaders, VDU_CONNECTION_CALLBACK callback);
 
 	//Processes the connection and halts executing thread until done
 	//Should NOT be run in main thread

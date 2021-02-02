@@ -6,8 +6,7 @@
 
 #include "VDUSession.h"
 
-#define VDU_TITLENAME L"VDU Client"
-#define VDU_REGPATH L"SOFTWARE\\VDU Client"
+#define VDU_REGPATH _T("SOFTWARE\\VDU Client")
 
 // CVDUClientDlg dialog
 class CVDUClientDlg : public CDialogEx
@@ -27,9 +26,9 @@ public:
 
 // Implementation
 protected:
-	TCHAR m_server[INTERNET_MAX_HOST_NAME_LENGTH];
-	TCHAR m_username[INTERNET_MAX_HOST_NAME_LENGTH];
-	TCHAR m_statusText[INTERNET_MAX_HOST_NAME_LENGTH];
+	CString m_server;
+	CString m_username;
+	CString m_statusText;
 	BOOL m_connected;
 	HICON m_hIcon;
 	CMenu* m_trayMenu;

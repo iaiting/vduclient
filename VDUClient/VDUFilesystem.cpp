@@ -96,6 +96,15 @@ NTSTATUS CVDUFileSystem::Init(PVOID Host0)
 NTSTATUS CVDUFileSystem::GetVolumeInfo(
     VolumeInfo* VolumeInfo)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     ULARGE_INTEGER TotalSize, FreeSize;
 
     //if (!GetVolumePathName(_Path, Root, MAX_PATH))
@@ -108,7 +117,7 @@ NTSTATUS CVDUFileSystem::GetVolumeInfo(
 
     /*VolumeInfo->TotalSize = TotalSize.QuadPart;
     VolumeInfo->FreeSize = FreeSize.QuadPart;
-    swprintf_s(VolumeInfo->VolumeLabel, L"VDU");
+    swprintf_s(VolumeInfo->VolumeLabel, _T("VDU");
     VolumeInfo->VolumeLabelLength = wcslen(VolumeInfo->VolumeLabel);*/
 
     return STATUS_SUCCESS;
@@ -120,6 +129,15 @@ NTSTATUS CVDUFileSystem::GetSecurityByName(
     PSECURITY_DESCRIPTOR SecurityDescriptor,
     SIZE_T* PSecurityDescriptorSize)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     WCHAR FullPath[FULLPATH_SIZE];
     HANDLE Handle;
     FILE_ATTRIBUTE_TAG_INFO AttributeTagInfo;
@@ -184,6 +202,15 @@ NTSTATUS CVDUFileSystem::Create(
     PVOID* PFileDesc,
     OpenFileInfo* OpenFileInfo)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     WCHAR FullPath[FULLPATH_SIZE];
     SECURITY_ATTRIBUTES SecurityAttributes;
     ULONG CreateFlags;
@@ -241,6 +268,15 @@ NTSTATUS CVDUFileSystem::Open(
     PVOID* PFileDesc,
     OpenFileInfo* OpenFileInfo)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     WCHAR FullPath[FULLPATH_SIZE];
     ULONG CreateFlags;
     PtfsFileDesc* FileDesc;
@@ -276,6 +312,15 @@ NTSTATUS CVDUFileSystem::Overwrite(
     UINT64 AllocationSize,
     FileInfo* FileInfo)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     HANDLE Handle = HandleFromFileDesc(FileDesc);
     FILE_BASIC_INFO BasicInfo = { 0 };
     FILE_ALLOCATION_INFO AllocationInfo = { 0 };
@@ -319,6 +364,15 @@ VOID CVDUFileSystem::Cleanup(
     PWSTR FileName,
     ULONG Flags)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     HANDLE Handle = HandleFromFileDesc(FileDesc);
 
     if (Flags & CleanupDelete)
@@ -334,6 +388,15 @@ VOID CVDUFileSystem::Close(
     PVOID FileNode,
     PVOID FileDesc0)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     PtfsFileDesc* FileDesc = (PtfsFileDesc*)FileDesc0;
 
     delete FileDesc;
@@ -347,6 +410,15 @@ NTSTATUS CVDUFileSystem::Read(
     ULONG Length,
     PULONG PBytesTransferred)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     HANDLE Handle = HandleFromFileDesc(FileDesc);
     OVERLAPPED Overlapped = { 0 };
 
@@ -370,6 +442,15 @@ NTSTATUS CVDUFileSystem::Write(
     PULONG PBytesTransferred,
     FileInfo* FileInfo)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     HANDLE Handle = HandleFromFileDesc(FileDesc);
     LARGE_INTEGER FileSize;
     OVERLAPPED Overlapped = { 0 };
@@ -399,6 +480,15 @@ NTSTATUS CVDUFileSystem::Flush(
     PVOID FileDesc,
     FileInfo* FileInfo)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     HANDLE Handle = HandleFromFileDesc(FileDesc);
 
     /* we do not flush the whole volume, so just return SUCCESS */
@@ -431,6 +521,15 @@ NTSTATUS CVDUFileSystem::SetBasicInfo(
     UINT64 ChangeTime,
     FileInfo* FileInfo)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     HANDLE Handle = HandleFromFileDesc(FileDesc);
     FILE_BASIC_INFO BasicInfo = { 0 };
 
@@ -459,6 +558,15 @@ NTSTATUS CVDUFileSystem::SetFileSize(
     BOOLEAN SetAllocationSize,
     FileInfo* FileInfo)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     HANDLE Handle = HandleFromFileDesc(FileDesc);
     FILE_ALLOCATION_INFO AllocationInfo;
     FILE_END_OF_FILE_INFO EndOfFileInfo;
@@ -499,6 +607,15 @@ NTSTATUS CVDUFileSystem::CanDelete(
     PVOID FileDesc,
     PWSTR FileName)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     return STATUS_UNSUCCESSFUL;
 
     HANDLE Handle = HandleFromFileDesc(FileDesc);
@@ -520,6 +637,15 @@ NTSTATUS CVDUFileSystem::Rename(
     PWSTR NewFileName,
     BOOLEAN ReplaceIfExists)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     WCHAR FullPath[FULLPATH_SIZE], NewFullPath[FULLPATH_SIZE];
 
     if (!ConcatPath(FileName, FullPath))
@@ -540,6 +666,15 @@ NTSTATUS CVDUFileSystem::GetSecurity(
     PSECURITY_DESCRIPTOR SecurityDescriptor,
     SIZE_T* PSecurityDescriptorSize)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     HANDLE Handle = HandleFromFileDesc(FileDesc);
     DWORD SecurityDescriptorSizeNeeded;
 
@@ -562,6 +697,15 @@ NTSTATUS CVDUFileSystem::SetSecurity(
     SECURITY_INFORMATION SecurityInformation,
     PSECURITY_DESCRIPTOR ModificationDescriptor)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     HANDLE Handle = HandleFromFileDesc(FileDesc);
 
     if (!SetKernelObjectSecurity(Handle, SecurityInformation, ModificationDescriptor))
@@ -579,6 +723,15 @@ NTSTATUS CVDUFileSystem::ReadDirectory(
     ULONG Length,
     PULONG PBytesTransferred)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     PtfsFileDesc* FileDesc = (PtfsFileDesc*)FileDesc0;
     return BufferedReadDirectory(&FileDesc->DirBuffer,
         FileNode, FileDesc, Pattern, Marker, Buffer, Length, PBytesTransferred);
@@ -592,6 +745,15 @@ NTSTATUS CVDUFileSystem::ReadDirectoryEntry(
     PVOID* PContext,
     DirInfo* DirInfo)
 {
+#ifdef DEBUG_PRINT_FILESYSTEM_CALLS
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%X", &tstruct);
+    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+#endif
+
     PtfsFileDesc* FileDesc = (PtfsFileDesc*)FileDesc0;
     HANDLE Handle = FileDesc->Handle;
     WCHAR FullPath[FULLPATH_SIZE];
@@ -602,7 +764,7 @@ NTSTATUS CVDUFileSystem::ReadDirectoryEntry(
     if (0 == *PContext)
     {
         if (0 == Pattern)
-            Pattern = (PWSTR)L"*";
+            Pattern = (PWSTR)_T("*");
         PatternLength = (ULONG)wcslen(Pattern);
 
         Length = GetFinalPathNameByHandleW(Handle, FullPath, FULLPATH_SIZE - 1, 0);
@@ -692,7 +854,7 @@ static ULONG wcstol_deflt(wchar_t* w, ULONG deflt)
     return L'\0' != w[0] && L'\0' == *endp ? ul : deflt;
 }
 
-CVDUFileSystemService::CVDUFileSystemService(PWSTR DriveLetter) : Service((PWSTR)L"" PROGNAME), fs(), _Host(fs)
+CVDUFileSystemService::CVDUFileSystemService(CString DriveLetter) : Service(_T(PROGNAME)), fs(), _Host(fs)
 {
     StringCchCopy(_DriveLetter, ARRAYSIZE(_DriveLetter), DriveLetter);
 }
@@ -700,24 +862,36 @@ CVDUFileSystemService::CVDUFileSystemService(PWSTR DriveLetter) : Service((PWSTR
 NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
 {
 
-    PWSTR DebugLogFile = (PWSTR)L"vfsdebug.log";
+    PWSTR DebugLogFile = _T("vfsdebug.log");
     ULONG DebugFlags = 0;
-    //PWSTR VolumePrefix = (PWSTR)L"\\?\\"; /* \\?\C:\ */
+    //PWSTR VolumePrefix = (PWSTR)_T("\\?\\"; /* \\?\C:\ */
     HANDLE DebugLogHandle = INVALID_HANDLE_VALUE;
     WCHAR PathBuf[MAX_PATH];
     NTSTATUS Result;
 
     PWSTR localappdata;
     size_t len;
-    _wdupenv_s(&localappdata, &len, L"localappdata");
+    _wdupenv_s(&localappdata, &len, _T("localappdata"));
 
-    swprintf_s(PathBuf, L"%s/%s", localappdata, L"$VDUClient");
+    swprintf_s(PathBuf, _T("%s/%s"), localappdata, _T("$VDUClient$"));
 
     CreateDirectory(PathBuf, NULL); //TODO: Check success?
 
     SetFileAttributes(PathBuf, FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM
         | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
     //EncryptFile(PathBuf);
+
+    //Prevent folder modification while program is running
+    HANDLE hDir = CreateFile(PathBuf, GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (hDir)
+        LockFile(hDir, 0, 0, 0, 0);
+    else
+    {
+        fail(_T("Cannot lock work folder"));
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    //CloseHandle(hDir); //Keep handle so the lock stays on
 
     EnableBackupRestorePrivileges();
 
@@ -726,34 +900,45 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
         Result = Fsp::FileSystemHost::SetDebugLogFile(DebugLogFile);
         if (!NT_SUCCESS(Result))
         {
-            fail(L"cannot open debug log file");
-            return STATUS_UNSUCCESSFUL;
+            fail(_T("cannot open debug log file"));
+            return Result;
         }
     }
 
     Result = fs.SetPath(PathBuf);
     if (!NT_SUCCESS(Result))
     {
-        fail(L"cannot create file system");
+        fail(_T("cannot create file system"));
         return Result;
     }
 
-    _Host.SetFileSystemName((PWSTR)L"VDU");
+    _Host.SetFileSystemName(_T("VDU"));
 
     Result = _Host.Mount(_DriveLetter, 0, FALSE, DebugFlags);
     if (!NT_SUCCESS(Result))
     {
-        fail(L"cannot mount file system");
+        fail(_T("cannot mount file system"));
         return Result;
     }
 
     //MountPoint = _Host.MountPoint();
+
+#ifdef _DEBUG
+    if (AllocConsole())
+    {
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+    }
+#endif
 
     return STATUS_SUCCESS;
 }
 
 NTSTATUS CVDUFileSystemService::OnStop()
 {
+#ifdef _DEBUG
+    FreeConsole();
+#endif
     _Host.Unmount();
     return STATUS_SUCCESS;
 }
