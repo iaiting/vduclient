@@ -60,6 +60,7 @@ void CVDUConnection::Process()
 	}
 	default:
 		m_wnd->MessageBox(_T("Invalid VDUAPI Type"), VDU_TITLENAME, MB_ICONWARNING);
+		delete m_session;
 		return;
 	}
 
@@ -79,7 +80,8 @@ void CVDUConnection::Process()
 		);
 #endif
 
-	pFile->AddRequestHeaders(m_requestHeaders);
+	if (m_requestHeaders && !m_requestHeaders.IsEmpty())
+		pFile->AddRequestHeaders(m_requestHeaders);
 
 	TRY
 	{

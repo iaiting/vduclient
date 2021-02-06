@@ -27,7 +27,7 @@ void CVDUSession::CallbackPing(CVDUClientDlg* wnd, CHttpFile* file)
 {
 	if (file)
 	{
-		DWORD statusCode;
+		DWORD statusCode = -1;
 		file->QueryInfoStatusCode(statusCode);
 
 		if (statusCode == 204)
@@ -66,8 +66,8 @@ BOOL CVDUSession::Login(LPCTSTR user, LPCTSTR cert)
 	//TODO: Login request
 
 	//Spawn file system service on a separate thread
-	CString preferredLetter = AfxGetApp()->GetProfileString(VDU_SECTION_SETTINGS, _T("PreferredDriveLetter"), _T(""));
-	AfxBeginThread(CVDUSession::ThreadProcFilesystemService, (LPVOID)(new CVDUFileSystemService(preferredLetter)));
+	CString preferredLetter = AfxGetApp()->GetProfileString(VDU_SECTION_SETTINGS, _T("PreferredDriveLetter"), _T("V:"));
+	this->m_svcThread = AfxBeginThread(CVDUSession::ThreadProcFilesystemService, (LPVOID)(new CVDUFileSystemService(preferredLetter)));
 
 	return TRUE;
 }
