@@ -7,7 +7,7 @@
 
 void CVDUConnection::Process()
 {
-	m_session = new CInternetSession(_T("VDUClient 1.0, Windows"));
+	CInternetSession session(_T("VDUClient 1.0, Windows"));
 	int httpVerb;
 	LPCTSTR apiPath = NULL;
 
@@ -59,8 +59,7 @@ void CVDUConnection::Process()
 		break;
 	}
 	default:
-		m_wnd->MessageBox(_T("Invalid VDUAPI Type"), VDU_TITLENAME, MB_ICONWARNING);
-		delete m_session;
+		WND->MessageBox(_T("Invalid VDUAPI Type"), TITLENAME, MB_ICONWARNING);
 		return;
 	}
 
@@ -68,8 +67,15 @@ void CVDUConnection::Process()
 	httpObjectPath += apiPath;
 	httpObjectPath += m_parameter;
 
-	CHttpConnection* con = m_session->GetHttpConnection(m_serverURL, (INTERNET_PORT)4443, NULL, NULL);
-	CHttpFile* pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL, INTERNET_FLAG_SECURE
+	INTERNET_PORT port = INTERNET_DEFAULT_HTTPS_PORT;
+
+#ifdef _DEBUG //If debug server
+	if (m_serverURL == _T("127.0.0.1"))
+		port = 4443;
+#endif
+
+	CHttpConnection* con = session.GetHttpConnection(m_serverURL, port, NULL, NULL);
+	CHttpFile* pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL, INTERNET_FLAG_SECURE | INTERNET_FLAG_TRANSFER_BINARY
 #ifdef _DEBUG //Ignores certificates in debug mode
 		| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
 	DWORD opt;
@@ -80,18 +86,18 @@ void CVDUConnection::Process()
 		);
 #endif
 
-	if (m_requestHeaders && !m_requestHeaders.IsEmpty())
+	if (!m_requestHeaders.IsEmpty())
 		pFile->AddRequestHeaders(m_requestHeaders);
 
 	TRY
 	{
-		pFile->SendRequest();
+		pFile->SendRequest(0, 0, m_content.GetBuffer(), m_content.GetLength());
 	}
 	CATCH(CInternetException, e)
 	{
 		TCHAR errmsg[0x400];
 		e->GetErrorMessage(errmsg, ARRAYSIZE(errmsg));
-		m_wnd->MessageBox(errmsg, VDU_TITLENAME, MB_ICONWARNING);
+		WND->MessageBox(errmsg, TITLENAME, MB_ICONWARNING);
 
 		//THROW(e);
 		if (pFile)
@@ -103,21 +109,18 @@ void CVDUConnection::Process()
 
 	//Call our callback
 	if (m_callback != nullptr)
-		m_callback(m_wnd, pFile);
+		m_callback(pFile);
 
 	if (pFile)
 		pFile->Close();
 	con->Close();
-	m_session->Close();
-	delete m_session;
 }
 
 //Constructing connection does not initiate it
-CVDUConnection::CVDUConnection(CVDUClientDlg* mainWnd, LPCTSTR serverURL, VDUAPIType type, LPCTSTR parameter, CString requestHeaders, VDU_CONNECTION_CALLBACK callback) :
-	m_session(nullptr), m_wnd(mainWnd), m_type(type), m_requestHeaders(requestHeaders), m_callback(callback)
+CVDUConnection::CVDUConnection(CString serverURL, VDUAPIType type, VDU_CONNECTION_CALLBACK callback, CString requestHeaders, CString parameter, CString content) :
+	m_serverURL(serverURL), m_parameter(parameter), m_type(type), m_requestHeaders(requestHeaders), m_callback(callback), m_content(content)
 {
-	StringCchCopy(m_serverURL, ARRAYSIZE(m_serverURL), serverURL);
-	StringCchCopy(m_parameter, ARRAYSIZE(m_parameter), parameter);
+
 }
 
 UINT CVDUConnection::ThreadProc(LPVOID pCon)
@@ -128,6 +131,6 @@ UINT CVDUConnection::ThreadProc(LPVOID pCon)
 		delete pCon;
 	}
 	else
-		MessageBox(NULL, _T("Connection::ThreadProc: pCon was null"), VDU_TITLENAME, MB_ICONERROR);
+		MessageBox(NULL, _T("Connection::ThreadProc: pCon was null"), TITLENAME, MB_ICONERROR);
 	return EXIT_SUCCESS;
 }

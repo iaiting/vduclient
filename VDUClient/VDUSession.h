@@ -2,27 +2,30 @@
 
 #include "VDUConnection.h"
 #include "VDUFilesystem.h"
+#include <time.h>
 
 class CVDUSession
 {
 protected:
-	CVDUClientDlg* m_wnd; //Main window
 	CString m_serverURL; //Server url
-	BOOL m_loggedIn; //Is user logged in
 	CString m_user; //Logged in user
-	CWinThread* m_svcThread; //File system thread
-	CVDUFileSystemService* m_svc; //File system pointer, running on svcThread
+	CString m_authToken; //Current autorization token
+	CTime m_authTokenExpires; //When auth token expires
 public:
 
-	CVDUSession(CVDUClientDlg* mainWnd, LPCTSTR serverURL);
+	CVDUSession(CString serverURL);
 	~CVDUSession();
 
-	static UINT ThreadProcFilesystemService(LPVOID service);
+	CString GetServerURL();
+	BOOL IsLoggedIn();
 
-	static void CallbackPing(CVDUClientDlg* wnd, CHttpFile* file);
-	static void CallbackLogin(CVDUClientDlg* wnd, CHttpFile* file);
-	static void CallbackLoginRefresh(CVDUClientDlg* wnd, CHttpFile* file);
+	static UINT ThreadProcFilesystemService(LPVOID service);
+	static UINT ThreadProcLoginRefresh(LPVOID);
+
+	static void CallbackPing(CHttpFile* file);
+	static void CallbackLogin(CHttpFile* file);
+	static void CallbackLoginRefresh(CHttpFile* file);
 
 	//Login to server using user and ceritificate
-	BOOL Login(LPCTSTR user, LPCTSTR cert);
+	void Login(CString user, CString cert);
 };

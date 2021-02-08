@@ -1,4 +1,3 @@
-
 // VDUClient.cpp : Defines the class behaviors for the application.
 //
 
@@ -11,7 +10,6 @@
 #define new DEBUG_NEW
 #endif
 
-
 // VDUClient
 BEGIN_MESSAGE_MAP(VDUClient, CWinApp)
 	ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
@@ -19,7 +17,7 @@ END_MESSAGE_MAP()
 
 
 // VDUClient construction
-VDUClient::VDUClient()
+VDUClient::VDUClient() : 
 {
 	// support Restart Manager
 	m_dwRestartManagerSupportFlags = AFX_RESTART_MANAGER_SUPPORT_RESTART;
@@ -30,8 +28,7 @@ VDUClient::VDUClient()
 
 
 // The one and only VDUClient object
-VDUClient theApp;
-
+VDUClient vduClient;
 
 // VDUClient initialization
 BOOL VDUClient::InitInstance()
@@ -64,7 +61,7 @@ BOOL VDUClient::InitInstance()
 	// Change the registry key under which our settings are stored
 	// TODO: You should modify this string to be something appropriate
 	// such as the name of your company or organization
-	SetRegistryKey(VDU);
+	SetRegistryKey(VFSNAME);
 
 	CVDUClientDlg dlg;
 	m_pMainWnd = &dlg;

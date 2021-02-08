@@ -12,7 +12,7 @@
 
 // CVDUClientDlg dialog
 CVDUClientDlg::CVDUClientDlg(CWnd* pParent /*=nullptr*/) : CDialogEx(IDD_VDUCLIENT_DIALOG, pParent), m_progressBar(nullptr), 
-m_connected(FALSE), m_session(NULL), m_trayData{0}, m_trayMenu(NULL)
+m_connected(FALSE), m_session(nullptr), m_trayData{0}, m_trayMenu(NULL)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -58,7 +58,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 	int argc;
 	LPWSTR* argv = CommandLineToArgvW(AfxGetApp()->m_lpCmdLine, &argc);
 	if (argv == nullptr)
-		MessageBox(_T("Failed to read command line"), VDU_TITLENAME, MB_ICONASTERISK);
+		MessageBox(_T("Failed to read command line"), TITLENAME, MB_ICONASTERISK);
 	else
 	{
 		for (int i = 0; i < argc; i++)
@@ -72,7 +72,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 	LocalFree(argv);
 
 	//No session by default
-	m_session = NULL;
+	m_session = nullptr;
 
 	//Set up tray icon
 	ZeroMemory(&m_trayData, sizeof(m_trayData));
@@ -81,7 +81,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 	ASSERT(IsWindow(GetSafeHwnd()));
 	m_trayData.hWnd = GetSafeHwnd();
 	m_trayData.uCallbackMessage = WM_TRAYICON_EVENT;
-	if (StringCchCopy(m_trayData.szTip, ARRAYSIZE(m_trayData.szTip), VDU_TITLENAME) != S_OK)
+	if (StringCchCopy(m_trayData.szTip, ARRAYSIZE(m_trayData.szTip), TITLENAME) != S_OK)
 		return FALSE;
 	m_trayData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 	m_trayData.hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
@@ -99,7 +99,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_EXIT, _T("Exit")); //4
 
 
-		int autoLogin = AfxGetApp()->GetProfileInt(VDU_SECTION_SETTINGS, _T("AutoLogin"), FALSE);
+		int autoLogin = AfxGetApp()->GetProfileInt(SECTION_SETTINGS, _T("AutoLogin"), FALSE);
 		if (autoLogin)
 		{
 			m_trayMenu->CheckMenuItem(1, MF_BYPOSITION | MF_CHECKED);
@@ -121,13 +121,13 @@ BOOL CVDUClientDlg::OnInitDialog()
 	//Create an entry on windows startup
 	//SetRegValueSz(_T("VDUClient"), moduleFileName, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"));
 
-	m_server = AfxGetApp()->GetProfileString(VDU_SECTION_SETTINGS, _T("LastServerAddress"), _T(""));
-	m_username = AfxGetApp()->GetProfileString(VDU_SECTION_SETTINGS, _T("LastUserName"), _T(""));
+	m_server = AfxGetApp()->GetProfileString(SECTION_SETTINGS, _T("LastServerAddress"), _T(""));
+	m_username = AfxGetApp()->GetProfileString(SECTION_SETTINGS, _T("LastUserName"), _T(""));
 
 	GetDlgItem(IDC_SERVER_ADDRESS)->SetWindowText(m_server);
 	GetDlgItem(IDC_USERNAME)->SetWindowText(m_username);
 
-	int useCertToLogin = AfxGetApp()->GetProfileInt(VDU_SECTION_SETTINGS, _T("UseCertToLogin"), FALSE);
+	int useCertToLogin = AfxGetApp()->GetProfileInt(SECTION_SETTINGS, _T("UseCertToLogin"), FALSE);
 	((CButton*)GetDlgItem(IDC_CHECK_CERTIFICATE))->SetCheck(useCertToLogin);
 
 	GetDlgItem(IDC_CONNECT)->SetFocus();
@@ -139,7 +139,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 
 	DWORD drives = GetLogicalDrives();
 	if (drives == NULL)
-		MessageBox(_T("Failed to read logical drives"), VDU_TITLENAME, MB_ICONWARNING);
+		MessageBox(_T("Failed to read logical drives"), TITLENAME, MB_ICONWARNING);
 	else
 	{
 		const TCHAR* letters[] = { _T("A:"), _T("B:"), _T("C:"), _T("D:"), _T("E:"), _T("F:"), _T("G:"), _T("H:"), _T("I:"), _T("J:"), _T("K:"), _T("L:"),
@@ -148,7 +148,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 		CComboBox* comboDriveLetter = (CComboBox*)GetDlgItem(IDC_COMBO_DRIVELETTER);
 		comboDriveLetter->ModifyStyle(0, CBS_DROPDOWNLIST);
 
-		CString preferredLetter = AfxGetApp()->GetProfileString(VDU_SECTION_SETTINGS, _T("PreferredDriveLetter"), _T("V:"));
+		CString preferredLetter = AfxGetApp()->GetProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), _T("V:"));
 
 		for (int i = 0; i < ARRAYSIZE(letters); i++)
 		{
@@ -301,9 +301,12 @@ void CVDUClientDlg::SetConnected(BOOL bConnected)
 		GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(FALSE);
 
 		if (m_session)
+		{
 			delete m_session;
+			m_session = nullptr;
+		}
 
-		m_session = new CVDUSession(this, m_server);
+		m_session = new CVDUSession(m_server);
 	}
 	else
 	{
@@ -317,7 +320,9 @@ void CVDUClientDlg::SetConnected(BOOL bConnected)
 		GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
 
 		if (m_session)
+		{
 			delete m_session;
+		}
 
 		m_session = nullptr;
 	}
@@ -489,9 +494,9 @@ void CVDUClientDlg::OnAutorunToggleCommand()
 
 void CVDUClientDlg::OnAutologinToggleCommand()
 {
-	int autoLogin = AfxGetApp()->GetProfileInt(VDU_SECTION_SETTINGS, _T("AutoLogin"), FALSE);
+	int autoLogin = AfxGetApp()->GetProfileInt(SECTION_SETTINGS, _T("AutoLogin"), FALSE);
 	autoLogin = !autoLogin;
-	AfxGetApp()->WriteProfileInt(VDU_SECTION_SETTINGS, _T("AutoLogin"), autoLogin);
+	AfxGetApp()->WriteProfileInt(SECTION_SETTINGS, _T("AutoLogin"), autoLogin);
 	if (autoLogin)
 		m_trayMenu->CheckMenuItem(1, MF_BYPOSITION | MF_CHECKED);
 	else
@@ -503,12 +508,12 @@ void CVDUClientDlg::OnEnChangeServerAddress()
 	CString serverAddr;
 	GetDlgItem(IDC_SERVER_ADDRESS)->GetWindowText(serverAddr);
 	m_server = serverAddr;
-	AfxGetApp()->WriteProfileString(VDU_SECTION_SETTINGS, _T("LastServerAddress"), serverAddr);
+	AfxGetApp()->WriteProfileString(SECTION_SETTINGS, _T("LastServerAddress"), serverAddr);
 }
 
 void CVDUClientDlg::TryConnectSession()
 {
-	/*CWinThread* t = */AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(this, m_server, VDUAPIType::GET_PING, _T(""), _T(""), &CVDUSession::CallbackPing));
+	/*CWinThread* t = */AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(m_server, VDUAPIType::GET_PING, &CVDUSession::CallbackPing));
 }
 
 void CVDUClientDlg::OnBnClickedConnect()
@@ -524,7 +529,7 @@ void CVDUClientDlg::OnBnClickedConnect()
 
 		if (serverAddr.IsEmpty())
 		{
-			MessageBox(_T("Invalid server address"), VDU_TITLENAME, MB_ICONERROR);
+			MessageBox(_T("Invalid server address"), TITLENAME, MB_ICONERROR);
 			return;
 		}
 
@@ -550,7 +555,7 @@ void CVDUClientDlg::OnEnChangeUsername()
 	CString name;
 	GetDlgItem(IDC_USERNAME)->GetWindowText(name);
 	m_username = name;
-	AfxGetApp()->WriteProfileString(VDU_SECTION_SETTINGS, _T("LastUserName"), name);
+	AfxGetApp()->WriteProfileString(SECTION_SETTINGS, _T("LastUserName"), name);
 }
 
 void CVDUClientDlg::OnBnClickedCheckCertificate()
@@ -558,12 +563,12 @@ void CVDUClientDlg::OnBnClickedCheckCertificate()
 	if (IsLoginUsingCertificate())
 	{
 		GetDlgItem(IDC_BROWSE_CERT)->EnableWindow(TRUE);
-		AfxGetApp()->WriteProfileInt(VDU_SECTION_SETTINGS, _T("UseCertToLogin"), TRUE);
+		AfxGetApp()->WriteProfileInt(SECTION_SETTINGS, _T("UseCertToLogin"), TRUE);
 	}
 	else
 	{
 		GetDlgItem(IDC_BROWSE_CERT)->EnableWindow(FALSE);
-		AfxGetApp()->WriteProfileInt(VDU_SECTION_SETTINGS, _T("UseCertToLogin"), FALSE);
+		AfxGetApp()->WriteProfileInt(SECTION_SETTINGS, _T("UseCertToLogin"), FALSE);
 	}
 }
 
@@ -573,5 +578,5 @@ void CVDUClientDlg::OnCbnSelchangeComboDriveletter()
 	CComboBox* comboDriveLetter = (CComboBox*)GetDlgItem(IDC_COMBO_DRIVELETTER);
 	CString letter;
 	comboDriveLetter->GetLBText(comboDriveLetter->GetCurSel(), letter);
-	AfxGetApp()->WriteProfileString(VDU_SECTION_SETTINGS, _T("PreferredDriveLetter"), letter);
+	AfxGetApp()->WriteProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), letter);
 }

@@ -27,6 +27,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         global ApiKeys, Users, KEY_EXPIRATION_TIME, FileTokens
         
         if (self.path == "/ping"):
+            Log(self.headers.as_string())
             self.send_response_only(204)
             self.send_header("Date", self.date_time_string())
             self.send_header("X-Client-Ip", self.client_address[0])
@@ -100,8 +101,12 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         global ApiKeys, Users, KEY_EXPIRATION_TIME, FileTokens
         
+        contentLen = int(self.headers.get("Content-Length"))
+
         if (self.path == "/auth/key"):
+            Log("\n" + self.headers.as_string())
             user = self.headers.get("From")
+            Log(str(self.rfile.read(contentLen)))
             if (user not in Users):
                 self.send_response_only(401)
                 self.end_headers()

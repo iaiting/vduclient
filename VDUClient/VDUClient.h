@@ -1,7 +1,4 @@
-
-// VDUClient.h : main header file for the PROJECT_NAME application
-//
-
+// VDUClient.h : main header file for the application
 #pragma once
 
 #ifndef __AFXWIN_H__
@@ -12,16 +9,21 @@
 #include "VDUFilesystem.h"
 
 
-#define VDU _T("VDU")
-#define VDU_SECTION_SETTINGS _T("Settings")
-#define VDU_TITLENAME _T("VDU Client")
+#define VFSNAME _T("VDU")
+#define SECTION_SETTINGS _T("Settings")
+#define TITLENAME _T("VDU Client")
+#define APP ((VDUClient*)AfxGetApp())
+#define WND ((CVDUClientDlg*)APP->GetMainWnd())
 
 // VDUClient:
 // See VDUClient.cpp for the implementation of this class
 //
-
 class VDUClient : public CWinApp
 {
+private: 
+	CWinThread* m_refreshThread; //Session refreshing thread
+	CWinThread* m_svcThread; //File system thread
+	CVDUFileSystemService* m_svc; //File system pointer, running on m_svcThread
 public:
 	VDUClient();
 
@@ -34,4 +36,4 @@ public:
 	DECLARE_MESSAGE_MAP()
 };
 
-extern VDUClient theApp;
+extern VDUClient vduClient;
