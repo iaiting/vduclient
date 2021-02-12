@@ -1,4 +1,4 @@
-import os, ssl, http.server, time, random, hashlib, base64, mimetypes
+import os, ssl, http.server, time, random, hashlib, base64, mimetypes, json
 #Api key expiration time, seconds
 KEY_EXPIRATION_TIME = 60
 #Current list of users who can generate keys
@@ -10,6 +10,10 @@ FileTokens = {
     }
 #Current valid api keys
 ApiKeys = {}
+
+def dump(r):
+    s = json.dumps(r, indent=4, sort_keys=True)
+    print(s)
 
 def Log(msg):
     print(("[%s] " + str(msg)) % time.strftime('%H:%M:%S'))
@@ -114,6 +118,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             else:
                 apiKey = GenerateRandomToken(ApiKeys)
                 expires = time.time() + KEY_EXPIRATION_TIME
+                dump(expires)
                 ApiKeys[apiKey] = {"Expires": expires, "User": user}
                 self.send_response_only(201)
                 self.send_header("X-Api-Key", apiKey)

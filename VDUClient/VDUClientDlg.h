@@ -29,12 +29,10 @@ protected:
 	CString m_server;
 	CString m_username;
 	CString m_statusText;
-	BOOL m_connected;
 	HICON m_hIcon;
 	CMenu* m_trayMenu;
 	NOTIFYICONDATA m_trayData;
 	CProgressCtrl* m_progressBar;
-	CVDUSession* m_session;
 
 	// Generated message map functions
 	virtual BOOL OnInitDialog();
@@ -64,13 +62,9 @@ public:
 
 	//Bottom progress bar
 	CProgressCtrl* GetProgressBar();
-	//Return VDU session
-	CVDUSession* GetSession();
 
-	void TryConnectSession();
-	//Is connected to the server
-	void SetConnected(BOOL bConnected);
-	BOOL IsConnected();
+	//Attempts to ping the server
+	void TryPing();
 
 	//Uses certificate to log in
 	BOOL IsLoginUsingCertificate();
@@ -80,9 +74,9 @@ public:
 
 public:
 	afx_msg void OnEnChangeServerAddress();
-	afx_msg void OnBnClickedConnect();
 	afx_msg void OnBnClickedButtonLogin();
 	afx_msg void OnEnChangeUsername();
 	afx_msg void OnBnClickedCheckCertificate();
 	afx_msg void OnCbnSelchangeComboDriveletter();
+	afx_msg void OnBnClickedPingbutton();
 };

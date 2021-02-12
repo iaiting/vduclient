@@ -7,6 +7,7 @@
 
 #include "resource.h"		// main symbols
 #include "VDUFilesystem.h"
+#include "VDUSession.h"
 
 
 #define VFSNAME _T("VDU")
@@ -20,19 +21,28 @@
 //
 class VDUClient : public CWinApp
 {
-private: 
-	CWinThread* m_refreshThread; //Session refreshing thread
+private:
+	CVDUSession* m_session; //Client session
+	CWinThread* m_srefThread; //Session refresh thread
 	CWinThread* m_svcThread; //File system thread
 	CVDUFileSystemService* m_svc; //File system pointer, running on m_svcThread
 public:
 	VDUClient();
+	~VDUClient();
+
+	CVDUSession* GetSession();
+	CWinThread* GetSessionRefreshingThread();
+	CWinThread* GetFileSystemServiceThread();
 
 // Overrides
-public:
 	virtual BOOL InitInstance();
+	virtual INT ExitInstance();
+
+// Thread Procedures
+	static UINT ThreadProcFilesystemService(LPVOID service);
+	static UINT ThreadProcLoginRefresh(LPVOID);
 
 // Implementation
-
 	DECLARE_MESSAGE_MAP()
 };
 

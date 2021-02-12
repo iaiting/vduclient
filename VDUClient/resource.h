@@ -9,6 +9,7 @@
 #define IDR_MAINFRAME                   128
 #define IDC_SERVER_ADDRESS              1011
 #define IDC_CONNECT                     1012
+#define IDC_BUTTON_PING                 1012
 #define IDC_FILE_TOKEN                  1013
 #define IDC_ACCESS_FILE                 1014
 #define IDC_BUTTON_LOGIN                1019

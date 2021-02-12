@@ -17,15 +17,30 @@ END_MESSAGE_MAP()
 
 
 // VDUClient construction
-VDUClient::VDUClient() : 
+VDUClient::VDUClient() : m_srefThread(nullptr), m_svc(nullptr), m_svcThread(nullptr)
 {
 	// support Restart Manager
 	m_dwRestartManagerSupportFlags = AFX_RESTART_MANAGER_SUPPORT_RESTART;
 
 	// TODO: add construction code here,
 	// Place all significant initialization in InitInstance
+	m_session = new CVDUSession(_T(""));
 }
 
+VDUClient::~VDUClient()
+{
+	delete m_session;
+}
+
+CVDUSession* VDUClient::GetSession()
+{
+	return m_session;
+}
+
+CWinThread* VDUClient::GetSessionRefreshingThread()
+{
+	return m_srefThread;
+}
 
 // The one and only VDUClient object
 VDUClient vduClient;
@@ -63,28 +78,51 @@ BOOL VDUClient::InitInstance()
 	// such as the name of your company or organization
 	SetRegistryKey(VFSNAME);
 
-	CVDUClientDlg dlg;
-	m_pMainWnd = &dlg;
-	INT_PTR nResponse = dlg.DoModal();
-	if (nResponse == IDOK)
+	BOOL silent = FALSE;
+	//Check for startup options
+	int argc;
+	LPWSTR* argv = CommandLineToArgvW(m_lpCmdLine, &argc);
+	if (argv)
 	{
-		//  dismissed with OK
+		for (int i = 0; i < argc; i++)
+		{
+			LPWSTR arg = argv[i];
+
+			if (!wcscmp(arg, _T("-silent")))
+				silent = TRUE;
+		}
 	}
-	else if (nResponse == IDCANCEL)
+	LocalFree(argv);
+
+	//Create worker thread
+	m_srefThread = AfxBeginThread(ThreadProcLoginRefresh, (LPVOID)nullptr);
+
+	CVDUClientDlg* pDlg = new CVDUClientDlg(AfxGetMainWnd());
+	m_pMainWnd = pDlg;
+	//INT_PTR nResponse = dlg.DoModal();
+	if (pDlg->Create(IDD_VDUCLIENT_DIALOG, AfxGetMainWnd()))
 	{
-		//  dismissed with Cancel
+		if (silent)
+		{
+			pDlg->ShowWindow(SW_MINIMIZE);
+			pDlg->ShowWindow(SW_HIDE);
+		}
+		else
+		{
+			pDlg->ShowWindow(SW_SHOWNORMAL);
+		}
 	}
-	else if (nResponse == -1)
+	else
 	{
-		TRACE(traceAppMsg, 0, _T("Warning: dialog creation failed, so application is terminating unexpectedly.\n"));
-		TRACE(traceAppMsg, 0, _T("Warning: if you are using MFC controls on the dialog, you cannot #define _AFX_NO_MFC_CONTROLS_IN_DIALOGS.\n"));
+		//Failed to create dialog?
+		return FALSE;
 	}
 
 	// Delete the shell manager created above.
-	if (pShellManager != nullptr)
+	/*if (pShellManager != nullptr)
 	{
 		delete pShellManager;
-	}
+	}*/
 
 #if !defined(_AFXDLL) && !defined(_AFX_NO_MFC_CONTROLS_IN_DIALOGS)
 	ControlBarCleanUp();
@@ -92,6 +130,56 @@ BOOL VDUClient::InitInstance()
 
 	// Since the dialog has been closed, return FALSE so that we exit the
 	//  application, rather than start the application's message pump.
-	return FALSE;
+	return TRUE;
 }
 
+INT VDUClient::ExitInstance()
+{
+	WND->DestroyWindow(); //Make sure dialog window cleans up properly
+	return CWinApp::ExitInstance();
+}
+
+UINT VDUClient::ThreadProcLoginRefresh(LPVOID)
+{
+	while (TRUE)
+	{
+		CVDUSession* session = APP->GetSession();
+		ASSERT(session);
+
+		CTime expires = session->GetAuthTokenExpires();
+
+		//Not set up yet, we wait
+		if (expires <= 0)
+		{
+			Sleep(1000);
+			continue;
+		}
+
+		SYSTEMTIME cstime;
+		GetSystemTime(&cstime);
+		CTime now(cstime);
+		CTimeSpan delta = expires - now;
+
+		//Sleep till its time to refresh or refresh immediately
+		if (delta < 3)
+		{
+			CString headers;
+			headers += APIKEY_HEADER;
+			headers += _T(": ");
+			headers += session->GetAuthToken();
+			headers += _T("\r\n");
+
+			CWinThread* refreshThread = AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)
+				(new CVDUConnection(session->GetServerURL(), VDUAPIType::GET_AUTH_KEY, CVDUSession::CallbackLoginRefresh, headers)),0,0,CREATE_SUSPENDED);
+			ASSERT(refreshThread);
+			refreshThread->m_bAutoDelete = FALSE;
+			INT resumeResult = refreshThread->ResumeThread();
+			WaitForSingleObject(refreshThread->m_hThread, INFINITE);
+			delete refreshThread;
+		}
+		else
+		{
+			Sleep(/*delta.GetTimeSpan() - */1000);
+		}
+	}
+}

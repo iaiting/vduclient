@@ -74,6 +74,10 @@ void CVDUConnection::Process()
 		port = 4443;
 #endif
 
+	//Empty URL causes exception
+	if (m_serverURL.IsEmpty())
+		return;
+
 	CHttpConnection* con = session.GetHttpConnection(m_serverURL, port, NULL, NULL);
 	CHttpFile* pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL, INTERNET_FLAG_SECURE | INTERNET_FLAG_TRANSFER_BINARY
 #ifdef _DEBUG //Ignores certificates in debug mode
@@ -91,13 +95,15 @@ void CVDUConnection::Process()
 
 	TRY
 	{
-		pFile->SendRequest(0, 0, m_content.GetBuffer(), m_content.GetLength());
+		//Content -> http content after headrs
+		pFile->SendRequest(NULL, NULL, m_content.GetBuffer(), m_content.GetLength());
 	}
 	CATCH(CInternetException, e)
 	{
 		TCHAR errmsg[0x400];
 		e->GetErrorMessage(errmsg, ARRAYSIZE(errmsg));
-		WND->MessageBox(errmsg, TITLENAME, MB_ICONWARNING);
+		//TODO: How to include this reasonably? Rn its handled elsewhere
+		//WND->MessageBox(errmsg, TITLENAME, MB_ICONERROR);
 
 		//THROW(e);
 		if (pFile)
