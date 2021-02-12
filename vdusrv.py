@@ -1,6 +1,8 @@
 import os, ssl, http.server, time, random, hashlib, base64, mimetypes, json
+#Server fake response delay in seconds
+FAKE_RESPONSE_DELAY = 0.1
 #Api key expiration time, seconds
-KEY_EXPIRATION_TIME = 60
+KEY_EXPIRATION_TIME = 5
 #Current list of users who can generate keys
 Users = ["test@example.com", "john"]
 #Active file tokens for request testing
@@ -30,8 +32,10 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         global ApiKeys, Users, KEY_EXPIRATION_TIME, FileTokens
         
+        if (FAKE_RESPONSE_DELAY > 0):
+            time.sleep(FAKE_RESPONSE_DELAY)
+
         if (self.path == "/ping"):
-            Log(self.headers.as_string())
             self.send_response_only(204)
             self.send_header("Date", self.date_time_string())
             self.send_header("X-Client-Ip", self.client_address[0])
@@ -105,12 +109,15 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         global ApiKeys, Users, KEY_EXPIRATION_TIME, FileTokens
         
+        if (FAKE_RESPONSE_DELAY > 0):
+            time.sleep(FAKE_RESPONSE_DELAY)
+        
         contentLen = int(self.headers.get("Content-Length"))
 
         if (self.path == "/auth/key"):
-            Log("\n" + self.headers.as_string())
+            #Log("\n" + self.headers.as_string())
             user = self.headers.get("From")
-            Log(str(self.rfile.read(contentLen)))
+            #Log(str(self.rfile.read(contentLen)))
             if (user not in Users):
                 self.send_response_only(401)
                 self.end_headers()
@@ -118,7 +125,6 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             else:
                 apiKey = GenerateRandomToken(ApiKeys)
                 expires = time.time() + KEY_EXPIRATION_TIME
-                dump(expires)
                 ApiKeys[apiKey] = {"Expires": expires, "User": user}
                 self.send_response_only(201)
                 self.send_header("X-Api-Key", apiKey)
@@ -148,6 +154,9 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     
     def do_DELETE(self):
         global ApiKeys, Users, KEY_EXPIRATION_TIME, FileTokens
+
+        if (FAKE_RESPONSE_DELAY > 0):
+            time.sleep(FAKE_RESPONSE_DELAY)
         
         if (self.path == "/auth/key"):
             apiKey = self.headers.get("X-Api-Key")

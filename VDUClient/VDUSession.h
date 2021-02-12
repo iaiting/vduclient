@@ -40,4 +40,5 @@ public:
 
 	//Login to server using user and ceritificate
 	void Login(CString user, CString cert);
+	void Logout();
 };

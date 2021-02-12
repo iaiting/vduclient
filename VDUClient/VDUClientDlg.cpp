@@ -454,24 +454,18 @@ void CVDUClientDlg::OnBnClickedButtonLogin()
 		CString user;
 		GetDlgItem(IDC_USERNAME)->GetWindowText(user);
 		session->Login(user, _T("")); //TODO: Add certificate 
-
-		GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(FALSE);
-		GetDlgItem(IDC_BUTTON_PING)->EnableWindow(FALSE);
-		GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(FALSE);
-		GetDlgItem(IDC_USERNAME)->EnableWindow(FALSE);
-		GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(FALSE);
-		GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(FALSE);
 	}
 	else //Log out
 	{
-		session->Reset(session->GetServerURL());
-
-		GetDlgItem(IDC_BUTTON_LOGIN)->SetWindowText(_T("Login"));
-		GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
-		GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
-		GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
-		GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
+		session->Logout();
 	}
+
+	GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BUTTON_PING)->EnableWindow(FALSE);
+	GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(FALSE);
+	GetDlgItem(IDC_USERNAME)->EnableWindow(FALSE);
+	GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(FALSE);
+	GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(FALSE);
 }
 
 void CVDUClientDlg::OnEnChangeUsername()

@@ -109,6 +109,11 @@ void CVDUConnection::Process()
 		if (pFile)
 			pFile->Close();
 		pFile = nullptr;
+
+		if (con)
+			con->Close();
+		con = nullptr;
+
 		e->Delete();
 	}
 	END_CATCH;
@@ -119,7 +124,8 @@ void CVDUConnection::Process()
 
 	if (pFile)
 		pFile->Close();
-	con->Close();
+	if (con)
+		con->Close();
 }
 
 //Constructing connection does not initiate it

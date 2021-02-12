@@ -194,13 +194,22 @@ void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 		else
 		{
 			session->Reset(session->GetServerURL());
+
+			WND->GetDlgItem(IDC_BUTTON_LOGIN)->SetWindowText(_T("Login"));
+			WND->GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
+			WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
+			WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
+			WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
 			WND->TrayNotify(_T("Authetification failed"), _T("Please login again to refresh your session."), SIID_SERVER);
 		}
 	}
 	else
 	{
-		session->Reset(session->GetServerURL());
-		WND->TrayNotify(_T("Authentification failed"), _T("Could not connect to server."), SIID_INTERNET);
+		//Connection failed, let refreshing thread know to sleep for a bit and try again later
+		AfxEndThread(2, FALSE);
+
+		//session->Reset(session->GetServerURL());
+		//WND->TrayNotify(_T("Authentification failed"), _T("Could not connect to server."), SIID_INTERNET);
 	}
 
 }
@@ -215,11 +224,30 @@ void CVDUSession::CallbackLogout(CHttpFile* file)
 		DWORD statusCode;
 		file->QueryInfoStatusCode(statusCode);
 
-		if (statusCode == HTTP_STATUS_OK)
+		if (statusCode == HTTP_STATUS_NO_CONTENT)
 		{
-
+			//TODO: It was ok! Nice
 		}
+		else
+		{
+			WND->TrayNotify(_T("Authetification failed"), _T("Server failed to log out. Session reset."), SIID_RENAME);
+		}
+
+		session->Reset(session->GetServerURL());
+
+		WND->GetDlgItem(IDC_BUTTON_LOGIN)->SetWindowText(_T("Login"));
+		WND->GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
+		WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
+		WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
+		WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
 	}
+	else
+	{
+		WND->MessageBox(_T("Connection to server failed."), TITLENAME, MB_ICONERROR);
+	}
+
+	WND->GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
+	WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
 }
 
 void CVDUSession::Login(CString user, CString cert)
@@ -232,8 +260,19 @@ void CVDUSession::Login(CString user, CString cert)
 	headers += _T("\r\n");
 
 	AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)
-		(new CVDUConnection(m_serverURL, VDUAPIType::POST_AUTH_KEY, CVDUSession::CallbackLogin, headers, _T(""), cert)));
+		(new CVDUConnection(GetServerURL(), VDUAPIType::POST_AUTH_KEY, CVDUSession::CallbackLogin, headers, _T(""), cert)));
 	//Spawn file system service on a separate thread
 	//CString preferredLetter = APP->GetProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), _T(""));
 	//this->m_svcThread = AfxBeginThread(CVDUSession::ThreadProcFilesystemService, (LPVOID)(new CVDUFileSystemService(preferredLetter)));
+}
+
+void CVDUSession::Logout()
+{
+	CString headers;
+	headers += APIKEY_HEADER;
+	headers += _T(": ");
+	headers += GetAuthToken();
+	headers += _T("\r\n");
+
+	AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::DELETE_AUTH_KEY, CVDUSession::CallbackLogout, headers));
 }

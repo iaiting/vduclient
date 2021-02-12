@@ -175,11 +175,17 @@ UINT VDUClient::ThreadProcLoginRefresh(LPVOID)
 			refreshThread->m_bAutoDelete = FALSE;
 			INT resumeResult = refreshThread->ResumeThread();
 			WaitForSingleObject(refreshThread->m_hThread, INFINITE);
+
+			DWORD exitCode = 0;
+			GetExitCodeThread(refreshThread->m_hThread, &exitCode);
 			delete refreshThread;
+
+			if (exitCode == 2) //Failed to refresh, we wait for a bit
+				Sleep(4000);
 		}
-		else
-		{
-			Sleep(/*delta.GetTimeSpan() - */1000);
-		}
+		//else
+		//{
+		Sleep(/*delta.GetTimeSpan() - */1000);
+		//}
 	}
 }
