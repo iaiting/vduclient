@@ -37,27 +37,21 @@ CString CVDUSession::GetUser()
 
 void CVDUSession::Reset(CString serverURL)
 {
-	AcquireSRWLockExclusive(&m_lock);
 	m_serverURL = serverURL;
 	m_user = _T("");
 	m_authToken = _T("");
 	m_authTokenExpires = CTime(0);
-	ReleaseSRWLockExclusive(&m_lock);
 }
 
 void CVDUSession::SetAuthData(CString authToken, CTime expires)
 {
-	AcquireSRWLockExclusive(&m_lock);
 	m_authToken = authToken;
 	m_authTokenExpires = expires;
-	ReleaseSRWLockExclusive(&m_lock);
 }
 
 void CVDUSession::SetUser(CString user)
 {
-	AcquireSRWLockExclusive(&m_lock);
 	m_user = user;
-	ReleaseSRWLockExclusive(&m_lock);
 }
 
 void CVDUSession::CallbackPing(CHttpFile* file)
@@ -91,6 +85,9 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 {
 	CVDUSession* session = APP->GetSession();
 	ASSERT(session);
+
+	WND->GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
+	WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
 
 	if (file)
 	{
@@ -147,9 +144,6 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 		WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
 		WND->MessageBox(_T("Could not connect to server."), TITLENAME, MB_ICONERROR);
 	}
-
-	WND->GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
-	WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
 }
 
 void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
@@ -211,7 +205,6 @@ void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 		//session->Reset(session->GetServerURL());
 		//WND->TrayNotify(_T("Authentification failed"), _T("Could not connect to server."), SIID_INTERNET);
 	}
-
 }
 
 void CVDUSession::CallbackLogout(CHttpFile* file)
@@ -268,11 +261,8 @@ void CVDUSession::Login(CString user, CString cert)
 
 void CVDUSession::Logout()
 {
-	CString headers;
-	headers += APIKEY_HEADER;
-	headers += _T(": ");
-	headers += GetAuthToken();
-	headers += _T("\r\n");
+	if (GetUser().IsEmpty())
+		return;
 
-	AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::DELETE_AUTH_KEY, CVDUSession::CallbackLogout, headers));
+	AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::DELETE_AUTH_KEY, CVDUSession::CallbackLogout));
 }

@@ -7,12 +7,9 @@
 
 void CVDUConnection::Process()
 {
-	CInternetSession session(_T("VDUClient 1.0, Windows"));
+	CInternetSession inetsession(_T("VDUClient 1.0, Windows"));
 	int httpVerb;
 	LPCTSTR apiPath = NULL;
-
-	//m_wnd->GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(_T("Connecting...");
-	//m_wnd->GetProgressBar()->SetPos(0);
 
 	switch (m_type)
 	{
@@ -68,7 +65,6 @@ void CVDUConnection::Process()
 	httpObjectPath += m_parameter;
 
 	INTERNET_PORT port = INTERNET_DEFAULT_HTTPS_PORT;
-
 #ifdef _DEBUG //If debug server
 	if (m_serverURL == _T("127.0.0.1"))
 		port = 4443;
@@ -78,7 +74,13 @@ void CVDUConnection::Process()
 	if (m_serverURL.IsEmpty())
 		return;
 
-	CHttpConnection* con = session.GetHttpConnection(m_serverURL, port, NULL, NULL);
+	//Lock the session if this connection has a callback, it will then be responsibile for unlocking
+	if (m_callback != nullptr)
+	{
+		VDU_SESSION_LOCK;
+	}
+
+	CHttpConnection* con = inetsession.GetHttpConnection(m_serverURL, port, NULL, NULL);
 	CHttpFile* pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL, INTERNET_FLAG_SECURE | INTERNET_FLAG_TRANSFER_BINARY
 #ifdef _DEBUG //Ignores certificates in debug mode
 		| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
@@ -89,6 +91,18 @@ void CVDUConnection::Process()
 #else 
 		);
 #endif
+
+	//For every other API, transactions need to be done one after the other
+	//And for that reason, auth token is filled in last, in order to be sure its up to date
+	if (m_type != VDUAPIType::GET_PING)
+	{
+		CString headers;
+		headers += APIKEY_HEADER;
+		headers += _T(": ");
+		headers += APP->GetSession()->GetAuthToken();
+		headers += _T("\r\n");
+		m_requestHeaders += headers;
+	}
 
 	if (!m_requestHeaders.IsEmpty())
 		pFile->AddRequestHeaders(m_requestHeaders);
@@ -120,7 +134,12 @@ void CVDUConnection::Process()
 
 	//Call our callback
 	if (m_callback != nullptr)
+	{
 		m_callback(pFile);
+		VDU_SESSION_UNLOCK;
+	}
+
+	
 
 	if (pFile)
 		pFile->Close();

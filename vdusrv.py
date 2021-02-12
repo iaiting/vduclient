@@ -1,6 +1,6 @@
 import os, ssl, http.server, time, random, hashlib, base64, mimetypes, json
 #Server fake response delay in seconds
-FAKE_RESPONSE_DELAY = 0.1
+FAKE_RESPONSE_DELAY = 0
 #Api key expiration time, seconds
 KEY_EXPIRATION_TIME = 5
 #Current list of users who can generate keys

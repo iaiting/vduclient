@@ -110,6 +110,8 @@ BOOL CVDUClientDlg::OnInitDialog()
 
 	GetDlgItem(IDC_CONNECT)->SetFocus();
 
+	//Iterate through all logical drives, display unused ones as options
+	//Note: This is only executed on program startup, does not update dynamically
 	DWORD drives = GetLogicalDrives();
 	if (drives == NULL)
 		MessageBox(_T("Failed to read logical drives"), TITLENAME, MB_ICONWARNING);
@@ -142,17 +144,9 @@ BOOL CVDUClientDlg::OnInitDialog()
 		GetDlgItem(IDC_STATIC_DRIVELETTER)->EnableWindow(TRUE);
 	}
 
-	APP->GetSession()->Reset(m_server);
-
-	//Try dark mode
-	/*HMODULE hUxtheme = LoadLibraryEx(_T("uxtheme.dll"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-	if (hUxtheme)
-	{
-		using TYPE_AllowDarkModeForWindow = bool (WINAPI*)(HWND a_HWND, bool a_Allow);
-		static const TYPE_AllowDarkModeForWindow AllowDarkModeForWindow = (TYPE_AllowDarkModeForWindow)GetProcAddress(hUxtheme, MAKEINTRESOURCEA(133));
-		AllowDarkModeForWindow(GetSafeHwnd(), true);
-		SetWindowTheme(GetSafeHwnd(), L"Explorer", NULL);
-	}*/
+	VDU_SESSION_LOCK;
+	session->Reset(m_server);
+	VDU_SESSION_UNLOCK;
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -436,7 +430,9 @@ void CVDUClientDlg::OnEnChangeServerAddress()
 		GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(FALSE);
 	}
 
-	APP->GetSession()->Reset(m_server);
+	VDU_SESSION_LOCK;
+	session->Reset(m_server);
+	VDU_SESSION_UNLOCK;
 }
 
 void CVDUClientDlg::TryPing()
@@ -446,8 +442,7 @@ void CVDUClientDlg::TryPing()
 
 void CVDUClientDlg::OnBnClickedButtonLogin()
 {
-	CVDUSession* session = APP->GetSession();
-	ASSERT(session);
+	VDU_SESSION_LOCK;
 
 	if (session->GetUser().IsEmpty()) //Loggin in 
 	{
@@ -459,6 +454,8 @@ void CVDUClientDlg::OnBnClickedButtonLogin()
 	{
 		session->Logout();
 	}
+
+	VDU_SESSION_UNLOCK;
 
 	GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BUTTON_PING)->EnableWindow(FALSE);

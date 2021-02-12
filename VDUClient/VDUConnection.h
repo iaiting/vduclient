@@ -14,6 +14,9 @@ enum class VDUAPIType
 	DELETE_FILE, //Invalidate file token
 };
 
+//Connection callback with HTTP response as a parameter
+//Has guaranteed exclusive access to VDU session
+//Is executed on calling thread
 typedef void (*VDU_CONNECTION_CALLBACK)(CHttpFile* httpResponse);
 
 //A single connection to a VDU server, halts thread it is executed on

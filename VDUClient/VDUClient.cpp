@@ -143,19 +143,21 @@ UINT VDUClient::ThreadProcLoginRefresh(LPVOID)
 {
 	while (TRUE)
 	{
-		CVDUSession* session = APP->GetSession();
-		ASSERT(session);
+		VDU_SESSION_LOCK;
 
 		CTime expires = session->GetAuthTokenExpires();
 
-		//Not set up yet, we wait
+		//Session is not set up yet, we wait
 		if (expires <= 0)
 		{
+			VDU_SESSION_UNLOCK;
 			Sleep(1000);
 			continue;
 		}
 
+		//NOTE: CTime::GetCurrentTime is offset by timezone, do not use
 		SYSTEMTIME cstime;
+		SecureZeroMemory(&cstime, sizeof(cstime));
 		GetSystemTime(&cstime);
 		CTime now(cstime);
 		CTimeSpan delta = expires - now;
@@ -163,29 +165,35 @@ UINT VDUClient::ThreadProcLoginRefresh(LPVOID)
 		//Sleep till its time to refresh or refresh immediately
 		if (delta < 3)
 		{
-			CString headers;
-			headers += APIKEY_HEADER;
-			headers += _T(": ");
-			headers += session->GetAuthToken();
-			headers += _T("\r\n");
-
 			CWinThread* refreshThread = AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)
-				(new CVDUConnection(session->GetServerURL(), VDUAPIType::GET_AUTH_KEY, CVDUSession::CallbackLoginRefresh, headers)),0,0,CREATE_SUSPENDED);
+				(new CVDUConnection(session->GetServerURL(), VDUAPIType::GET_AUTH_KEY, CVDUSession::CallbackLoginRefresh)),0,0,CREATE_SUSPENDED);
+
 			ASSERT(refreshThread);
 			refreshThread->m_bAutoDelete = FALSE;
-			INT resumeResult = refreshThread->ResumeThread();
-			WaitForSingleObject(refreshThread->m_hThread, INFINITE);
+			DWORD resumeResult = refreshThread->ResumeThread();
+
+			VDU_SESSION_UNLOCK;
+
+			//We wait for our refreshing thread to finish
+			if (resumeResult != 0xFFFFFFFF) //Should not happen, but dont get stuck
+				WaitForSingleObject(refreshThread->m_hThread, INFINITE);
 
 			DWORD exitCode = 0;
 			GetExitCodeThread(refreshThread->m_hThread, &exitCode);
+
+			//With m_bAutoDelete we are responsibile for deleting the thread
 			delete refreshThread;
 
-			if (exitCode == 2) //Failed to refresh, we wait for a bit
+			if (exitCode == 2) //Failed to refresh due to connection, we wait for a bit
+			{
 				Sleep(4000);
+			}
 		}
-		//else
-		//{
-		Sleep(/*delta.GetTimeSpan() - */1000);
-		//}
+		else //Sleep until its time to check again
+		{
+			VDU_SESSION_UNLOCK;
+			Sleep(1000); //TODO: delta timespan ?
+			continue;
+		}
 	}
 }
