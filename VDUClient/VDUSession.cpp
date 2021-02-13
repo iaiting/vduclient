@@ -121,8 +121,21 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 				return;
 			}
 
+			SYSTEMTIME cstime;
+			SecureZeroMemory(&cstime, sizeof(cstime));
+			GetSystemTime(&cstime);
+			CTime now(cstime);
+			CTime exp(expTime);
+
+			//Expiration date has to be in future
+			if (exp < now)
+			{
+				WND->MessageBox(_T("Auth expiration date in the past!"), TITLENAME, MB_ICONERROR);
+				return;
+			}
+
 			//Login successful
-			session->SetAuthData(apiKey, CTime(expTime));
+			session->SetAuthData(apiKey, exp);
 			WND->GetDlgItem(IDC_BUTTON_LOGIN)->SetWindowText(_T("Logout"));
 		}
 		else
@@ -183,7 +196,20 @@ void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 				return;
 			}
 
-			session->SetAuthData(apiKey, CTime(expTime));
+			SYSTEMTIME cstime;
+			SecureZeroMemory(&cstime, sizeof(cstime));
+			GetSystemTime(&cstime);
+			CTime now(cstime);
+			CTime exp(expTime);
+
+			//Expiration date has to be in future
+			if (exp < now)
+			{
+				WND->MessageBox(_T("Auth expiration date in the past!"), TITLENAME, MB_ICONERROR);
+				return;
+			}
+
+			session->SetAuthData(apiKey, exp);
 		}
 		else
 		{
@@ -252,11 +278,8 @@ void CVDUSession::Login(CString user, CString cert)
 	headers += GetUser();
 	headers += _T("\r\n");
 
-	AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)
-		(new CVDUConnection(GetServerURL(), VDUAPIType::POST_AUTH_KEY, CVDUSession::CallbackLogin, headers, _T(""), cert)));
-	//Spawn file system service on a separate thread
-	//CString preferredLetter = APP->GetProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), _T(""));
-	//this->m_svcThread = AfxBeginThread(CVDUSession::ThreadProcFilesystemService, (LPVOID)(new CVDUFileSystemService(preferredLetter)));
+	AfxBeginThread(CVDUConnection::ThreadProc, 
+		(LPVOID)(new CVDUConnection(GetServerURL(), VDUAPIType::POST_AUTH_KEY, CVDUSession::CallbackLogin, headers, _T(""), cert)));
 }
 
 void CVDUSession::Logout()
@@ -264,5 +287,6 @@ void CVDUSession::Logout()
 	if (GetUser().IsEmpty())
 		return;
 
-	AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::DELETE_AUTH_KEY, CVDUSession::CallbackLogout));
+	AfxBeginThread(CVDUConnection::ThreadProc, 
+		(LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::DELETE_AUTH_KEY, CVDUSession::CallbackLogout));
 }

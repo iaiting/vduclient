@@ -48,6 +48,9 @@ public:
 	//Handles the filesystem service
 	CWinThread* GetFileSystemServiceThread();
 
+	//Allows operations with the filesystem service
+	CVDUFileSystemService* GetFileSystemService();
+
 //Overrides
 
 	//For initializing core of the program

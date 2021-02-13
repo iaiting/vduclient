@@ -94,7 +94,7 @@ void CVDUConnection::Process()
 
 	//For every other API, transactions need to be done one after the other
 	//And for that reason, auth token is filled in last, in order to be sure its up to date
-	if (m_type != VDUAPIType::GET_PING)
+	if (m_type != VDUAPIType::GET_PING && !APP->GetSession()->GetAuthToken().IsEmpty())
 	{
 		CString headers;
 		headers += APIKEY_HEADER;

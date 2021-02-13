@@ -493,7 +493,13 @@ void CVDUClientDlg::OnCbnSelchangeComboDriveletter()
 	CComboBox* comboDriveLetter = (CComboBox*)GetDlgItem(IDC_COMBO_DRIVELETTER);
 	CString letter;
 	comboDriveLetter->GetLBText(comboDriveLetter->GetCurSel(), letter);
+	CString oldLetter = APP->GetProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), letter);
 	APP->WriteProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), letter);
+	ASSERT(APP->GetFileSystemService());
+
+	//On change we remount
+	if (oldLetter != letter)
+		APP->GetFileSystemService()->Remount(letter);
 }
 
 void CVDUClientDlg::OnBnClickedPingbutton()

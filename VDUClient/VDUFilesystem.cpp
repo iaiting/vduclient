@@ -93,8 +93,7 @@ NTSTATUS CVDUFileSystem::Init(PVOID Host0)
     return STATUS_SUCCESS;
 }
 
-NTSTATUS CVDUFileSystem::GetVolumeInfo(
-    VolumeInfo* VolumeInfo)
+NTSTATUS CVDUFileSystem::GetVolumeInfo(VolumeInfo* VolumeInfo)
 {
 #ifdef DEBUG_PRINT_FILESYSTEM_CALLS
     time_t now = time(0);
@@ -104,21 +103,24 @@ NTSTATUS CVDUFileSystem::GetVolumeInfo(
     strftime(buf, sizeof(buf), "%X", &tstruct);
     fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
 #endif
+    //In order to count files in our work path, we add an asterisk
+    CString wildcardPath = _Path;
+    wildcardPath += "\\*";
 
-    ULARGE_INTEGER TotalSize, FreeSize;
+    VolumeInfo->TotalSize = VolumeInfo->FreeSize = 0;
+    WIN32_FIND_DATA FindFileData;
+    SecureZeroMemory(&FindFileData, sizeof(FindFileData));
+    HANDLE hFind;
 
-    //if (!GetVolumePathName(_Path, Root, MAX_PATH))
-     //    return NtStatusFromWin32(GetLastError());
-
-    if (!GetDiskFreeSpaceEx(_Path, 0, &TotalSize, &FreeSize))
-        return NtStatusFromWin32(GetLastError());
-
-    //GetFileSizeEx()
-
-    /*VolumeInfo->TotalSize = TotalSize.QuadPart;
-    VolumeInfo->FreeSize = FreeSize.QuadPart;
-    swprintf_s(VolumeInfo->VolumeLabel, _T("VDU");
-    VolumeInfo->VolumeLabelLength = wcslen(VolumeInfo->VolumeLabel);*/
+    //Count all files to the total size
+    hFind = FindFirstFile(wildcardPath, &FindFileData);
+    if (hFind != INVALID_HANDLE_VALUE)
+    {
+        do
+        {
+            VolumeInfo->TotalSize += ((UINT64)FindFileData.nFileSizeLow) + ((UINT64)FindFileData.nFileSizeHigh << 32);
+        } while (FindNextFile(hFind, &FindFileData));
+    }
 
     return STATUS_SUCCESS;
 }
@@ -135,7 +137,7 @@ NTSTATUS CVDUFileSystem::GetSecurityByName(
     char buf[80];
     tstruct = *localtime(&now);
     strftime(buf, sizeof(buf), "%X", &tstruct);
-    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+    fprintf(stderr, "[%s] %s(%ws)%s", buf, __FUNCTION__, FileName, "\r\n");
 #endif
 
     WCHAR FullPath[FULLPATH_SIZE];
@@ -147,7 +149,7 @@ NTSTATUS CVDUFileSystem::GetSecurityByName(
     if (!ConcatPath(FileName, FullPath))
         return STATUS_OBJECT_NAME_INVALID;
 
-    Handle = CreateFileW(FullPath,
+    Handle = CreateFile(FullPath,
         FILE_READ_ATTRIBUTES | READ_CONTROL, 0, 0,
         OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0);
     if (INVALID_HANDLE_VALUE == Handle)
@@ -616,8 +618,6 @@ NTSTATUS CVDUFileSystem::CanDelete(
     fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
 #endif
 
-    return STATUS_UNSUCCESSFUL;
-
     HANDLE Handle = HandleFromFileDesc(FileDesc);
     FILE_DISPOSITION_INFO DispositionInfo;
 
@@ -654,7 +654,7 @@ NTSTATUS CVDUFileSystem::Rename(
     if (!ConcatPath(NewFileName, NewFullPath))
         return STATUS_OBJECT_NAME_INVALID;
 
-    if (!MoveFileExW(FullPath, NewFullPath, ReplaceIfExists ? MOVEFILE_REPLACE_EXISTING : 0))
+    if (!MoveFileEx(FullPath, NewFullPath, ReplaceIfExists ? MOVEFILE_REPLACE_EXISTING : 0))
         return NtStatusFromWin32(GetLastError());
 
     return STATUS_SUCCESS;
@@ -770,7 +770,7 @@ NTSTATUS CVDUFileSystem::ReadDirectoryEntry(
         Length = GetFinalPathNameByHandleW(Handle, FullPath, FULLPATH_SIZE - 1, 0);
         if (0 == Length)
             return NtStatusFromWin32(GetLastError());
-        if (Length + 1 + PatternLength >= FULLPATH_SIZE)
+        if ((UINT64)Length + 1 + PatternLength >= FULLPATH_SIZE)
             return STATUS_OBJECT_NAME_INVALID;
 
         if (L'\\' != FullPath[Length - 1])
@@ -854,9 +854,14 @@ static ULONG wcstol_deflt(wchar_t* w, ULONG deflt)
     return L'\0' != w[0] && L'\0' == *endp ? ul : deflt;
 }
 
-CVDUFileSystemService::CVDUFileSystemService(CString DriveLetter) : Service(_T(PROGNAME)), fs(), _Host(fs)
+CVDUFileSystemService::CVDUFileSystemService(CString DriveLetter) : Service(_T(PROGNAME)), m_fs(), m_host(m_fs), m_hWorkDir(INVALID_HANDLE_VALUE)
 {
-    StringCchCopy(_DriveLetter, ARRAYSIZE(_DriveLetter), DriveLetter);
+    StringCchCopy(m_driveLetter, ARRAYSIZE(m_driveLetter), DriveLetter);
+}
+
+Fsp::FileSystemHost& CVDUFileSystemService::GetHost()
+{
+    return this->m_host;
 }
 
 NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
@@ -879,12 +884,13 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
 
     SetFileAttributes(PathBuf, FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM
         | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
-    //EncryptFile(PathBuf);
 
     //Prevent folder modification while program is running
-    HANDLE hDir = CreateFile(PathBuf, GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
-    if (hDir)
-        LockFile(hDir, 0, 0, 0, 0);
+    m_hWorkDir = CreateFile(PathBuf, GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (m_hWorkDir != INVALID_HANDLE_VALUE)
+    {
+        LockFile(m_hWorkDir, 0, 0, 0, 0);
+    }
     else
     {
         fail(_T("Cannot lock work folder"));
@@ -905,23 +911,22 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
         }
     }
 
-    Result = fs.SetPath(PathBuf);
+    Result = m_fs.SetPath(PathBuf);
     if (!NT_SUCCESS(Result))
     {
         fail(_T("cannot create file system"));
         return Result;
     }
 
-    _Host.SetFileSystemName(_T("VDU"));
+    m_host.SetFileSystemName(_T("VDU"));
 
-    Result = _Host.Mount(_DriveLetter, 0, FALSE, DebugFlags);
+    Result = m_host.Mount(m_driveLetter, 0, FALSE, DebugFlags);
     if (!NT_SUCCESS(Result))
     {
         fail(_T("cannot mount file system"));
         return Result;
     }
 
-    //MountPoint = _Host.MountPoint();
 
 #ifdef _DEBUG
     if (AllocConsole())
@@ -939,6 +944,15 @@ NTSTATUS CVDUFileSystemService::OnStop()
 #ifdef _DEBUG
     FreeConsole();
 #endif
-    _Host.Unmount();
+    m_host.Unmount();
     return STATUS_SUCCESS;
+}
+
+NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
+{
+    if (m_host.MountPoint() && wcslen(m_host.MountPoint()) > 0) 
+        m_host.Unmount();
+
+    StringCchCopy(m_driveLetter, ARRAYSIZE(m_driveLetter), DriveLetter);
+    return m_host.Mount((PWSTR)m_driveLetter);
 }

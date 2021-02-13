@@ -42,6 +42,16 @@ CWinThread* VDUClient::GetSessionRefreshingThread()
 	return m_srefThread;
 }
 
+CWinThread* VDUClient::GetFileSystemServiceThread()
+{
+	return m_svcThread;
+}
+
+CVDUFileSystemService* VDUClient::GetFileSystemService()
+{
+	return m_svc;
+}
+
 // The one and only VDUClient object
 VDUClient vduClient;
 
@@ -111,6 +121,9 @@ BOOL VDUClient::InitInstance()
 		{
 			pDlg->ShowWindow(SW_SHOWNORMAL);
 		}
+
+		CString preferredLetter = APP->GetProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), _T(""));
+		m_svcThread = AfxBeginThread(ThreadProcFilesystemService, (LPVOID)(m_svc = new CVDUFileSystemService(preferredLetter)));
 	}
 	else
 	{
@@ -135,8 +148,18 @@ BOOL VDUClient::InitInstance()
 
 INT VDUClient::ExitInstance()
 {
+	if (auto* svc = APP->GetFileSystemService())
+		svc->Stop();
 	WND->DestroyWindow(); //Make sure dialog window cleans up properly
 	return CWinApp::ExitInstance();
+}
+
+UINT VDUClient::ThreadProcFilesystemService(LPVOID service)
+{
+	CVDUFileSystemService* svc = (CVDUFileSystemService*) service;
+	ASSERT(svc);
+	//Run the service here forever
+	return svc->Run();
 }
 
 UINT VDUClient::ThreadProcLoginRefresh(LPVOID)
@@ -196,4 +219,6 @@ UINT VDUClient::ThreadProcLoginRefresh(LPVOID)
 			continue;
 		}
 	}
+
+	return EXIT_SUCCESS;
 }

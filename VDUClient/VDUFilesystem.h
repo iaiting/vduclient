@@ -174,12 +174,18 @@ class CVDUFileSystemService : public Fsp::Service
 public:
     CVDUFileSystemService(CString DriveLetter);
 
+    //Returns the filesystem host for mounting
+    Fsp::FileSystemHost& GetHost();
+
+    //Remount filesystem to different drive letter
+    NTSTATUS Remount(CString DriveLetter);
 protected:
     NTSTATUS OnStart(ULONG Argc, PWSTR* Argv);
     NTSTATUS OnStop();
 
 private:
-    CVDUFileSystem fs;
-    Fsp::FileSystemHost _Host;
-    TCHAR _DriveLetter[128];
+    CVDUFileSystem m_fs;
+    Fsp::FileSystemHost m_host;
+    TCHAR m_driveLetter[128];
+    HANDLE m_hWorkDir;
 };

@@ -30,7 +30,7 @@ def GenerateRandomToken(duplicateCheckDict = None):
 
 class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        global ApiKeys, Users, KEY_EXPIRATION_TIME, FileTokens
+        global ApiKeys, Users, KEY_EXPIRATION_TIME, FAKE_RESPONSE_DELAY, FileTokens
         
         if (FAKE_RESPONSE_DELAY > 0):
             time.sleep(FAKE_RESPONSE_DELAY)
@@ -107,7 +107,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                         Log("GET %s From:%s File:%s (200)" % (self.path, ApiKeys[apiKey]["User"], fpath))
                 
     def do_POST(self):
-        global ApiKeys, Users, KEY_EXPIRATION_TIME, FileTokens
+        global ApiKeys, Users, KEY_EXPIRATION_TIME, FAKE_RESPONSE_DELAY, FileTokens
         
         if (FAKE_RESPONSE_DELAY > 0):
             time.sleep(FAKE_RESPONSE_DELAY)
@@ -153,7 +153,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     Log("POST %s From:%s File:%s (200)" % (self.path, ApiKeys[apiKey]["User"], fpath))
     
     def do_DELETE(self):
-        global ApiKeys, Users, KEY_EXPIRATION_TIME, FileTokens
+        global ApiKeys, Users, KEY_EXPIRATION_TIME, FAKE_RESPONSE_DELAY, FileTokens
 
         if (FAKE_RESPONSE_DELAY > 0):
             time.sleep(FAKE_RESPONSE_DELAY)
@@ -185,6 +185,6 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 
-httpd = http.server.HTTPServer(("localhost", 4443), VDUHTTPRequestHandler)
+httpd = http.server.HTTPServer(("127.0.0.1", 4443), VDUHTTPRequestHandler)
 httpd.socket = ssl.wrap_socket(httpd.socket, certfile=os.path.dirname(os.path.realpath(__file__)) + "\\server.pem", server_side=True)
 httpd.serve_forever()
