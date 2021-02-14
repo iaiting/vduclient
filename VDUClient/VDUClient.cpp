@@ -131,6 +131,9 @@ BOOL VDUClient::InitInstance()
 		return FALSE;
 	}
 
+	//TODO: Use this later
+	//ShutdownBlockReasonCreate(WND->GetSafeHwnd(), _T("Please exit the application"));
+
 	// Delete the shell manager created above.
 	/*if (pShellManager != nullptr)
 	{
@@ -148,7 +151,11 @@ BOOL VDUClient::InitInstance()
 
 INT VDUClient::ExitInstance()
 {
-	if (auto* svc = APP->GetFileSystemService())
+	//TODO: Make sure to send all changes before natural exit?
+	ShutdownBlockReasonDestroy(WND->GetSafeHwnd());
+	if (auto* s = GetSession())
+		AfxBeginThread(CVDUConnection::ThreadProc,(LPVOID)new CVDUConnection(s->GetServerURL(), VDUAPIType::DELETE_AUTH_KEY));
+	if (auto* svc = GetFileSystemService())
 		svc->Stop();
 	WND->DestroyWindow(); //Make sure dialog window cleans up properly
 	return CWinApp::ExitInstance();

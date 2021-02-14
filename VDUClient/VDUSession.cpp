@@ -75,6 +75,7 @@ void CVDUSession::CallbackPing(CHttpFile* file)
 	}
 	else
 	{
+		//TODO: Dont use MessageBox in callback - they are blocking, could lead to deadlock
 		WND->MessageBox(_T("Could not connect to server."), TITLENAME, MB_ICONERROR);
 	}
 
@@ -267,6 +268,69 @@ void CVDUSession::CallbackLogout(CHttpFile* file)
 
 	WND->GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
 	WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
+}
+
+void CVDUSession::CallbackDownloadFile(CHttpFile* file)
+{
+	CVDUSession* session = APP->GetSession();
+	ASSERT(session);
+
+	if (file)
+	{
+		DWORD statusCode;
+		file->QueryInfoStatusCode(statusCode);
+
+		if (statusCode == HTTP_STATUS_OK)
+		{
+			//TODO: It was ok! Nice
+		}
+		else //TODO: Differentiate status codes
+		{
+
+		}
+	}
+}
+
+void CVDUSession::CallbackUploadFile(CHttpFile* file)
+{
+	CVDUSession* session = APP->GetSession();
+	ASSERT(session);
+
+	if (file)
+	{
+		DWORD statusCode;
+		file->QueryInfoStatusCode(statusCode);
+
+		if (statusCode == HTTP_STATUS_OK)
+		{
+			//TODO: It was ok! Nice
+		}
+		else //TODO: Differentiate status codes
+		{
+
+		}
+	}
+}
+
+void CVDUSession::CallbackInvalidateFileToken(CHttpFile* file)
+{
+	CVDUSession* session = APP->GetSession();
+	ASSERT(session);
+
+	if (file)
+	{
+		DWORD statusCode;
+		file->QueryInfoStatusCode(statusCode);
+
+		if (statusCode == HTTP_STATUS_OK)
+		{
+			//TODO: It was ok! Nice
+		}
+		else //TODO: Differentiate status codes
+		{
+
+		}
+	}
 }
 
 void CVDUSession::Login(CString user, CString cert)

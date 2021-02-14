@@ -39,4 +39,7 @@ public:
 	static void CallbackLogin(CHttpFile* file);
 	static void CallbackLoginRefresh(CHttpFile* file);
 	static void CallbackLogout(CHttpFile* file);
+	static void CallbackDownloadFile(CHttpFile* file);
+	static void CallbackUploadFile(CHttpFile* file);
+	static void CallbackInvalidateFileToken(CHttpFile* file);
 };

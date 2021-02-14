@@ -199,10 +199,12 @@
     <ClInclude Include="VDUClient.h" />
     <ClInclude Include="VDUClientDlg.h" />
     <ClInclude Include="VDUConnection.h" />
+    <ClInclude Include="VDUFile.h" />
     <ClInclude Include="VDUFilesystem.h" />
     <ClInclude Include="VDUSession.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="VDUFile.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
