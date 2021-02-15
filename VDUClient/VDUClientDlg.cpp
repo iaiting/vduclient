@@ -38,6 +38,8 @@ BEGIN_MESSAGE_MAP(CVDUClientDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CHECK_CERTIFICATE, &CVDUClientDlg::OnBnClickedCheckCertificate)
 	ON_BN_CLICKED(IDC_BUTTON_PING, &CVDUClientDlg::OnBnClickedPingbutton)
 	ON_BN_CLICKED(IDC_BUTTON_CERTSELECT, &CVDUClientDlg::OnBnClickedButtonCertselect)
+	ON_BN_CLICKED(IDC_ACCESS_FILE, &CVDUClientDlg::OnBnClickedAccessFile)
+	ON_EN_SETFOCUS(IDC_FILE_TOKEN, &CVDUClientDlg::OnEnSetfocusFileToken)
 END_MESSAGE_MAP()
 
 // CVDUClientDlg message handlers
@@ -159,6 +161,12 @@ BOOL CVDUClientDlg::OnInitDialog()
 	session->Reset(m_server);
 	VDU_SESSION_UNLOCK;
 
+	//Handle autologin
+	if (APP->GetProfileInt(SECTION_SETTINGS, _T("AutoLogin"), FALSE))
+	{
+		OnBnClickedButtonLogin();
+	}
+
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -172,7 +180,7 @@ void CVDUClientDlg::UpdateStatus()
 
 	if (session->IsLoggedIn())
 	{
-
+		trayStatus += _T("\r\nLogged in as " + session->GetUser());
 	}
 	else
 	{
@@ -180,6 +188,7 @@ void CVDUClientDlg::UpdateStatus()
 	}
 
 	TrayTip(trayStatus);
+	GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(windowStatus);
 }
 
 BOOL CVDUClientDlg::GetRegValueSz(CString name, CString defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, CString path, ULONG type)
@@ -480,7 +489,45 @@ void CVDUClientDlg::OnBnClickedButtonLogin()
 	{
 		CString user;
 		GetDlgItem(IDC_USERNAME)->GetWindowText(user);
-		session->Login(user, _T("")); //TODO: Add certificate 
+
+		//Read client cert data, send them along with login request
+		BYTE* certData = NULL;
+		UINT64 certDataLen = 0;
+		if (IsLoginUsingCertificate() && !m_certPath.IsEmpty())
+		{
+			TRY
+			{
+				CStdioFile certf(m_certPath, CFile::modeRead | CFile::typeBinary);
+				CFileStatus fst;
+				if (certf.GetStatus(fst))
+				{
+					certDataLen = fst.m_size;
+					certData = new BYTE[certDataLen];
+					ASSERT(certData);
+
+					if (certf.Read(certData, certDataLen) != certDataLen)
+					{
+						//Failed to read file?
+						ASSERT(FALSE);
+					}
+				}
+			}
+			CATCH(CFileException, e)
+			{
+				TCHAR err[0x400] = { 0 };
+				e->GetErrorMessage(err, ARRAYSIZE(err));
+				MessageBox(err, TITLENAME, MB_ICONERROR);
+				e->Delete();
+			}
+			END_CATCH;
+		}
+
+		session->Login(user, certData, certDataLen);
+
+		//This is safe to delete, connection constructor is ran in current thread
+		//Data were copied over and are ready for connection thread to handle
+		if (certData)
+			delete[] certData;
 	}
 	else //Log out
 	{
@@ -502,7 +549,7 @@ void CVDUClientDlg::OnEnChangeUsername()
 	CString name;
 	GetDlgItem(IDC_USERNAME)->GetWindowText(name);
 	m_username = name;
-	AfxGetApp()->WriteProfileString(SECTION_SETTINGS, _T("LastUserName"), name);
+	APP->WriteProfileString(SECTION_SETTINGS, _T("LastUserName"), name);
 }
 
 void CVDUClientDlg::OnBnClickedCheckCertificate()
@@ -565,4 +612,32 @@ void CVDUClientDlg::OnBnClickedButtonCertselect()
 		//Failed to spawn file dialog?
 
 	}
+}
+
+void CVDUClientDlg::OnBnClickedAccessFile()
+{
+	CString fileToken;
+	GetDlgItem(IDC_FILE_TOKEN)->GetWindowText(fileToken);
+
+	if (fileToken.IsEmpty())
+	{
+		AfxMessageBox(_T("Please input the file token."), MB_ICONWARNING);
+		return;
+	}
+
+	//VDU_SESSION_LOCK not needed? Access token is filled in last anyway..
+	CVDUSession* session = APP->GetSession();
+	ASSERT(session);
+
+	session->AccessFile(fileToken);
+}
+
+
+void CVDUClientDlg::OnEnSetfocusFileToken()
+{
+	//TODO: Clipboard stuff
+	/*if (OpenClipboard(NULL))
+	{
+		GetClipboardData(CF_TEXT);
+	}*/
 }

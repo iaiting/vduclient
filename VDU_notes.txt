@@ -15,3 +15,7 @@ https://docs.microsoft.com/en-us/windows/win32/winhttp/http-status-codes
 https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathfindfilenamew
 https://docs.microsoft.com/en-us/cpp/mfc/reference/cfiledialog-class
 https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileattributesw
+https://docs.microsoft.com/en-us/cpp/mfc/reference/cfile-class
+https://docs.microsoft.com/en-us/cpp/mfc/reference/cstdiofile-class
+https://docs.microsoft.com/en-us/cpp/mfc/clipboard-using-the-windows-clipboard
+https://docs.microsoft.com/en-us/cpp/mfc/reference/cwnd-class

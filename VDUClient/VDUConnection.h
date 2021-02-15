@@ -27,12 +27,15 @@ protected:
 	CString m_serverURL; //Server URL to send request to
 	CString m_parameter; //Http path parameter
 	CString m_requestHeaders; //HTTP Request headers
-	CString m_content; //HTTP content
+	BYTE* m_content; //HTTP content
+	UINT64 m_contentLen; //Length of HTTP content
 	VDU_CONNECTION_CALLBACK m_callback; //Function to call after http file is received
 public:
-	//Sets up the connection
+	//Sets up the connection - construction does NOT initiate the connection, call Process()
+	//content is copied if set
 	CVDUConnection(CString serverURL, VDUAPIType type, VDU_CONNECTION_CALLBACK callback = nullptr,
-		CString requestHeaders = _T(""), CString parameter = _T(""), CString content = _T(""));
+		CString requestHeaders = _T(""), CString parameter = _T(""), BYTE* content = NULL, UINT64 contentLen = 0);
+	~CVDUConnection();
 
 	//Processes the connection and halts executing thread until done
 	//Should NOT be run in main thread

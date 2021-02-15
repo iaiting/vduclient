@@ -290,13 +290,45 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 
 		if (statusCode == HTTP_STATUS_OK)
 		{
-			//TODO: It was ok! Nice
+			CString contentLength;
+			if (!file->QueryInfo(HTTP_QUERY_CONTENT_LENGTH, contentLength))
+			{
+				WND->MessageBox(_T("Server did not send Content-Length!"), TITLENAME, MB_ICONERROR);
+				return;
+			}
+
+			CFileStatus fst;
+			file->GetStatus(fst);
+
+			CString allow;
+			if (!file->QueryInfo(HTTP_QUERY_ALLOW, allow))
+			{
+				WND->MessageBox(_T("Server did not send Allow!"), TITLENAME, MB_ICONERROR);
+				return;
+			}
 		}
-		else //TODO: Differentiate status codes
+		else if (statusCode == HTTP_STATUS_NOT_FOUND)
 		{
-			 
+			WND->MessageBox(_T("File does not exist!"), TITLENAME, MB_ICONERROR);
+		}
+		else if (statusCode == HTTP_STATUS_BAD_METHOD)
+		{
+			WND->MessageBox(_T("You can not read this file!"), TITLENAME, MB_ICONERROR);
+		}
+		else if (statusCode == HTTP_STATUS_DENIED)
+		{
+			WND->MessageBox(_T("Invalid authorization token!\r\nPlease log in again."), TITLENAME, MB_ICONERROR);
+		}
+		else
+		{
+			WND->MessageBox(_T("Error accessing file!"), TITLENAME, MB_ICONERROR);
 		}
 	}
+	else
+	{
+		WND->MessageBox(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
+	}
+
 }
 
 void CVDUSession::CallbackUploadFile(CHttpFile* file)
@@ -341,7 +373,7 @@ void CVDUSession::CallbackInvalidateFileToken(CHttpFile* file)
 	}
 }
 
-void CVDUSession::Login(CString user, CString cert)
+void CVDUSession::Login(CString user, BYTE* certData, UINT64 certDataLen)
 {
 	SetUser(user);
 
@@ -351,7 +383,7 @@ void CVDUSession::Login(CString user, CString cert)
 	headers += _T("\r\n");
 
 	AfxBeginThread(CVDUConnection::ThreadProc, 
-		(LPVOID)(new CVDUConnection(GetServerURL(), VDUAPIType::POST_AUTH_KEY, CVDUSession::CallbackLogin, headers, _T(""), cert)));
+		(LPVOID)(new CVDUConnection(GetServerURL(), VDUAPIType::POST_AUTH_KEY, CVDUSession::CallbackLogin, headers, _T(""), certData, certDataLen)));
 }
 
 BOOL CVDUSession::IsLoggedIn()
@@ -366,4 +398,13 @@ void CVDUSession::Logout()
 
 	AfxBeginThread(CVDUConnection::ThreadProc, 
 		(LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::DELETE_AUTH_KEY, CVDUSession::CallbackLogout));
+}
+
+void CVDUSession::AccessFile(CString fileToken)
+{
+	if (!IsLoggedIn())
+		return;
+
+	AfxBeginThread(CVDUConnection::ThreadProc,
+		(LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::GET_FILE, CVDUSession::CallbackDownloadFile,_T(""), fileToken));
 }

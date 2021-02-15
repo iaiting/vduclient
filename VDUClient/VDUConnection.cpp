@@ -115,15 +115,14 @@ void CVDUConnection::Process()
 		//SecureZeroMemory(LastError, sizeof(LastError));
 
 		//Content -> http content after headrs
-		pFile->SendRequest(NULL, NULL, m_content.GetBuffer(), m_content.GetLength());
+		pFile->SendRequest(NULL, NULL, m_content, (DWORD)m_contentLen);
 	}
 	CATCH(CInternetException, e)
 	{
 		e->GetErrorMessage(LastError, ARRAYSIZE(LastError));
-		//TODO: How to include this reasonably? Rn its handled elsewhere
-		//WND->MessageBox(errmsg, TITLENAME, MB_ICONERROR);
-		
+
 		//THROW(e);
+
 		if (pFile)
 			pFile->Close();
 		pFile = nullptr;
@@ -149,21 +148,35 @@ void CVDUConnection::Process()
 		con->Close();
 }
 
-//Constructing connection does not initiate it
-CVDUConnection::CVDUConnection(CString serverURL, VDUAPIType type, VDU_CONNECTION_CALLBACK callback, CString requestHeaders, CString parameter, CString content) :
-	m_serverURL(serverURL), m_parameter(parameter), m_type(type), m_requestHeaders(requestHeaders), m_callback(callback), m_content(content)
+CVDUConnection::CVDUConnection(CString serverURL, VDUAPIType type, VDU_CONNECTION_CALLBACK callback, CString requestHeaders, CString parameter, BYTE* content, UINT64 contentLen) :
+	m_serverURL(serverURL), m_parameter(parameter), m_type(type), m_requestHeaders(requestHeaders), m_callback(callback), m_contentLen(contentLen)
 {
+	if (contentLen > 0)
+	{
+		m_content = new BYTE[contentLen];
+		ASSERT(m_content);
+		CopyMemory(m_content, content, contentLen);
+	}
+	else
+		m_content = NULL;
+}
 
+CVDUConnection::~CVDUConnection()
+{
+	if (m_content)
+		delete[] m_content;
 }
 
 UINT CVDUConnection::ThreadProc(LPVOID pCon)
 {
-	if (pCon)
+	//NOTE: For destructor to be called, connection has to be properly casted
+	CVDUConnection* con = (CVDUConnection*)pCon;
+	if (con)
 	{
-		((CVDUConnection*)pCon)->Process();
-		delete pCon;
+		con->Process();
+		delete con;
 	}
 	else
-		MessageBox(NULL, _T("Connection::ThreadProc: pCon was null"), TITLENAME, MB_ICONERROR);
+		MessageBox(NULL, _T("Connection::ThreadProc: connection was null"), TITLENAME, MB_ICONERROR);
 	return EXIT_SUCCESS;
 }

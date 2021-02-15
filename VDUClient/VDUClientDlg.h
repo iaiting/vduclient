@@ -81,4 +81,6 @@ public:
 	afx_msg void OnCbnSelchangeComboDriveletter();
 	afx_msg void OnBnClickedPingbutton();
 	afx_msg void OnBnClickedButtonCertselect();
+	afx_msg void OnBnClickedAccessFile();
+	afx_msg void OnEnSetfocusFileToken();
 };

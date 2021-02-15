@@ -32,9 +32,11 @@ public:
 	BOOL IsLoggedIn(); //Checks if an user is logged in
 
 	//Login to server using user and ceritificate
-	void Login(CString user, CString cert);
+	void Login(CString user, BYTE* certData = NULL, UINT64 certDataLen = 0);
 	//Log out current user
 	void Logout();
+	//
+	void AccessFile(CString fileToken);
 
 	//Callbacks are guaranteed to have exclusive access to session
 	static void CallbackPing(CHttpFile* file);

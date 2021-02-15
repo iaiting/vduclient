@@ -1,9 +1,10 @@
 import os, ssl, http.server, time, random, hashlib, base64, mimetypes, json
+thispath = os.path.dirname(os.path.realpath(__file__))
 #Server fake response delay in seconds
 FAKE_RESPONSE_DELAY = 0
 #Api key expiration time, seconds
 KEY_EXPIRATION_TIME = 5
-#Current list of users who can generate keys
+#Current list of users who can generate keys, 
 Users = ["test@example.com", "john"]
 #Active file tokens for request testing
 FileTokens = {
@@ -117,7 +118,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         if (self.path == "/auth/key"):
             #Log("\n" + self.headers.as_string())
             user = self.headers.get("From")
-            #Log(str(self.rfile.read(contentLen)))
+            Log(str(self.rfile.read(contentLen)))
             if (user not in Users):
                 self.send_response_only(401)
                 self.end_headers()
@@ -182,9 +183,6 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     self.send_response_only(404)
                     self.end_headers()
                     Log("DELETE %s From:%s (404)" % (self.path, ApiKeys[apiKey]["User"]))
-
-
-thispath = os.path.dirname(os.path.realpath(__file__))
 
 httpd = http.server.HTTPServer(("127.0.0.1", 4443), VDUHTTPRequestHandler)
 httpd.socket = ssl.wrap_socket(httpd.socket, server_side=True, 
