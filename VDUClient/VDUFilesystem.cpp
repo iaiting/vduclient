@@ -12,7 +12,7 @@ CVDUFileSystem::~CVDUFileSystem()
 
 NTSTATUS CVDUFileSystem::SetPath(PWSTR Path)
 {
-    WCHAR FullPath[MAX_PATH];
+    WCHAR FullPath[FULLPATH_SIZE];
     ULONG Length;
     HANDLE Handle;
     FILETIME CreationTime;
@@ -24,7 +24,7 @@ NTSTATUS CVDUFileSystem::SetPath(PWSTR Path)
     if (INVALID_HANDLE_VALUE == Handle)
         return NtStatusFromWin32(GetLastError());
 
-    Length = GetFinalPathNameByHandleW(Handle, FullPath, FULLPATH_SIZE - 1, 0);
+    Length = GetFinalPathNameByHandle(Handle, FullPath, FULLPATH_SIZE - 1, 0);
     if (0 == Length)
     {
         LastError = GetLastError();

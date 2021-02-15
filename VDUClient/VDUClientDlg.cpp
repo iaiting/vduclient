@@ -37,6 +37,7 @@ BEGIN_MESSAGE_MAP(CVDUClientDlg, CDialogEx)
 	ON_CBN_SELCHANGE(IDC_COMBO_DRIVELETTER, &CVDUClientDlg::OnCbnSelchangeComboDriveletter)
 	ON_BN_CLICKED(IDC_CHECK_CERTIFICATE, &CVDUClientDlg::OnBnClickedCheckCertificate)
 	ON_BN_CLICKED(IDC_BUTTON_PING, &CVDUClientDlg::OnBnClickedPingbutton)
+	ON_BN_CLICKED(IDC_BUTTON_CERTSELECT, &CVDUClientDlg::OnBnClickedButtonCertselect)
 END_MESSAGE_MAP()
 
 // CVDUClientDlg message handlers
@@ -108,7 +109,17 @@ BOOL CVDUClientDlg::OnInitDialog()
 	int useCertToLogin = APP->GetProfileInt(SECTION_SETTINGS, _T("UseCertToLogin"), FALSE);
 	((CButton*)GetDlgItem(IDC_CHECK_CERTIFICATE))->SetCheck(useCertToLogin);
 
-	GetDlgItem(IDC_CONNECT)->SetFocus();
+	if (useCertToLogin)
+		GetDlgItem(IDC_BUTTON_CERTSELECT)->EnableWindow(TRUE);
+
+	m_certPath = APP->GetProfileString(SECTION_SETTINGS, _T("ClientCertPath"), _T(""));
+	if (!m_certPath.IsEmpty())
+	{
+		CString certFName = PathFindFileName(m_certPath);
+		GetDlgItem(IDC_BUTTON_CERTSELECT)->SetWindowText(certFName);
+	}
+
+	GetDlgItem(IDC_BUTTON_PING)->SetFocus();
 
 	//Iterate through all logical drives, display unused ones as options
 	//Note: This is only executed on program startup, does not update dynamically
@@ -151,7 +162,27 @@ BOOL CVDUClientDlg::OnInitDialog()
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
-BOOL CVDUClientDlg::GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, LPCTSTR path, ULONG type)
+void CVDUClientDlg::UpdateStatus()
+{
+	CString trayStatus = TITLENAME;
+	CString windowStatus;
+
+	CVDUSession* session = APP->GetSession();
+	ASSERT(session);
+
+	if (session->IsLoggedIn())
+	{
+
+	}
+	else
+	{
+
+	}
+
+	TrayTip(trayStatus);
+}
+
+BOOL CVDUClientDlg::GetRegValueSz(CString name, CString defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, CString path, ULONG type)
 {
 	HKEY hkey;
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
@@ -166,14 +197,14 @@ BOOL CVDUClientDlg::GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out
 	LSTATUS res;
 	if ((res = RegQueryValueEx(hkey, name, 0, &type, (LPBYTE)out_value, &maxOutvalueSize)) != ERROR_SUCCESS)
 	{
-		res = RegSetValueEx(hkey, name, 0, type, (BYTE*)defaultValue, maxOutvalueSize);
+		res = RegSetValueEx(hkey, name, 0, type, (BYTE*)&defaultValue, maxOutvalueSize);
 	}
 
 	RegCloseKey(hkey);
 	return res == ERROR_SUCCESS;
 }
 
-BOOL CVDUClientDlg::GetRegValueI(LPCTSTR name, DWORD defaultValue, PDWORD out_value, LPCTSTR path)
+BOOL CVDUClientDlg::GetRegValueI(CString name, DWORD defaultValue, PDWORD out_value, CString path)
 {
 	ULONG type = REG_DWORD;
 	HKEY hkey;
@@ -197,7 +228,7 @@ BOOL CVDUClientDlg::GetRegValueI(LPCTSTR name, DWORD defaultValue, PDWORD out_va
 	return res == ERROR_SUCCESS;
 }
 
-BOOL CVDUClientDlg::SetRegValueI(LPCTSTR name, DWORD value, LPCTSTR path)
+BOOL CVDUClientDlg::SetRegValueI(CString name, DWORD value, CString path)
 {
 	ULONG type = REG_DWORD;
 	HKEY hkey;
@@ -217,7 +248,7 @@ BOOL CVDUClientDlg::SetRegValueI(LPCTSTR name, DWORD value, LPCTSTR path)
 	return res == ERROR_SUCCESS;
 }
 
-BOOL CVDUClientDlg::SetRegValueSz(LPCTSTR name, LPCTSTR value, LPCTSTR path, ULONG type)
+BOOL CVDUClientDlg::SetRegValueSz(CString name, CString value, CString path, ULONG type)
 {
 	HKEY hkey;
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
@@ -229,7 +260,7 @@ BOOL CVDUClientDlg::SetRegValueSz(LPCTSTR name, LPCTSTR value, LPCTSTR path, ULO
 		}
 	}
 
-	LSTATUS res = RegSetValueEx(hkey, name, 0, type, (BYTE*)value, DWORD(sizeof(wchar_t) * (wcslen(value) + 1)));
+	LSTATUS res = RegSetValueEx(hkey, name, 0, type, (BYTE*)&value, DWORD(sizeof(wchar_t) * (wcslen(value) + 1)));
 
 	RegCloseKey(hkey);
 	return res == ERROR_SUCCESS;
@@ -266,7 +297,7 @@ void CVDUClientDlg::OnCancel()
 
 }
 
-BOOL CVDUClientDlg::TrayTip(LPCTSTR szTip)
+BOOL CVDUClientDlg::TrayTip(CString szTip)
 {
 	m_trayData.uFlags |= NIF_TIP | NIF_SHOWTIP;
 
@@ -276,19 +307,19 @@ BOOL CVDUClientDlg::TrayTip(LPCTSTR szTip)
 	return Shell_NotifyIcon(NIM_MODIFY, &m_trayData);
 }
 
-BOOL CVDUClientDlg::TrayNotify(LPCTSTR szTitle, LPCTSTR szText, SHSTOCKICONID siid)
+BOOL CVDUClientDlg::TrayNotify(CString szTitle, CString szText, SHSTOCKICONID siid)
 {
-	m_trayData.uFlags |= NIF_INFO | NIF_MESSAGE;// | NIF_GUID;
+	m_trayData.uFlags |= NIF_INFO | NIF_MESSAGE;
 	m_trayData.uTimeout = 1000;
 	m_trayData.dwInfoFlags |= NIIF_INFO | NIIF_USER | NIIF_LARGE_ICON;
-	//HRESULT hr = CoCreateGuid(&m_trayData.guidItem);
 
 	SHSTOCKICONINFO shii;
-	ZeroMemory(&shii, sizeof(shii));
+	SecureZeroMemory(&shii, sizeof(shii));
 	shii.cbSize = sizeof(shii);
 	if (SHGetStockIconInfo(siid, SHGSI_ICON, &shii) != S_OK)
 		return FALSE;
 
+	//You are responsibile for freeing the icon
 	m_trayData.hBalloonIcon = shii.hIcon;
 
 	if (StringCchCopy(m_trayData.szInfoTitle, ARRAYSIZE(m_trayData.szInfoTitle), szTitle) != S_OK)
@@ -442,9 +473,10 @@ void CVDUClientDlg::TryPing()
 
 void CVDUClientDlg::OnBnClickedButtonLogin()
 {
-	VDU_SESSION_LOCK;
+	//VDU_SESSION_LOCK;
+	CVDUSession* session = APP->GetSession();
 
-	if (session->GetUser().IsEmpty()) //Loggin in 
+	if (!session->IsLoggedIn()) //Loggin in 
 	{
 		CString user;
 		GetDlgItem(IDC_USERNAME)->GetWindowText(user);
@@ -455,7 +487,7 @@ void CVDUClientDlg::OnBnClickedButtonLogin()
 		session->Logout();
 	}
 
-	VDU_SESSION_UNLOCK;
+	//VDU_SESSION_UNLOCK;
 
 	GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BUTTON_PING)->EnableWindow(FALSE);
@@ -477,12 +509,12 @@ void CVDUClientDlg::OnBnClickedCheckCertificate()
 {
 	if (IsLoginUsingCertificate())
 	{
-		GetDlgItem(IDC_BROWSE_CERT)->EnableWindow(TRUE);
+		GetDlgItem(IDC_BUTTON_CERTSELECT)->EnableWindow(TRUE);
 		APP->WriteProfileInt(SECTION_SETTINGS, _T("UseCertToLogin"), TRUE);
 	}
 	else
 	{
-		GetDlgItem(IDC_BROWSE_CERT)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BUTTON_CERTSELECT)->EnableWindow(FALSE);
 		APP->WriteProfileInt(SECTION_SETTINGS, _T("UseCertToLogin"), FALSE);
 	}
 }
@@ -506,4 +538,31 @@ void CVDUClientDlg::OnBnClickedPingbutton()
 {
 	TryPing();
 	GetDlgItem(IDC_BUTTON_PING)->EnableWindow(FALSE);
+}
+
+
+void CVDUClientDlg::OnBnClickedButtonCertselect()
+{
+	CString filter = _T("CRT Files (*.crt)|*.crt|All Files (*.*)|*.*||");
+	CFileDialog fd(FALSE, _T("crt"), NULL, OFN_FILEMUSTEXIST | OFN_HIDEREADONLY, filter, this);
+	if (fd.DoModal() == IDOK)
+	{
+		m_certPath = fd.GetPathName();
+		CString certFName = PathFindFileName(m_certPath);
+		if (certFName.IsEmpty() || GetFileAttributes(m_certPath) == 0xFFFFFFFF)
+		{
+			MessageBox(_T("Invalid cert file!"), TITLENAME, MB_ICONERROR);
+			m_certPath = _T("");
+			GetDlgItem(IDC_BUTTON_CERTSELECT)->SetWindowText(_T("Select cert.."));
+			return;
+		}
+
+		APP->WriteProfileString(SECTION_SETTINGS, _T("ClientCertPath"), m_certPath);
+		GetDlgItem(IDC_BUTTON_CERTSELECT)->SetWindowText(certFName);
+	}
+	else
+	{
+		//Failed to spawn file dialog?
+
+	}
 }

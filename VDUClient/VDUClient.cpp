@@ -151,10 +151,11 @@ BOOL VDUClient::InitInstance()
 
 INT VDUClient::ExitInstance()
 {
-	//TODO: Make sure to send all changes before natural exit?
+	//TODO: Make sure to try to send all changes before natural exit?
 	ShutdownBlockReasonDestroy(WND->GetSafeHwnd());
 	if (auto* s = GetSession())
-		AfxBeginThread(CVDUConnection::ThreadProc,(LPVOID)new CVDUConnection(s->GetServerURL(), VDUAPIType::DELETE_AUTH_KEY));
+		if (s->IsLoggedIn())
+			AfxBeginThread(CVDUConnection::ThreadProc,(LPVOID)new CVDUConnection(s->GetServerURL(), VDUAPIType::DELETE_AUTH_KEY));
 	if (auto* svc = GetFileSystemService())
 		svc->Stop();
 	WND->DestroyWindow(); //Make sure dialog window cleans up properly

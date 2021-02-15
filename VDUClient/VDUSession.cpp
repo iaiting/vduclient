@@ -66,6 +66,7 @@ void CVDUSession::CallbackPing(CHttpFile* file)
 			CString date;
 			file->QueryInfo(HTTP_QUERY_DATE, date);
 			WND->TrayNotify(date, _T("Ping OK."), SIID_WORLD);
+			WND->UpdateStatus();
 			//WND->MessageBox(_T("Ping OK"), TITLENAME, MB_OK);
 		}
 		else
@@ -76,7 +77,7 @@ void CVDUSession::CallbackPing(CHttpFile* file)
 	else
 	{
 		//TODO: Dont use MessageBox in callback - they are blocking, could lead to deadlock
-		WND->MessageBox(_T("Could not connect to server."), TITLENAME, MB_ICONERROR);
+		WND->MessageBox(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
 
 	WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
@@ -138,6 +139,9 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 			//Login successful
 			session->SetAuthData(apiKey, exp);
 			WND->GetDlgItem(IDC_BUTTON_LOGIN)->SetWindowText(_T("Logout"));
+			WND->GetDlgItem(IDC_STATIC_FILETOKEN)->EnableWindow(TRUE);
+			WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(TRUE);
+			WND->GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(TRUE);
 		}
 		else
 		{
@@ -156,7 +160,7 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 		WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
 		WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
 		WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
-		WND->MessageBox(_T("Could not connect to server."), TITLENAME, MB_ICONERROR);
+		WND->MessageBox(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
 }
 
@@ -227,6 +231,7 @@ void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 	else
 	{
 		//Connection failed, let refreshing thread know to sleep for a bit and try again later
+		VDU_SESSION_UNLOCK;
 		AfxEndThread(2, FALSE);
 
 		//session->Reset(session->GetServerURL());
@@ -260,10 +265,13 @@ void CVDUSession::CallbackLogout(CHttpFile* file)
 		WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
 		WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
 		WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
+		WND->GetDlgItem(IDC_STATIC_FILETOKEN)->EnableWindow(FALSE);
+		WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(FALSE);
+		WND->GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(FALSE);
 	}
 	else
 	{
-		WND->MessageBox(_T("Connection to server failed."), TITLENAME, MB_ICONERROR);
+		WND->MessageBox(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
 
 	WND->GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
@@ -286,7 +294,7 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 		}
 		else //TODO: Differentiate status codes
 		{
-
+			 
 		}
 	}
 }
@@ -346,9 +354,14 @@ void CVDUSession::Login(CString user, CString cert)
 		(LPVOID)(new CVDUConnection(GetServerURL(), VDUAPIType::POST_AUTH_KEY, CVDUSession::CallbackLogin, headers, _T(""), cert)));
 }
 
+BOOL CVDUSession::IsLoggedIn()
+{
+	return !GetUser().IsEmpty();
+}
+
 void CVDUSession::Logout()
 {
-	if (GetUser().IsEmpty())
+	if (!IsLoggedIn())
 		return;
 
 	AfxBeginThread(CVDUConnection::ThreadProc, 

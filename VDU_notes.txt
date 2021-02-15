@@ -1,2 +1,17 @@
+Icon source:
 <a target="_blank" href="https://icons8.com/icons/set/cloud-storage">Cloud Storage icon</a> icon by <a target="_blank" href="https://icons8.com">Icons8</a>
 
+
+WinFSP:
+http://www.secfs.net/winfsp/doc/WinFsp-Tutorial/
+
+
+SSL:
+https://docs.microsoft.com/en-us/windows/win32/winhttp/ssl-in-winhttp
+https://blog.devolutions.net/2020/07/tutorial-how-to-generate-secure-self-signed-server-and-client-certificates-with-openssl
+
+Various MS DOCS:
+https://docs.microsoft.com/en-us/windows/win32/winhttp/http-status-codes
+https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathfindfilenamew
+https://docs.microsoft.com/en-us/cpp/mfc/reference/cfiledialog-class
+https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileattributesw

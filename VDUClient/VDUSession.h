@@ -29,6 +29,8 @@ public:
 	void SetUser(CString user);
 	void SetAuthData(CString authToken, CTime expires);
 
+	BOOL IsLoggedIn(); //Checks if an user is logged in
+
 	//Login to server using user and ceritificate
 	void Login(CString user, CString cert);
 	//Log out current user

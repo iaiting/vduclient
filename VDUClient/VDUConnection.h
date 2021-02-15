@@ -40,4 +40,7 @@ public:
 
 	//Starting thread procedure for new threads, expects connection created by 'new'
 	static UINT ThreadProc(LPVOID pCon);
+
+	//Signifies last translated connection error to inform user
+	static TCHAR LastError[0x400];
 };

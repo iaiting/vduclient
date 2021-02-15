@@ -5,11 +5,14 @@
 #include "VDUClientDlg.h"
 #include "afxdialogex.h"
 
+//initialize error buffer
+TCHAR CVDUConnection::LastError[0x400] = { 0 };
+
 void CVDUConnection::Process()
 {
 	CInternetSession inetsession(_T("VDUClient 1.0, Windows"));
 	int httpVerb;
-	LPCTSTR apiPath = NULL;
+	TCHAR* apiPath = NULL;
 
 	switch (m_type)
 	{
@@ -86,7 +89,7 @@ void CVDUConnection::Process()
 		| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
 	DWORD opt;
 	pFile->QueryOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
-	opt |= SECURITY_FLAG_IGNORE_UNKNOWN_CA;
+	opt |= SECURITY_SET_MASK;
 	pFile->SetOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
 #else 
 		);
@@ -109,16 +112,17 @@ void CVDUConnection::Process()
 
 	TRY
 	{
+		//SecureZeroMemory(LastError, sizeof(LastError));
+
 		//Content -> http content after headrs
 		pFile->SendRequest(NULL, NULL, m_content.GetBuffer(), m_content.GetLength());
 	}
 	CATCH(CInternetException, e)
 	{
-		TCHAR errmsg[0x400];
-		e->GetErrorMessage(errmsg, ARRAYSIZE(errmsg));
+		e->GetErrorMessage(LastError, ARRAYSIZE(LastError));
 		//TODO: How to include this reasonably? Rn its handled elsewhere
 		//WND->MessageBox(errmsg, TITLENAME, MB_ICONERROR);
-
+		
 		//THROW(e);
 		if (pFile)
 			pFile->Close();
@@ -138,8 +142,6 @@ void CVDUConnection::Process()
 		m_callback(pFile);
 		VDU_SESSION_UNLOCK;
 	}
-
-	
 
 	if (pFile)
 		pFile->Close();

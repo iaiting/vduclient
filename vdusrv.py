@@ -7,8 +7,8 @@ KEY_EXPIRATION_TIME = 5
 Users = ["test@example.com", "john"]
 #Active file tokens for request testing
 FileTokens = {
-    "b" : {"Path" : "C:\\lidl.png", "ETag": "2.0"},
-    "c" : {"Path" : "C:\\lidl.png.gz", "ETag": "alpha1"},
+    "b" : {"Path" : "C:\\lidl.txt", "ETag": "2.0"},
+    "c" : {"Path" : "C:\\lidl.txt.gz", "ETag": "alpha1"},
     }
 #Current valid api keys
 ApiKeys = {}
@@ -184,7 +184,11 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     Log("DELETE %s From:%s (404)" % (self.path, ApiKeys[apiKey]["User"]))
 
 
+thispath = os.path.dirname(os.path.realpath(__file__))
 
 httpd = http.server.HTTPServer(("127.0.0.1", 4443), VDUHTTPRequestHandler)
-httpd.socket = ssl.wrap_socket(httpd.socket, certfile=os.path.dirname(os.path.realpath(__file__)) + "\\server.pem", server_side=True)
+httpd.socket = ssl.wrap_socket(httpd.socket, server_side=True, 
+certfile=thispath + "\\server.crt",
+keyfile=thispath + "\\server.key",
+ca_certs=thispath + "\\ca.crt", cert_reqs=ssl.CERT_NONE)
 httpd.serve_forever()

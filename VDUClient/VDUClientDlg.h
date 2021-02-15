@@ -29,6 +29,7 @@ protected:
 	CString m_server;
 	CString m_username;
 	CString m_statusText;
+	CString m_certPath;
 	HICON m_hIcon;
 	CMenu* m_trayMenu;
 	NOTIFYICONDATA m_trayData;
@@ -50,15 +51,15 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	/*Registry handling functions*/
-	BOOL GetRegValueI(LPCTSTR name, DWORD defaultValue, PDWORD out_value, LPCTSTR path = VDU_REGPATH);
-	BOOL SetRegValueI(LPCTSTR name, DWORD value, LPCTSTR path = VDU_REGPATH);
-	BOOL GetRegValueSz(LPCTSTR name, LPCTSTR defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, LPCTSTR path = VDU_REGPATH, ULONG type = REG_SZ);
-	BOOL SetRegValueSz(LPCTSTR name, LPCTSTR value, LPCTSTR path = VDU_REGPATH, ULONG type = REG_SZ);
+	BOOL GetRegValueI(CString name, DWORD defaultValue, PDWORD out_value, CString path = VDU_REGPATH);
+	BOOL SetRegValueI(CString name, DWORD value, CString path = VDU_REGPATH);
+	BOOL GetRegValueSz(CString name, CString defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, CString path = VDU_REGPATH, ULONG type = REG_SZ);
+	BOOL SetRegValueSz(CString name, CString value, CString path = VDU_REGPATH, ULONG type = REG_SZ);
 
 	//Creates a notification bubble
-	BOOL TrayNotify(LPCTSTR szTitle, LPCTSTR szText, SHSTOCKICONID siid = SIID_DRIVENET);
+	BOOL TrayNotify(CString szTitle, CString szText, SHSTOCKICONID siid = SIID_DRIVENET);
 	//Sets the tray hover tip
-	BOOL TrayTip(LPCTSTR szTip);
+	BOOL TrayTip(CString szTip);
 
 	//Bottom progress bar
 	CProgressCtrl* GetProgressBar();
@@ -69,8 +70,8 @@ public:
 	//Uses certificate to log in
 	BOOL IsLoginUsingCertificate();
 
-	//Set the client status text, in multiple places
-	BOOL SetStatus(LPCTSTR szText);
+	//Updates the client status, seen in tray icon and in the window
+	void UpdateStatus();
 
 public:
 	afx_msg void OnEnChangeServerAddress();
@@ -79,4 +80,5 @@ public:
 	afx_msg void OnBnClickedCheckCertificate();
 	afx_msg void OnCbnSelchangeComboDriveletter();
 	afx_msg void OnBnClickedPingbutton();
+	afx_msg void OnBnClickedButtonCertselect();
 };
