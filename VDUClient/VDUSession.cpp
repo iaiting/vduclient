@@ -297,15 +297,39 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 				return;
 			}
 
-			CFileStatus fst;
-			file->GetStatus(fst);
+			int contentLen = _ttoi(contentLength);
 
 			CString allow;
-			if (!file->QueryInfo(HTTP_QUERY_ALLOW, allow))
-			{
-				WND->MessageBox(_T("Server did not send Allow!"), TITLENAME, MB_ICONERROR);
-				return;
-			}
+			file->QueryInfo(HTTP_QUERY_ALLOW, allow);
+
+			CString contentEncoding;
+			file->QueryInfo(HTTP_QUERY_CONTENT_ENCODING, contentEncoding);
+
+			CString contentLocation;
+			file->QueryInfo(HTTP_QUERY_CONTENT_LOCATION, contentLocation);
+
+			CString contentMD5;
+			file->QueryInfo(HTTP_QUERY_CONTENT_MD5, contentMD5);
+
+			CString contentType;
+			file->QueryInfo(HTTP_QUERY_CONTENT_TYPE, contentType);
+
+			CString lastModified;
+			file->QueryInfo(HTTP_QUERY_LAST_MODIFIED, lastModified);
+			SYSTEMTIME lastModifiedST;
+			InternetTimeToSystemTime(lastModified, &lastModifiedST, 0);
+
+			CString expires;
+			file->QueryInfo(HTTP_QUERY_EXPIRES, expires);
+			SYSTEMTIME expiresST;
+			InternetTimeToSystemTime(expires, &expiresST, 0);
+
+			CString etag;
+			file->QueryInfo(HTTP_QUERY_ETAG, etag);
+
+			BYTE* content = new BYTE[contentLen];
+			UINT readLen = file->Read(content, contentLen);
+			delete[] content;
 		}
 		else if (statusCode == HTTP_STATUS_NOT_FOUND)
 		{

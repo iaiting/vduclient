@@ -19,3 +19,4 @@ https://docs.microsoft.com/en-us/cpp/mfc/reference/cfile-class
 https://docs.microsoft.com/en-us/cpp/mfc/reference/cstdiofile-class
 https://docs.microsoft.com/en-us/cpp/mfc/clipboard-using-the-windows-clipboard
 https://docs.microsoft.com/en-us/cpp/mfc/reference/cwnd-class
+https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/atoi-atoi-l-wtoi-wtoi-l

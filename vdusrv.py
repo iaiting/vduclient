@@ -100,7 +100,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                         #print(chardet.detect(bfcontent)["encoding"])
                         self.send_header("Content-Type", mimeType[0])
                         self.send_header("Date", self.date_time_string())
-                        self.send_header("Last Modified", self.date_time_string(fstat.st_mtime))
+                        self.send_header("Last-Modified", self.date_time_string(fstat.st_mtime))
                         self.send_header("Expires", self.date_time_string(time.time() + KEY_EXPIRATION_TIME))
                         self.send_header("ETag", finst["ETag"])
                         self.end_headers()
