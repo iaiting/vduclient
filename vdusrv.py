@@ -3,13 +3,14 @@ thispath = os.path.dirname(os.path.realpath(__file__))
 #Server fake response delay in seconds
 FAKE_RESPONSE_DELAY = 0
 #Api key expiration time, seconds
-KEY_EXPIRATION_TIME = 5
+KEY_EXPIRATION_TIME = 120
 #Current list of users who can generate keys, 
 Users = ["test@example.com", "john"]
 #Active file tokens for request testing
 FileTokens = {
     "b" : {"Path" : "C:\\lidl.txt", "ETag": "2.0"},
     "c" : {"Path" : "C:\\lidl.txt.gz", "ETag": "alpha1"},
+    "d" : {"Path" : "C:\\chromium.7z", "ETag": "78.0"},
     }
 #Current valid api keys
 ApiKeys = {}
@@ -98,6 +99,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                         self.send_header("Content-Length", fstat.st_size)
                         self.send_header("Content-MD5", base64.b64encode(hashlib.md5(bfcontent).digest()).decode("utf-8"))
                         #print(chardet.detect(bfcontent)["encoding"])
+                        Log(hashlib.md5(bfcontent).digest())
                         self.send_header("Content-Type", mimeType[0])
                         self.send_header("Date", self.date_time_string())
                         self.send_header("Last-Modified", self.date_time_string(fstat.st_mtime))

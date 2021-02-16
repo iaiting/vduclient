@@ -84,7 +84,8 @@ void CVDUConnection::Process()
 	}
 
 	CHttpConnection* con = inetsession.GetHttpConnection(m_serverURL, port, NULL, NULL);
-	CHttpFile* pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL, INTERNET_FLAG_SECURE | INTERNET_FLAG_TRANSFER_BINARY
+	CHttpFile* pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL,
+		INTERNET_FLAG_SECURE/* | INTERNET_FLAG_TRANSFER_BINARY */| INTERNET_FLAG_RELOAD | INTERNET_FLAG_DONT_CACHE
 #ifdef _DEBUG //Ignores certificates in debug mode
 		| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
 	DWORD opt;
@@ -112,8 +113,6 @@ void CVDUConnection::Process()
 
 	TRY
 	{
-		//SecureZeroMemory(LastError, sizeof(LastError));
-
 		//Content -> http content after headrs
 		pFile->SendRequest(NULL, NULL, m_content, (DWORD)m_contentLen);
 	}
@@ -121,15 +120,21 @@ void CVDUConnection::Process()
 	{
 		e->GetErrorMessage(LastError, ARRAYSIZE(LastError));
 
-		//THROW(e);
-
 		if (pFile)
+		{
 			pFile->Close();
+			delete pFile;
+		}
 		pFile = nullptr;
 
 		if (con)
+		{
 			con->Close();
+			delete con;
+		}
 		con = nullptr;
+
+		inetsession.Close();
 
 		e->Delete();
 	}
@@ -142,10 +147,18 @@ void CVDUConnection::Process()
 		VDU_SESSION_UNLOCK;
 	}
 
+	inetsession.Close();
+
 	if (pFile)
+	{
 		pFile->Close();
+		delete pFile;
+	}
 	if (con)
+	{
 		con->Close();
+		delete con;
+	}
 }
 
 CVDUConnection::CVDUConnection(CString serverURL, VDUAPIType type, VDU_CONNECTION_CALLBACK callback, CString requestHeaders, CString parameter, BYTE* content, UINT64 contentLen) :

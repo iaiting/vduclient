@@ -18,7 +18,7 @@ NTSTATUS CVDUFileSystem::SetPath(PWSTR Path)
     FILETIME CreationTime;
     DWORD LastError;
 
-    Handle = CreateFileW(
+    Handle = CreateFile(
         Path, FILE_READ_ATTRIBUTES, 0, 0,
         OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0);
     if (INVALID_HANDLE_VALUE == Handle)

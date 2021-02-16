@@ -308,8 +308,12 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 			CString contentLocation;
 			file->QueryInfo(HTTP_QUERY_CONTENT_LOCATION, contentLocation);
 
-			CString contentMD5;
-			file->QueryInfo(HTTP_QUERY_CONTENT_MD5, contentMD5);
+			CString contentMD5W;
+			file->QueryInfo(HTTP_QUERY_CONTENT_MD5, contentMD5W);
+			CStringA contentMD5 = CStringA(contentMD5W);
+			BYTE contentmd5[0x400] = {0};
+			int contentmd5Len = ARRAYSIZE(contentmd5);
+			Base64Decode(contentMD5, contentMD5.GetLength(), contentmd5, &contentmd5Len);
 
 			CString contentType;
 			file->QueryInfo(HTTP_QUERY_CONTENT_TYPE, contentType);

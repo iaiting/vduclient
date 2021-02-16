@@ -11,8 +11,8 @@ https://docs.microsoft.com/en-us/windows/win32/winhttp/ssl-in-winhttp
 https://blog.devolutions.net/2020/07/tutorial-how-to-generate-secure-self-signed-server-and-client-certificates-with-openssl
 
 Various MS DOCS:
-https://docs.microsoft.com/en-us/windows/win32/winhttp/http-status-codes
-https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathfindfilenamew
+https://docs.microsoft.com/en-us/windows/win32/winhttp/http-status-codes 14.02.2021
+https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathfindfilenamew 15.02.2021
 https://docs.microsoft.com/en-us/cpp/mfc/reference/cfiledialog-class
 https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileattributesw
 https://docs.microsoft.com/en-us/cpp/mfc/reference/cfile-class
@@ -20,3 +20,7 @@ https://docs.microsoft.com/en-us/cpp/mfc/reference/cstdiofile-class
 https://docs.microsoft.com/en-us/cpp/mfc/clipboard-using-the-windows-clipboard
 https://docs.microsoft.com/en-us/cpp/mfc/reference/cwnd-class
 https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/atoi-atoi-l-wtoi-wtoi-l
+https://docs.microsoft.com/en-us/windows/win32/wininet/api-flags
+https://weblogs.asp.net/kennykerr/visual-c-in-short-encoding-and-decoding-with-base64 16.02.2021
+https://docs.microsoft.com/en-us/windows/win32/seccrypto/example-c-program--creating-an-md-5-hash-from-file-content
+https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-crypthashdata

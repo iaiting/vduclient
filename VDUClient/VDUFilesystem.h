@@ -9,6 +9,7 @@
 #include <winnt.h>
 #include <bcrypt.h>
 #include <winfsp/winfsp.hpp>
+#include "VDUFile.h"
 
 #ifdef _DEBUG
 #include <ctime>
@@ -21,7 +22,7 @@
 #define info(format, ...)               Service::Log(EVENTLOG_INFORMATION_TYPE, (PWSTR)format, __VA_ARGS__)
 #define warn(format, ...)               Service::Log(EVENTLOG_WARNING_TYPE, (PWSTR)format, __VA_ARGS__)
 #define fail(format, ...)               Service::Log(EVENTLOG_ERROR_TYPE,(PWSTR)format, __VA_ARGS__)
-#define ConcatPath(FN, FP)              (0 == StringCbPrintfW(FP, sizeof FP, _T("%s%s"), _Path, FN))
+#define ConcatPath(FN, FP)              (0 == StringCbPrintf(FP, sizeof FP, _T("%s%s"), _Path, FN))
 #define HandleFromFileDesc(FD)          ((PtfsFileDesc *)(FD))->Handle
 
 class CVDUFileSystem : public Fsp::FileSystemBase

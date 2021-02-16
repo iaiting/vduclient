@@ -65,7 +65,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 	if (StringCchCopy(m_trayData.szTip, ARRAYSIZE(m_trayData.szTip), TITLENAME) != S_OK)
 		return FALSE;
 	m_trayData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
-	m_trayData.hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	m_trayData.hIcon = APP->LoadIcon(IDR_MAINFRAME);
 	m_trayData.uVersion = NOTIFYICON_VERSION_4;
 	Shell_NotifyIcon(NIM_ADD, &m_trayData);
 	//Shell_NotifyIcon(NIM_SETVERSION, &m_trayData); //- Not needed in latest version
@@ -181,6 +181,7 @@ void CVDUClientDlg::UpdateStatus()
 	if (session->IsLoggedIn())
 	{
 		trayStatus += _T("\r\nLogged in as " + session->GetUser());
+		windowStatus += _T("User: ") + session->GetUser();
 	}
 	else
 	{
