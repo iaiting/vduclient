@@ -331,9 +331,13 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 			CString etag;
 			file->QueryInfo(HTTP_QUERY_ETAG, etag);
 
-			BYTE* content = new BYTE[contentLen];
-			UINT readLen = file->Read(content, contentLen);
-			delete[] content;
+			BYTE contentBuf[0x400] = { 0 };
+			UINT readLen;
+			while (readLen = file->Read(contentBuf, ARRAYSIZE(contentBuf)) > 0)
+			{
+
+			}
+			
 		}
 		else if (statusCode == HTTP_STATUS_NOT_FOUND)
 		{
@@ -424,8 +428,7 @@ void CVDUSession::Logout()
 	if (!IsLoggedIn())
 		return;
 
-	AfxBeginThread(CVDUConnection::ThreadProc, 
-		(LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::DELETE_AUTH_KEY, CVDUSession::CallbackLogout));
+	AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::DELETE_AUTH_KEY, CVDUSession::CallbackLogout));
 }
 
 void CVDUSession::AccessFile(CString fileToken)

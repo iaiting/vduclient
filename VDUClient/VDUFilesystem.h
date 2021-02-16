@@ -172,6 +172,14 @@ struct PtfsFileDesc
 
 class CVDUFileSystemService : public Fsp::Service
 {
+private:
+    CVDUFileSystem m_fs;
+    Fsp::FileSystemHost m_host;
+    TCHAR m_driveLetter[128];
+    HANDLE m_hWorkDir;
+protected:
+    NTSTATUS OnStart(ULONG Argc, PWSTR* Argv);
+    NTSTATUS OnStop();
 public:
     CVDUFileSystemService(CString DriveLetter);
 
@@ -180,13 +188,7 @@ public:
 
     //Remount filesystem to different drive letter
     NTSTATUS Remount(CString DriveLetter);
-protected:
-    NTSTATUS OnStart(ULONG Argc, PWSTR* Argv);
-    NTSTATUS OnStop();
 
-private:
-    CVDUFileSystem m_fs;
-    Fsp::FileSystemHost m_host;
-    TCHAR m_driveLetter[128];
-    HANDLE m_hWorkDir;
+    //Spawn a new file
+    BOOL SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile);
 };

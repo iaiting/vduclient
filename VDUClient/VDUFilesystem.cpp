@@ -18,7 +18,7 @@ NTSTATUS CVDUFileSystem::SetPath(PWSTR Path)
     FILETIME CreationTime;
     DWORD LastError;
 
-    Handle = CreateFile(
+    Handle = CreateFileW(
         Path, FILE_READ_ATTRIBUTES, 0, 0,
         OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0);
     if (INVALID_HANDLE_VALUE == Handle)
@@ -31,8 +31,8 @@ NTSTATUS CVDUFileSystem::SetPath(PWSTR Path)
         CloseHandle(Handle);
         return NtStatusFromWin32(LastError);
     }
-    if (L'\\' == FullPath[Length - 1])
-        FullPath[--Length] = L'\0';
+    if (_T('\\') == FullPath[Length - 1])
+        FullPath[--Length] = _T('\0');
 
     if (!GetFileTime(Handle, &CreationTime, 0, 0))
     {
@@ -869,7 +869,6 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
 
     PWSTR DebugLogFile = _T("vfsdebug.log");
     ULONG DebugFlags = 0;
-    //PWSTR VolumePrefix = (PWSTR)_T("\\?\\"; /* \\?\C:\ */
     HANDLE DebugLogHandle = INVALID_HANDLE_VALUE;
     WCHAR PathBuf[MAX_PATH];
     NTSTATUS Result;
@@ -889,11 +888,12 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     m_hWorkDir = CreateFile(PathBuf, GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
     if (m_hWorkDir != INVALID_HANDLE_VALUE)
     {
-        LockFile(m_hWorkDir, 0, 0, 0, 0);
+        //LockFile(m_hWorkDir, 0, 0, 0, 0); //No need
     }
     else
     {
         fail(_T("Cannot lock work folder"));
+        //EXIT?
         return STATUS_UNSUCCESSFUL;
     }
 
@@ -955,4 +955,9 @@ NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
 
     StringCchCopy(m_driveLetter, ARRAYSIZE(m_driveLetter), DriveLetter);
     return m_host.Mount((PWSTR)m_driveLetter);
+}
+
+BOOL CVDUFileSystemService::SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile)
+{
+    return 0;
 }

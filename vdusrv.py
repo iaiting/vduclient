@@ -1,19 +1,25 @@
 import os, ssl, http.server, time, random, hashlib, base64, mimetypes, json
 thispath = os.path.dirname(os.path.realpath(__file__))
+
 #Server fake response delay in seconds
 FAKE_RESPONSE_DELAY = 0
 #Api key expiration time, seconds
 KEY_EXPIRATION_TIME = 120
+#Probability that file request will time out (for testing)
+TIMEOUT_PROBABILITY = 0.25
+
+
 #Current list of users who can generate keys, 
 Users = ["test@example.com", "john"]
 #Active file tokens for request testing
 FileTokens = {
-    "b" : {"Path" : "C:\\lidl.txt", "ETag": "2.0"},
-    "c" : {"Path" : "C:\\lidl.txt.gz", "ETag": "alpha1"},
-    "d" : {"Path" : "C:\\chromium.7z", "ETag": "78.0"},
+    "b" : {"Path" : "C:\\lidl.txt", "ETag": "1"},
+    "c" : {"Path" : "C:\\lidl.txt.gz", "ETag": "1"},
+    "d" : {"Path" : "C:\\chromium.7z", "ETag": "1"},
     }
 #Current valid api keys
 ApiKeys = {}
+
 
 def dump(r):
     s = json.dumps(r, indent=4, sort_keys=True)
@@ -95,11 +101,12 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                         self.send_response_only(200)
                         self.send_header("Allow", allowMode)
                         self.send_header("Content-Encoding", mimeType[1])
-                        self.send_header("Content-Location", fpath)
+                        filedirpath, filename = os.path.split(fpath)
+                        self.send_header("Content-Location", filename)
                         self.send_header("Content-Length", fstat.st_size)
                         self.send_header("Content-MD5", base64.b64encode(hashlib.md5(bfcontent).digest()).decode("utf-8"))
                         #print(chardet.detect(bfcontent)["encoding"])
-                        Log(hashlib.md5(bfcontent).digest())
+                        #Log(hashlib.md5(bfcontent).digest())
                         self.send_header("Content-Type", mimeType[0])
                         self.send_header("Date", self.date_time_string())
                         self.send_header("Last-Modified", self.date_time_string(fstat.st_mtime))
