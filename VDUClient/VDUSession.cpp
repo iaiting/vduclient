@@ -301,6 +301,7 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 
 			CString allow;
 			file->QueryInfo(HTTP_QUERY_ALLOW, allow);
+			allow = allow.MakeUpper();
 
 			CString contentEncoding;
 			file->QueryInfo(HTTP_QUERY_CONTENT_ENCODING, contentEncoding);
@@ -331,13 +332,22 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 			CString etag;
 			file->QueryInfo(HTTP_QUERY_ETAG, etag);
 
-			BYTE contentBuf[0x400] = { 0 };
-			UINT readLen;
-			while (readLen = file->Read(contentBuf, ARRAYSIZE(contentBuf)) > 0)
+			BOOL canRead = allow.Find(_T("GET")) != -1;
+			BOOL canWrite = allow.Find(_T("POST")) != -1;
+			CString filetoken = file->GetObject();
+			filetoken = filetoken.Right(filetoken.GetLength() - 6);
+
+			CVDUFile vfile(filetoken, canRead, canWrite, contentEncoding, contentLocation, contentType, lastModifiedST, expiresST, etag);
+
+			if (APP->GetFileSystemService()->SpawnFile(vfile, file))
+			{
+				INT result = (INT)ShellExecute(WND->GetSafeHwnd(), _T("open"), APP->GetFileSystemService()->GetDrivePath() + vfile.m_name, NULL, NULL, SW_SHOWNORMAL);
+				WND->TrayNotify(TITLENAME, CString(_T("File ")) + vfile.m_name + _T(" successfuly accessed!"), result == SE_ERR_NOASSOC ? SIID_DOCNOASSOC : SIID_DOCASSOC);
+			}
+			else
 			{
 
 			}
-			
 		}
 		else if (statusCode == HTTP_STATUS_NOT_FOUND)
 		{

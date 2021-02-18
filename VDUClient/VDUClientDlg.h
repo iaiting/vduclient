@@ -45,7 +45,6 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	afx_msg LRESULT OnTrayEvent(WPARAM wParam, LPARAM lParam);
-	afx_msg void OnTrayExitCommand();
 	afx_msg void OnAutorunToggleCommand();
 	afx_msg void OnAutologinToggleCommand();
 	DECLARE_MESSAGE_MAP()
@@ -74,6 +73,7 @@ public:
 	void UpdateStatus();
 
 public:
+	afx_msg void OnTrayExitCommand();
 	afx_msg void OnEnChangeServerAddress();
 	afx_msg void OnBnClickedButtonLogin();
 	afx_msg void OnEnChangeUsername();

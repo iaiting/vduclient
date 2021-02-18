@@ -216,12 +216,12 @@ NTSTATUS CVDUFileSystem::Create(
     WCHAR FullPath[FULLPATH_SIZE];
     SECURITY_ATTRIBUTES SecurityAttributes;
     ULONG CreateFlags;
-    PtfsFileDesc* FileDesc;
+    VdufsFileDesc* FileDesc;
 
     if (!ConcatPath(FileName, FullPath))
         return STATUS_OBJECT_NAME_INVALID;
 
-    FileDesc = new PtfsFileDesc;
+    FileDesc = new VdufsFileDesc;
 
     SecurityAttributes.nLength = sizeof SecurityAttributes;
     SecurityAttributes.lpSecurityDescriptor = SecurityDescriptor;
@@ -281,12 +281,12 @@ NTSTATUS CVDUFileSystem::Open(
 
     WCHAR FullPath[FULLPATH_SIZE];
     ULONG CreateFlags;
-    PtfsFileDesc* FileDesc;
+    VdufsFileDesc* FileDesc;
 
     if (!ConcatPath(FileName, FullPath))
         return STATUS_OBJECT_NAME_INVALID;
 
-    FileDesc = new PtfsFileDesc;
+    FileDesc = new VdufsFileDesc;
 
     CreateFlags = FILE_FLAG_BACKUP_SEMANTICS;
     if (CreateOptions & FILE_DELETE_ON_CLOSE)
@@ -399,7 +399,7 @@ VOID CVDUFileSystem::Close(
     fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
 #endif
 
-    PtfsFileDesc* FileDesc = (PtfsFileDesc*)FileDesc0;
+    VdufsFileDesc* FileDesc = (VdufsFileDesc*)FileDesc0;
 
     delete FileDesc;
 }
@@ -732,7 +732,7 @@ NTSTATUS CVDUFileSystem::ReadDirectory(
     fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
 #endif
 
-    PtfsFileDesc* FileDesc = (PtfsFileDesc*)FileDesc0;
+    VdufsFileDesc* FileDesc = (VdufsFileDesc*)FileDesc0;
     return BufferedReadDirectory(&FileDesc->DirBuffer,
         FileNode, FileDesc, Pattern, Marker, Buffer, Length, PBytesTransferred);
 }
@@ -754,7 +754,7 @@ NTSTATUS CVDUFileSystem::ReadDirectoryEntry(
     fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
 #endif
 
-    PtfsFileDesc* FileDesc = (PtfsFileDesc*)FileDesc0;
+    VdufsFileDesc* FileDesc = (VdufsFileDesc*)FileDesc0;
     HANDLE Handle = FileDesc->Handle;
     WCHAR FullPath[FULLPATH_SIZE];
     ULONG Length, PatternLength;
@@ -864,6 +864,11 @@ Fsp::FileSystemHost& CVDUFileSystemService::GetHost()
     return this->m_host;
 }
 
+CString CVDUFileSystemService::GetDrivePath()
+{
+    return CString(m_driveLetter) + _T("\\");
+}
+
 NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
 {
 
@@ -876,13 +881,10 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     PWSTR localappdata;
     size_t len;
     _wdupenv_s(&localappdata, &len, _T("localappdata"));
-
-    swprintf_s(PathBuf, _T("%s/%s"), localappdata, _T("$VDUClient$"));
+    swprintf_s(PathBuf, _T("%s\\%s"), localappdata, _T("$VDUClient$"));
 
     CreateDirectory(PathBuf, NULL); //TODO: Check success?
-
-    SetFileAttributes(PathBuf, FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM
-        | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
+    SetFileAttributes(PathBuf, FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
 
     //Prevent folder modification while program is running
     m_hWorkDir = CreateFile(PathBuf, GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
@@ -893,7 +895,8 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     else
     {
         fail(_T("Cannot lock work folder"));
-        //EXIT?
+        AfxMessageBox(_T("Service couldnt lock work directory!\r\nPlease exit all processes that access it and restart the program."), MB_ICONERROR);
+        WND->OnTrayExitCommand();
         return STATUS_UNSUCCESSFUL;
     }
 
@@ -917,6 +920,8 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
         fail(_T("cannot create file system"));
         return Result;
     }
+
+    m_workDirPath = PathBuf;
 
     m_host.SetFileSystemName(_T("VDU"));
 
@@ -944,6 +949,7 @@ NTSTATUS CVDUFileSystemService::OnStop()
 #ifdef _DEBUG
     FreeConsole();
 #endif
+    CloseHandle(m_hWorkDir);
     m_host.Unmount();
     return STATUS_SUCCESS;
 }
@@ -959,5 +965,22 @@ NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
 
 BOOL CVDUFileSystemService::SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile)
 {
-    return 0;
+    HANDLE hFile = CreateFile(m_workDirPath + _T("\\") + vdufile.m_name, GENERIC_ALL, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
+
+    BYTE buf[0x400] = { 0 };
+    UINT readLen;
+    while ((readLen = httpfile->Read(buf, ARRAYSIZE(buf))) > 0)
+    {
+        DWORD writtenLen;
+        if (!WriteFile(hFile, buf, readLen, &writtenLen, NULL))
+        {
+            //Failed to write?
+            return FALSE;
+        }
+
+    }
+
+    CloseHandle(hFile);
+
+    return TRUE;
 }

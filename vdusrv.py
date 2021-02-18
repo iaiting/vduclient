@@ -13,9 +13,11 @@ TIMEOUT_PROBABILITY = 0.25
 Users = ["test@example.com", "john"]
 #Active file tokens for request testing
 FileTokens = {
+    "a" : {"Path" : "C:\\Browse.VC.db-shm", "ETag": "1"},
     "b" : {"Path" : "C:\\lidl.txt", "ETag": "1"},
     "c" : {"Path" : "C:\\lidl.txt.gz", "ETag": "1"},
     "d" : {"Path" : "C:\\chromium.7z", "ETag": "1"},
+    "e" : {"Path" : "C:\\119842878_378697899829823_2582828538790603002_n.mp4", "ETag": "1"}, 
     }
 #Current valid api keys
 ApiKeys = {}

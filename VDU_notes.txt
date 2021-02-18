@@ -24,3 +24,9 @@ https://docs.microsoft.com/en-us/windows/win32/wininet/api-flags
 https://weblogs.asp.net/kennykerr/visual-c-in-short-encoding-and-decoding-with-base64 16.02.2021
 https://docs.microsoft.com/en-us/windows/win32/seccrypto/example-c-program--creating-an-md-5-hash-from-file-content
 https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-crypthashdata
+https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfiletime
+https://docs.microsoft.com/en-us/previous-versions/visualstudio/visual-studio-6.0/aa314323(v=vs.60)
+https://docs.microsoft.com/en-us/windows/win32/shell/launch
+https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
+https://docs.microsoft.com/en-us/windows/win32/secauthz/generic-access-rights
+https://docs.microsoft.com/en-us/cpp/mfc/steps-in-a-typical-http-client-application

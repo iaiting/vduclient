@@ -5,6 +5,8 @@
 #include "framework.h"
 #include "VDUClient.h"
 #include "VDUClientDlg.h"
+#include "VDUSession.h"
+#include "VDUFilesystem.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

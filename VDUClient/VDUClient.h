@@ -6,9 +6,6 @@
 #endif
 
 #include "resource.h"		// main symbols
-#include "VDUFilesystem.h"
-#include "VDUSession.h"
-
 
 #define VFSNAME _T("VDU")
 #define SECTION_SETTINGS _T("Settings")
@@ -23,6 +20,9 @@
 #define VDU_SESSION_LOCK CVDUSession* session = APP->GetSession();AcquireSRWLockExclusive(&session->m_lock)
 //Unlocks session for other threads to use, do not forget this
 #define VDU_SESSION_UNLOCK ReleaseSRWLockExclusive(&APP->GetSession()->m_lock);
+
+class CVDUFileSystemService;
+class CVDUSession;
 
 // VDUClient:
 // See VDUClient.cpp for the implementation of this class
