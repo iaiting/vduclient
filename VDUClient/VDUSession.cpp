@@ -339,10 +339,11 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 
 			CVDUFile vfile(filetoken, canRead, canWrite, contentEncoding, contentLocation, contentType, lastModifiedST, expiresST, etag);
 
+			//If file created successfuly, open it and notify user
 			if (APP->GetFileSystemService()->SpawnFile(vfile, file))
 			{
 				INT result = (INT)ShellExecute(WND->GetSafeHwnd(), _T("open"), APP->GetFileSystemService()->GetDrivePath() + vfile.m_name, NULL, NULL, SW_SHOWNORMAL);
-				WND->TrayNotify(TITLENAME, CString(_T("File ")) + vfile.m_name + _T(" successfuly accessed!"), result == SE_ERR_NOASSOC ? SIID_DOCNOASSOC : SIID_DOCASSOC);
+				WND->TrayNotify(vfile.m_name, CString(_T("File successfuly accessed!")), result == SE_ERR_NOASSOC ? SIID_DOCNOASSOC : SIID_DOCASSOC);
 			}
 			else
 			{

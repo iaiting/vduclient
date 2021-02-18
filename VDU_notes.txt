@@ -30,3 +30,5 @@ https://docs.microsoft.com/en-us/windows/win32/shell/launch
 https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
 https://docs.microsoft.com/en-us/windows/win32/secauthz/generic-access-rights
 https://docs.microsoft.com/en-us/cpp/mfc/steps-in-a-typical-http-client-application
+https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa379560(v=vs.85)
+https://docs.microsoft.com/en-us/windows/win32/api/timezoneapi/nf-timezoneapi-systemtimetofiletime

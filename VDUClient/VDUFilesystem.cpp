@@ -967,6 +967,10 @@ BOOL CVDUFileSystemService::SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile)
 {
     HANDLE hFile = CreateFile(m_workDirPath + _T("\\") + vdufile.m_name, GENERIC_ALL, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
 
+    //Cant open file?
+    if (hFile == INVALID_HANDLE_VALUE)
+        return FALSE;
+
     BYTE buf[0x400] = { 0 };
     UINT readLen;
     while ((readLen = httpfile->Read(buf, ARRAYSIZE(buf))) > 0)
@@ -978,6 +982,12 @@ BOOL CVDUFileSystemService::SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile)
             return FALSE;
         }
 
+    }
+
+    FILETIME lastModified;
+    if (SystemTimeToFileTime(&vdufile.m_lastModified, &lastModified))
+    {
+        SetFileTime(hFile, NULL, NULL, &lastModified);
     }
 
     CloseHandle(hFile);
