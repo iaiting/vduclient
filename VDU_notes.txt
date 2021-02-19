@@ -5,6 +5,8 @@ Icon source:
 WinFSP:
 http://www.secfs.net/winfsp/doc/WinFsp-Tutorial/
 
+Python:
+https://stackoverflow.com/questions/16874598/how-do-i-calculate-the-md5-checksum-of-a-file-in-python
 
 SSL:
 https://docs.microsoft.com/en-us/windows/win32/winhttp/ssl-in-winhttp
@@ -32,3 +34,9 @@ https://docs.microsoft.com/en-us/windows/win32/secauthz/generic-access-rights
 https://docs.microsoft.com/en-us/cpp/mfc/steps-in-a-typical-http-client-application
 https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa379560(v=vs.85)
 https://docs.microsoft.com/en-us/windows/win32/api/timezoneapi/nf-timezoneapi-systemtimetofiletime
+https://docs.microsoft.com/en-us/windows/win32/fileio/creating-and-using-a-temporary-file
+https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-gettemppathw
+https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cocreateguid
+https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-stringfromguid2
+https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-deletefilea
+https://docs.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shfileoperationw

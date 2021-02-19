@@ -155,6 +155,8 @@ INT VDUClient::ExitInstance()
 {
 	//TODO: Make sure to try to send all changes before natural exit?
 	ShutdownBlockReasonDestroy(WND->GetSafeHwnd());
+	if (auto* t = GetSessionRefreshingThread())
+		t->Delete();
 	if (auto* s = GetSession())
 		if (s->IsLoggedIn())
 			AfxBeginThread(CVDUConnection::ThreadProc,(LPVOID)new CVDUConnection(s->GetServerURL(), VDUAPIType::DELETE_AUTH_KEY));

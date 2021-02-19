@@ -181,7 +181,7 @@ private:
     Fsp::FileSystemHost m_host; //File system host
     TCHAR m_driveLetter[128]; //Drive letter buffer
     CString m_workDirPath; //Path to work directory
-    HANDLE m_hWorkDir; //Handle to work directory, held by the service
+    //HANDLE m_hWorkDir; //Handle to work directory, held by the service
     std::vector<CVDUFile> m_files; //Vector of accessable files
 protected:
     NTSTATUS OnStart(ULONG Argc, PWSTR* Argv);

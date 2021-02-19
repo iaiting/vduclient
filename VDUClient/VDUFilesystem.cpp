@@ -118,7 +118,7 @@ NTSTATUS CVDUFileSystem::GetVolumeInfo(VolumeInfo* VolumeInfo)
     {
         do
         {
-            VolumeInfo->TotalSize += ((UINT64)FindFileData.nFileSizeLow) + ((UINT64)FindFileData.nFileSizeHigh << 32);
+            VolumeInfo->TotalSize += ((UINT64)FindFileData.nFileSizeHigh << 32) | (UINT64)FindFileData.nFileSizeLow;
         } while (FindNextFile(hFind, &FindFileData));
     }
 
@@ -276,7 +276,7 @@ NTSTATUS CVDUFileSystem::Open(
     char buf[80];
     tstruct = *localtime(&now);
     strftime(buf, sizeof(buf), "%X", &tstruct);
-    fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
+    fprintf(stderr, "[%s] %s(%ws)\n", buf, __FUNCTION__, FileName);
 #endif
 
     WCHAR FullPath[FULLPATH_SIZE];
@@ -854,7 +854,7 @@ static ULONG wcstol_deflt(wchar_t* w, ULONG deflt)
     return L'\0' != w[0] && L'\0' == *endp ? ul : deflt;
 }
 
-CVDUFileSystemService::CVDUFileSystemService(CString DriveLetter) : Service(_T(PROGNAME)), m_fs(), m_host(m_fs), m_hWorkDir(INVALID_HANDLE_VALUE)
+CVDUFileSystemService::CVDUFileSystemService(CString DriveLetter) : Service(_T(PROGNAME)), m_fs(), m_host(m_fs)//, m_hWorkDir(INVALID_HANDLE_VALUE)
 {
     StringCchCopy(m_driveLetter, ARRAYSIZE(m_driveLetter), DriveLetter);
 }
@@ -875,19 +875,45 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     PWSTR DebugLogFile = _T("vfsdebug.log");
     ULONG DebugFlags = 0;
     HANDLE DebugLogHandle = INVALID_HANDLE_VALUE;
-    WCHAR PathBuf[MAX_PATH];
+    TCHAR PathBuf[MAX_PATH + 2] = { 0 }; //In case of SHFileOperation, path must be double zero terminated
     NTSTATUS Result;
 
-    PWSTR localappdata;
-    size_t len;
-    _wdupenv_s(&localappdata, &len, _T("localappdata"));
-    swprintf_s(PathBuf, _T("%s\\%s"), localappdata, _T("$VDUClient$"));
+    TCHAR tempBuf[MAX_PATH + 1] = { 0 };
+    GetTempPath(ARRAYSIZE(tempBuf), tempBuf);
 
-    CreateDirectory(PathBuf, NULL); //TODO: Check success?
-    SetFileAttributes(PathBuf, FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
+    CString randomFolderName = APP->GetProfileString(SECTION_SETTINGS, _T("WorkDir"), _T(""));
+
+    //If not generated yet, or folder was deleted, generate a brand new one
+    if (randomFolderName.IsEmpty() || GetFileAttributes(CString(tempBuf) + randomFolderName) == 0xFFFFFFFF)
+    {
+        GUID guid;
+        if (CoCreateGuid(&guid) != S_OK)
+        {
+            fail(_T("Cannot create GUID")); //TODO: Only one fail?
+            AfxMessageBox(_T("Cannot create GUID."), MB_ICONERROR);
+            WND->OnTrayExitCommand();
+            return STATUS_UNSUCCESSFUL;
+        }
+
+        if (StringFromGUID2(guid, PathBuf, ARRAYSIZE(PathBuf)) <= 0)
+        {
+            fail(_T("Cannot create random string"));
+            WND->OnTrayExitCommand();
+            return STATUS_UNSUCCESSFUL;
+        }
+
+        //Generated a new guid
+        randomFolderName = PathBuf;
+        APP->WriteProfileString(SECTION_SETTINGS, _T("WorkDir"), randomFolderName);
+    }
+
+    swprintf_s(PathBuf, _T("%s%s"), tempBuf, randomFolderName.GetBuffer());
+
+    CreateDirectory(PathBuf, NULL);
+    SetFileAttributes(PathBuf, FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
 
     //Prevent folder modification while program is running
-    m_hWorkDir = CreateFile(PathBuf, GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+   /* m_hWorkDir = CreateFile(PathBuf, GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
     if (m_hWorkDir != INVALID_HANDLE_VALUE)
     {
         //LockFile(m_hWorkDir, 0, 0, 0, 0); //No need
@@ -898,7 +924,7 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
         AfxMessageBox(_T("Service couldnt lock work directory!\r\nPlease exit all processes that access it and restart the program."), MB_ICONERROR);
         WND->OnTrayExitCommand();
         return STATUS_UNSUCCESSFUL;
-    }
+    }*/
 
     //CloseHandle(hDir); //Keep handle so the lock stays on
 
@@ -949,7 +975,7 @@ NTSTATUS CVDUFileSystemService::OnStop()
 #ifdef _DEBUG
     FreeConsole();
 #endif
-    CloseHandle(m_hWorkDir);
+    //CloseHandle(m_hWorkDir);
     m_host.Unmount();
     return STATUS_SUCCESS;
 }
@@ -965,7 +991,14 @@ NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
 
 BOOL CVDUFileSystemService::SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile)
 {
-    HANDLE hFile = CreateFile(m_workDirPath + _T("\\") + vdufile.m_name, GENERIC_ALL, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
+    TCHAR tempBuf[MAX_PATH + 1] = { 0 };
+    GetTempPath(ARRAYSIZE(tempBuf), tempBuf);
+
+    TCHAR tmpName[MAX_PATH] = { 0 };
+    if (GetTempFileName(tempBuf, _T("vdu"), 0, tmpName) < 1)
+        return FALSE;
+
+    HANDLE hFile = CreateFile(tmpName, GENERIC_ALL, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
 
     //Cant open file?
     if (hFile == INVALID_HANDLE_VALUE)
@@ -991,6 +1024,16 @@ BOOL CVDUFileSystemService::SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile)
     }
 
     CloseHandle(hFile);
+
+    //Make sure directory exists
+    CreateDirectory(m_workDirPath, NULL);
+    SetFileAttributes(m_workDirPath, FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
+
+    if (!MoveFileEx(tmpName, m_workDirPath + _T("\\") + vdufile.m_name, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED))
+    {
+        int i = GetLastError();
+        return FALSE;
+    }
 
     return TRUE;
 }

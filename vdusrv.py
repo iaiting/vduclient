@@ -1,8 +1,10 @@
 import os, ssl, http.server, time, random, hashlib, base64, mimetypes, json
 thispath = os.path.dirname(os.path.realpath(__file__))
 
-#Server fake response delay in seconds
+#Server fake response delay, seconds
 FAKE_RESPONSE_DELAY = 0
+#File chunk read delay, seconds
+FILE_CHUNK_READ_DELAY = 0.01
 #Api key expiration time, seconds
 KEY_EXPIRATION_TIME = 120
 #Probability that file request will time out (for testing)
@@ -29,6 +31,13 @@ def dump(r):
 
 def Log(msg):
     print(("[%s] " + str(msg)) % time.strftime('%H:%M:%S'))
+
+def FileMD5(fpath):
+    with open(fpath, "rb") as f:
+        file_hash = hashlib.md5()
+        while chunk := f.read(8192):
+            file_hash.update(chunk)
+    return file_hash.digest()
 
 def GenerateRandomToken(duplicateCheckDict = None):
     token = ""
@@ -90,9 +99,6 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                         Log("GET %s From:%s File:%s (405)" % (self.path, ApiKeys[apiKey]["User"], fpath))
                     else:
                         allowMode += "GET"
-                        f = open(fpath, "rb")
-                        bfcontent = f.read()
-                        f.close()
                         fstat = os.stat(fpath)
                         allowMode = ""
                         if (os.access(fpath, os.R_OK)):
@@ -104,19 +110,21 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                         self.send_header("Allow", allowMode)
                         self.send_header("Content-Encoding", mimeType[1])
                         filedirpath, filename = os.path.split(fpath)
+                        filedirpath
                         self.send_header("Content-Location", filename)
                         self.send_header("Content-Length", fstat.st_size)
-                        self.send_header("Content-MD5", base64.b64encode(hashlib.md5(bfcontent).digest()).decode("utf-8"))
-                        #print(chardet.detect(bfcontent)["encoding"])
-                        #Log(hashlib.md5(bfcontent).digest())
+                        self.send_header("Content-MD5", base64.b64encode(FileMD5(fpath)).decode("utf-8"))
                         self.send_header("Content-Type", mimeType[0])
                         self.send_header("Date", self.date_time_string())
                         self.send_header("Last-Modified", self.date_time_string(fstat.st_mtime))
                         self.send_header("Expires", self.date_time_string(time.time() + KEY_EXPIRATION_TIME))
                         self.send_header("ETag", finst["ETag"])
                         self.end_headers()
-                        self.wfile.write(bfcontent)
                         Log("GET %s From:%s File:%s (200)" % (self.path, ApiKeys[apiKey]["User"], fpath))
+                        with open(fpath, "rb") as f:
+                            while chunk := f.read(8192):
+                                time.sleep(FILE_CHUNK_READ_DELAY)
+                                self.wfile.write(chunk)
                 
     def do_POST(self):
         global ApiKeys, Users, KEY_EXPIRATION_TIME, FAKE_RESPONSE_DELAY, FileTokens
