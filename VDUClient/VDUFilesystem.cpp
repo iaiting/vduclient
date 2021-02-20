@@ -1020,7 +1020,10 @@ BYTE* CVDUFileSystemService::CalcFileMD5(CVDUFile* file)
     HANDLE hFile = CreateFile(filePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 
     if (hFile == INVALID_HANDLE_VALUE)
+    {
+        DWORD lastError = GetLastError();
         return NULL;
+    }
 
     HCRYPTPROV hProv;
     if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
@@ -1116,6 +1119,16 @@ BOOL CVDUFileSystemService::SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile)
 
     CloseHandle(hFile);
 
+    //Make sure directory exists
+    if (CreateDirectory(m_workDirPath, NULL))
+        SetFileAttributes(m_workDirPath, FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
+
+    if (!MoveFileEx(tmpName, m_workDirPath + _T("\\") + vdufile.m_name, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED))
+    {
+        DWORD errid = GetLastError();
+        return FALSE;
+    }
+
     //Compare MD5 hash to make sure file is OK
     BYTE* calcedMD5 = CalcFileMD5(&vdufile);
 
@@ -1125,16 +1138,6 @@ BOOL CVDUFileSystemService::SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile)
     if (RtlCompareMemory(vdufile.m_md5, calcedMD5, MD5_LEN) != MD5_LEN)
     {
         //MD5 hash check failed?
-        return FALSE;
-    }
-
-    //Make sure directory exists
-    if (CreateDirectory(m_workDirPath, NULL))
-        SetFileAttributes(m_workDirPath, FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
-
-    if (!MoveFileEx(tmpName, m_workDirPath + _T("\\") + vdufile.m_name, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED))
-    {
-        DWORD errid = GetLastError();
         return FALSE;
     }
 
