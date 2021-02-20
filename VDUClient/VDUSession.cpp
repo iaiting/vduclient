@@ -337,7 +337,7 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 			CString filetoken = file->GetObject();
 			filetoken = filetoken.Right(filetoken.GetLength() - 6);
 
-			CVDUFile vfile(filetoken, canRead, canWrite, contentEncoding, contentLocation, contentType, lastModifiedST, expiresST, etag);
+			CVDUFile vfile(filetoken, canRead, canWrite, contentEncoding, contentLocation, contentType, lastModifiedST, expiresST, contentmd5, etag);
 
 			//If file created successfuly, open it and notify user
 			if (APP->GetFileSystemService()->SpawnFile(vfile, file))

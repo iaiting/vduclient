@@ -40,3 +40,4 @@ https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cocr
 https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-stringfromguid2
 https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-deletefilea
 https://docs.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shfileoperationw
+https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcomparememory

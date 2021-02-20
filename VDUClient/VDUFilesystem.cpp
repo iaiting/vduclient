@@ -869,6 +869,38 @@ CString CVDUFileSystemService::GetDrivePath()
     return CString(m_driveLetter) + _T("\\");
 }
 
+CVDUFile* CVDUFileSystemService::GetFileByName(CString name)
+{
+    for (auto it = m_files.begin(); it != m_files.end(); it++)
+    {
+        CVDUFile* f = &(*it);
+        ASSERT(f);
+
+        if (f->m_name == name)
+        {
+            return f;
+        }
+    }
+
+    return NULL;
+}
+
+CVDUFile* CVDUFileSystemService::GetFileByToken(CString token)
+{
+    for (auto it = m_files.begin(); it != m_files.end(); it++)
+    {
+        CVDUFile* f = &(*it);
+        ASSERT(f);
+
+        if (f->m_token == token)
+        {
+            return f;
+        }
+    }
+
+    return NULL;
+}
+
 NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
 {
 
@@ -980,6 +1012,66 @@ NTSTATUS CVDUFileSystemService::OnStop()
     return STATUS_SUCCESS;
 }
 
+BYTE* CVDUFileSystemService::CalcFileMD5(CVDUFile* file)
+{
+    static BYTE rgbHash[MD5_LEN] = { 0 };
+    CString filePath = m_workDirPath + _T("\\") + file->m_name;
+
+    HANDLE hFile = CreateFile(filePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+
+    if (hFile == INVALID_HANDLE_VALUE)
+        return NULL;
+
+    HCRYPTPROV hProv;
+    if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+    {
+        //err?
+        CloseHandle(hFile);
+        return NULL;
+    }
+
+    HCRYPTPROV hHash;
+    if (!CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash))
+    {
+        CloseHandle(hFile);
+        CryptReleaseContext(hProv, 0);
+        return NULL;
+    }
+
+    BYTE rgbFile[0x400];
+    DWORD readLen;
+    BOOL bResult = FALSE;
+    while (bResult = ReadFile(hFile, rgbFile, ARRAYSIZE(rgbFile), &readLen, NULL))
+    {
+        if (readLen <= 0)
+            break;
+        if (!CryptHashData(hHash, rgbFile, readLen, 0))
+        {
+            CryptReleaseContext(hProv, 0);
+            CryptDestroyHash(hHash);
+            CloseHandle(hFile);
+            return NULL;
+        }
+    }
+
+    if (!bResult)
+    {
+        CryptReleaseContext(hProv, 0);
+        CryptDestroyHash(hHash);
+        CloseHandle(hFile);
+        return NULL;
+    }
+
+    DWORD cbHash = MD5_LEN;
+    bResult = CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0);
+
+    CryptDestroyHash(hHash);
+    CryptReleaseContext(hProv, 0);
+    CloseHandle(hFile);
+
+    return bResult ? rgbHash : NULL;
+}
+
 NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
 {
     if (m_host.MountPoint() && wcslen(m_host.MountPoint()) > 0) 
@@ -1008,10 +1100,9 @@ BOOL CVDUFileSystemService::SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile)
     UINT readLen;
     while ((readLen = httpfile->Read(buf, ARRAYSIZE(buf))) > 0)
     {
-        DWORD writtenLen;
-        if (!WriteFile(hFile, buf, readLen, &writtenLen, NULL))
+        if (!WriteFile(hFile, buf, readLen, NULL, NULL))
         {
-            //Failed to write?
+            DWORD errid = GetLastError();
             return FALSE;
         }
 
@@ -1025,15 +1116,29 @@ BOOL CVDUFileSystemService::SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile)
 
     CloseHandle(hFile);
 
+    //Compare MD5 hash to make sure file is OK
+    BYTE* calcedMD5 = CalcFileMD5(&vdufile);
+
+    if (!calcedMD5)
+        return FALSE;
+
+    if (RtlCompareMemory(vdufile.m_md5, calcedMD5, MD5_LEN) != MD5_LEN)
+    {
+        //MD5 hash check failed?
+        return FALSE;
+    }
+
     //Make sure directory exists
-    CreateDirectory(m_workDirPath, NULL);
-    SetFileAttributes(m_workDirPath, FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
+    if (CreateDirectory(m_workDirPath, NULL))
+        SetFileAttributes(m_workDirPath, FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
 
     if (!MoveFileEx(tmpName, m_workDirPath + _T("\\") + vdufile.m_name, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED))
     {
-        int i = GetLastError();
+        DWORD errid = GetLastError();
         return FALSE;
     }
+
+    m_files.push_back(vdufile);
 
     return TRUE;
 }

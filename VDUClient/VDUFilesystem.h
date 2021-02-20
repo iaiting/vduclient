@@ -10,6 +10,7 @@
 #include <bcrypt.h>
 #include <winfsp/winfsp.hpp>
 #include <vector>
+#include <Wincrypt.h>
 #include "VDUClientDlg.h"
 #include "VDUFile.h"
 #include "VDUClient.h"
@@ -191,8 +192,17 @@ public:
 
     //Returns the filesystem host for mounting
     Fsp::FileSystemHost& GetHost();
-    //
+    //Returns the active virtual drive path
     CString GetDrivePath();
+    //Returns accessible VDU file by name
+    CVDUFile* GetFileByName(CString name);
+    //Returns accessible VDU file by access token
+    CVDUFile* GetFileByToken(CString token);
+
+    //Calculated MD5 of contents in file
+    //https://docs.microsoft.com/en-us/windows/win32/seccrypto/example-c-program--creating-an-md-5-hash-from-file-content
+    //Returnts ptr to static buffer of MD5_LEN bytes or NULL
+    BYTE* CalcFileMD5(CVDUFile* file);
 
     //Remount filesystem to different drive letter
     NTSTATUS Remount(CString DriveLetter);
