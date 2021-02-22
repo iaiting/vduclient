@@ -85,7 +85,7 @@ void CVDUConnection::Process()
 
 	CHttpConnection* con = inetsession.GetHttpConnection(m_serverURL, port, NULL, NULL);
 	CHttpFile* pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL,
-		INTERNET_FLAG_SECURE/* | INTERNET_FLAG_TRANSFER_BINARY */| INTERNET_FLAG_RELOAD | INTERNET_FLAG_DONT_CACHE
+		INTERNET_FLAG_SECURE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_DONT_CACHE
 #ifdef _DEBUG //Ignores certificates in debug mode
 		| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
 	DWORD opt;
@@ -95,6 +95,8 @@ void CVDUConnection::Process()
 #else 
 		);
 #endif
+	//Enable gzip, deflate decoding
+	//pFile->SetOption(INTERNET_OPTION_HTTP_DECODING, TRUE);
 
 	//For every other API, transactions need to be done one after the other
 	//And for that reason, auth token is filled in last, in order to be sure its up to date
@@ -113,10 +115,31 @@ void CVDUConnection::Process()
 
 	TRY
 	{
-		//Content -> http content after headrs
-		pFile->SendRequest(NULL, NULL, m_content, (DWORD)m_contentLen);
+		if (m_contentFile.IsEmpty())
+		{
+			pFile->SendRequest();
+		}
+		else
+		{
+			CStdioFile stdf(m_contentFile, CFile::modeRead | CFile::typeBinary);
+			CFileStatus fst;
+			stdf.GetStatus(fst);
+			ULONGLONG writeLen = fst.m_size;
+
+			pFile->SendRequestEx(writeLen);
+
+			BYTE* buf[0x400];
+			UINT readLen;
+			while ((readLen = stdf.Read(buf, ARRAYSIZE(buf))) > 0)
+			{
+				pFile->Write(buf, readLen);
+			}
+			stdf.Close();
+			pFile->EndRequest();
+		}
+
 	}
-	CATCH(CInternetException, e)
+	CATCH(CException, e)
 	{
 		e->GetErrorMessage(LastError, ARRAYSIZE(LastError));
 
@@ -161,23 +184,9 @@ void CVDUConnection::Process()
 	}
 }
 
-CVDUConnection::CVDUConnection(CString serverURL, VDUAPIType type, VDU_CONNECTION_CALLBACK callback, CString requestHeaders, CString parameter, BYTE* content, UINT64 contentLen) :
-	m_serverURL(serverURL), m_parameter(parameter), m_type(type), m_requestHeaders(requestHeaders), m_callback(callback), m_contentLen(contentLen)
+CVDUConnection::CVDUConnection(CString serverURL, VDUAPIType type, VDU_CONNECTION_CALLBACK callback, CString requestHeaders, CString parameter, CString fileContentPath) :
+	m_serverURL(serverURL), m_parameter(parameter), m_type(type), m_requestHeaders(requestHeaders), m_contentFile(fileContentPath), m_callback(callback)
 {
-	if (contentLen > 0)
-	{
-		m_content = new BYTE[contentLen];
-		ASSERT(m_content);
-		CopyMemory(m_content, content, contentLen);
-	}
-	else
-		m_content = NULL;
-}
-
-CVDUConnection::~CVDUConnection()
-{
-	if (m_content)
-		delete[] m_content;
 }
 
 UINT CVDUConnection::ThreadProc(LPVOID pCon)

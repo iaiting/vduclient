@@ -43,6 +43,7 @@ protected:
 	afx_msg void PostNcDestroy();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
+	afx_msg BOOL OnQueryEndSession();
 	afx_msg HCURSOR OnQueryDragIcon();
 	afx_msg LRESULT OnTrayEvent(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnAutorunToggleCommand();
@@ -58,7 +59,7 @@ public:
 	//Creates a notification bubble
 	BOOL TrayNotify(CString szTitle, CString szText, SHSTOCKICONID siid = SIID_DRIVENET);
 	//Sets the tray hover tip
-	BOOL TrayTip(CString szTip);
+	BOOL SetTrayTip(CString szTip);
 
 	//Bottom progress bar
 	CProgressCtrl* GetProgressBar();

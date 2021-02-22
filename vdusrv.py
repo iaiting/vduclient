@@ -4,7 +4,7 @@ thispath = os.path.dirname(os.path.realpath(__file__))
 #Server fake response delay, seconds
 FAKE_RESPONSE_DELAY = 0
 #File chunk read delay, seconds
-FILE_CHUNK_READ_DELAY = 0.01
+FILE_CHUNK_READ_DELAY = 0.0000001
 #Api key expiration time, seconds
 KEY_EXPIRATION_TIME = 120
 #Probability that file request will time out (for testing)
@@ -122,9 +122,9 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                         self.end_headers()
                         Log("GET %s From:%s File:%s (200)" % (self.path, ApiKeys[apiKey]["User"], fpath))
                         with open(fpath, "rb") as f:
-                            while chunk := f.read(8192):
-                                time.sleep(FILE_CHUNK_READ_DELAY)
+                            while chunk := f.read(8192 * 2):
                                 self.wfile.write(chunk)
+                                time.sleep(FILE_CHUNK_READ_DELAY)
                 
     def do_POST(self):
         global ApiKeys, Users, KEY_EXPIRATION_TIME, FAKE_RESPONSE_DELAY, FileTokens
@@ -202,6 +202,16 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     self.send_response_only(404)
                     self.end_headers()
                     Log("DELETE %s From:%s (404)" % (self.path, ApiKeys[apiKey]["User"]))
+                else:
+                    if (random.random() <= TIMEOUT_PROBABILITY):
+                        self.send_response_only(408)
+                        self.end_headers()
+                        Log("DELETE %s From:%s (408)" % (self.path, ApiKeys[apiKey]["User"]))
+                    else:
+                        self.send_response_only(204)
+                        self.end_headers()
+                        Log("DELETE %s From:%s (204)" % (self.path, ApiKeys[apiKey]["User"]))
+
 
 httpd = http.server.HTTPServer(("127.0.0.1", 4443), VDUHTTPRequestHandler)
 httpd.socket = ssl.wrap_socket(httpd.socket, server_side=True, 

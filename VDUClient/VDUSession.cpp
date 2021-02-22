@@ -142,6 +142,7 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 			WND->GetDlgItem(IDC_STATIC_FILETOKEN)->EnableWindow(TRUE);
 			WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(TRUE);
 			WND->GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(TRUE);
+			WND->UpdateStatus();
 		}
 		else
 		{
@@ -215,6 +216,8 @@ void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 			}
 
 			session->SetAuthData(apiKey, exp);
+
+			WND->UpdateStatus();
 		}
 		else
 		{
@@ -268,6 +271,8 @@ void CVDUSession::CallbackLogout(CHttpFile* file)
 		WND->GetDlgItem(IDC_STATIC_FILETOKEN)->EnableWindow(FALSE);
 		WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(FALSE);
 		WND->GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(FALSE);
+
+		WND->UpdateStatus();
 	}
 	else
 	{
@@ -294,7 +299,7 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 			if (!file->QueryInfo(HTTP_QUERY_CONTENT_LENGTH, contentLength))
 			{
 				WND->MessageBox(_T("Server did not send Content-Length!"), TITLENAME, MB_ICONERROR);
-				return;
+				//return;
 			}
 
 			int contentLen = _ttoi(contentLength);
@@ -337,17 +342,18 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 			CString filetoken = file->GetObject();
 			filetoken = filetoken.Right(filetoken.GetLength() - 6);
 
-			CVDUFile vfile(filetoken, canRead, canWrite, contentEncoding, contentLocation, contentType, lastModifiedST, expiresST, contentmd5, etag);
+			CVDUFile vfile(filetoken, canRead, canWrite, contentLen, contentEncoding, contentLocation, contentType, lastModifiedST, expiresST, contentmd5, etag);
 
 			//If file created successfuly, open it and notify user
-			if (APP->GetFileSystemService()->SpawnFile(vfile, file))
+			if (APP->GetFileSystemService()->CreateVDUFile(vfile, file))
 			{
-				INT result = (INT)ShellExecute(WND->GetSafeHwnd(), _T("open"), APP->GetFileSystemService()->GetDrivePath() + vfile.m_name, NULL, NULL, SW_SHOWNORMAL);
-				WND->TrayNotify(vfile.m_name, CString(_T("File successfuly accessed!")), result == SE_ERR_NOASSOC ? SIID_DOCNOASSOC : SIID_DOCASSOC);
+				//ShellExecute(WND->GetSafeHwnd(), _T("explore"), APP->GetFileSystemService()->GetDrivePath(), NULL, NULL, SW_SHOWNORMAL); 
+				HINSTANCE result = ShellExecute(WND->GetSafeHwnd(), _T("open"), APP->GetFileSystemService()->GetDrivePath() + vfile.m_name, NULL, NULL, SW_SHOWNORMAL);
+				WND->TrayNotify(vfile.m_name, CString(_T("File successfuly accessed!")), result == (HINSTANCE)SE_ERR_NOASSOC ? SIID_DOCNOASSOC : SIID_DOCASSOC);
 			}
 			else
 			{
-
+				WND->MessageBox(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 			}
 		}
 		else if (statusCode == HTTP_STATUS_NOT_FOUND)
@@ -372,6 +378,8 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 		WND->MessageBox(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
 
+	WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(TRUE);
+	WND->GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(TRUE);
 }
 
 void CVDUSession::CallbackUploadFile(CHttpFile* file)
@@ -416,7 +424,7 @@ void CVDUSession::CallbackInvalidateFileToken(CHttpFile* file)
 	}
 }
 
-void CVDUSession::Login(CString user, BYTE* certData, UINT64 certDataLen)
+void CVDUSession::Login(CString user, CString certPath)
 {
 	SetUser(user);
 
@@ -426,7 +434,7 @@ void CVDUSession::Login(CString user, BYTE* certData, UINT64 certDataLen)
 	headers += _T("\r\n");
 
 	AfxBeginThread(CVDUConnection::ThreadProc, 
-		(LPVOID)(new CVDUConnection(GetServerURL(), VDUAPIType::POST_AUTH_KEY, CVDUSession::CallbackLogin, headers, _T(""), certData, certDataLen)));
+		(LPVOID)(new CVDUConnection(GetServerURL(), VDUAPIType::POST_AUTH_KEY, CVDUSession::CallbackLogin, headers, _T(""), certPath)));
 }
 
 BOOL CVDUSession::IsLoggedIn()

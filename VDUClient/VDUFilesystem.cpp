@@ -794,6 +794,13 @@ NTSTATUS CVDUFileSystem::ReadDirectoryEntry(
         }
     }
 
+    //Check if file is in our accessible files vector
+    /*if (wcscmp(FindData.cFileName, _T(".")) && wcscmp(FindData.cFileName, _T("..")))
+    {
+        if (!APP->GetFileSystemService()->GetVDUFileByName(FindData.cFileName))
+            return STATUS_NO_MORE_FILES;
+    }*/
+
     memset(DirInfo, 0, sizeof * DirInfo);
     Length = (ULONG)wcslen(FindData.cFileName);
     DirInfo->Size = (UINT16)(FIELD_OFFSET(CVDUFileSystem::DirInfo, FileNameBuf) + Length * sizeof(WCHAR));
@@ -869,7 +876,7 @@ CString CVDUFileSystemService::GetDrivePath()
     return CString(m_driveLetter) + _T("\\");
 }
 
-CVDUFile* CVDUFileSystemService::GetFileByName(CString name)
+CVDUFile* CVDUFileSystemService::GetVDUFileByName(CString name)
 {
     for (auto it = m_files.begin(); it != m_files.end(); it++)
     {
@@ -885,7 +892,7 @@ CVDUFile* CVDUFileSystemService::GetFileByName(CString name)
     return NULL;
 }
 
-CVDUFile* CVDUFileSystemService::GetFileByToken(CString token)
+CVDUFile* CVDUFileSystemService::GetVDUFileByToken(CString token)
 {
     for (auto it = m_files.begin(); it != m_files.end(); it++)
     {
@@ -899,6 +906,11 @@ CVDUFile* CVDUFileSystemService::GetFileByToken(CString token)
     }
 
     return NULL;
+}
+
+UINT CVDUFileSystemService::GetVDUFileCount()
+{
+    return m_files.size();
 }
 
 NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
@@ -1084,38 +1096,67 @@ NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
     return m_host.Mount((PWSTR)m_driveLetter);
 }
 
-BOOL CVDUFileSystemService::SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile)
+BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile& vdufile, CHttpFile* httpfile)
 {
     TCHAR tempBuf[MAX_PATH + 1] = { 0 };
     GetTempPath(ARRAYSIZE(tempBuf), tempBuf);
 
-    TCHAR tmpName[MAX_PATH] = { 0 };
-    if (GetTempFileName(tempBuf, _T("vdu"), 0, tmpName) < 1)
+    TCHAR tmpFilePath[MAX_PATH] = { 0 };
+    if (GetTempFileName(tempBuf, _T("vdu"), 0, tmpFilePath) < 1)
         return FALSE;
 
-    HANDLE hFile = CreateFile(tmpName, GENERIC_ALL, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
+    //TEMPORARY -> wont be flushed on disk
+    HANDLE hFile = CreateFile(tmpFilePath, GENERIC_ALL, NULL, NULL, CREATE_ALWAYS, /*FILE_ATTRIBUTE_TEMPORARY*/NULL, NULL);
 
     //Cant open file?
     if (hFile == INVALID_HANDLE_VALUE)
         return FALSE;
 
-    BYTE buf[0x400] = { 0 };
-    UINT readLen;
-    while ((readLen = httpfile->Read(buf, ARRAYSIZE(buf))) > 0)
+    TRY
     {
-        if (!WriteFile(hFile, buf, readLen, NULL, NULL))
-        {
-            DWORD errid = GetLastError();
-            return FALSE;
-        }
+        ShutdownBlockReasonCreate(WND->GetSafeHwnd(), _T("A download is in progress!"));
+        WND->GetProgressBar()->SetState(PBST_NORMAL);
+        WND->GetProgressBar()->SetPos(0);
+        WND->UpdateStatus();
 
+        BYTE buf[0x1000] = { 0 };
+        UINT readLen, readTotal = 0;
+        while ((readLen = httpfile->Read(buf, ARRAYSIZE(buf))) > 0)
+        {
+            if (!WriteFile(hFile, buf, readLen, NULL, NULL))
+            {
+                DWORD errid = GetLastError();
+                return FALSE;
+            }
+            readTotal += readLen;
+            int newpos = ((double)readTotal / vdufile.m_length) * 100;
+            if (newpos != WND->GetProgressBar()->GetPos())
+            {
+                WND->GetProgressBar()->SetPos(newpos);
+                WND->UpdateStatus();
+            }
+        }
+    } CATCH(CInternetException, e)
+    {
+        e->GetErrorMessage(CVDUConnection::LastError, ARRAYSIZE(CVDUConnection::LastError));
+        CloseHandle(hFile);
+        DeleteFile(tmpFilePath);
+        WND->GetProgressBar()->SetState(PBST_ERROR);
+        WND->UpdateStatus();
+        ShutdownBlockReasonDestroy(WND->GetSafeHwnd());
+        e->Delete();
+        return FALSE;
     }
+    END_CATCH;
+
+    ShutdownBlockReasonDestroy(WND->GetSafeHwnd());
+    WND->GetProgressBar()->SetState(PBST_PAUSED);
+    WND->GetProgressBar()->SetPos(0);
+    WND->UpdateStatus();
 
     FILETIME lastModified;
     if (SystemTimeToFileTime(&vdufile.m_lastModified, &lastModified))
-    {
         SetFileTime(hFile, NULL, NULL, &lastModified);
-    }
 
     CloseHandle(hFile);
 
@@ -1123,25 +1164,52 @@ BOOL CVDUFileSystemService::SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile)
     if (CreateDirectory(m_workDirPath, NULL))
         SetFileAttributes(m_workDirPath, FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
 
-    if (!MoveFileEx(tmpName, m_workDirPath + _T("\\") + vdufile.m_name, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED))
+    CString finalPath = m_workDirPath + _T("\\") + vdufile.m_name;
+    if (!MoveFileEx(tmpFilePath, finalPath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED))
     {
         DWORD errid = GetLastError();
+        DeleteFile(tmpFilePath);
         return FALSE;
     }
 
     //Compare MD5 hash to make sure file is OK
     BYTE* calcedMD5 = CalcFileMD5(&vdufile);
-
     if (!calcedMD5)
+    {
+        DeleteFile(finalPath);
         return FALSE;
+    }
 
     if (RtlCompareMemory(vdufile.m_md5, calcedMD5, MD5_LEN) != MD5_LEN)
     {
         //MD5 hash check failed?
+        DeleteFile(finalPath);
         return FALSE;
     }
 
     m_files.push_back(vdufile);
 
+    /*LPWSTR mimeType = 0;
+    if (FindMimeFromData(NULL, finalPath, NULL, 0, vdufile.m_type, FMFD_RETURNUPDATEDIMGMIMES | FMFD_URLASFILENAME, &mimeType, 0) == S_OK)
+    {
+        
+    }*/
+
     return TRUE;
+}
+
+BOOL CVDUFileSystemService::UpdateVDUFile(CVDUFile& vdufile)
+{
+    CString headers;
+
+    AfxBeginThread(CVDUConnection::ThreadProc,
+        (LPVOID)new CVDUConnection(APP->GetSession()->GetServerURL(), VDUAPIType::POST_FILE, CVDUSession::CallbackInvalidateFileToken, headers, vdufile.m_token));
+
+    return TRUE;
+}
+
+void CVDUFileSystemService::DeleteVDUFile(CVDUFile& vdufile)
+{
+    AfxBeginThread(CVDUConnection::ThreadProc,
+        (LPVOID)new CVDUConnection(APP->GetSession()->GetServerURL(), VDUAPIType::DELETE_FILE, CVDUSession::CallbackInvalidateFileToken, _T(""), vdufile.m_token));
 }

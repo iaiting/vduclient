@@ -7,6 +7,7 @@ http://www.secfs.net/winfsp/doc/WinFsp-Tutorial/
 
 Python:
 https://stackoverflow.com/questions/16874598/how-do-i-calculate-the-md5-checksum-of-a-file-in-python
+https://docs.python.org/3/library/random.html
 
 SSL:
 https://docs.microsoft.com/en-us/windows/win32/winhttp/ssl-in-winhttp
@@ -41,3 +42,6 @@ https://docs.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-stri
 https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-deletefilea
 https://docs.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shfileoperationw
 https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcomparememory
+https://docs.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/platform-apis/ms775107(v=vs.85)
+https://docs.microsoft.com/en-us/cpp/mfc/reference/cprogressctrl-class?view=msvc-160
+http://ntcoder.com/bab/2007/12/19/programmatically-selecting-a-file-in-windows-explorer/

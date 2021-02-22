@@ -195,9 +195,11 @@ public:
     //Returns the active virtual drive path
     CString GetDrivePath();
     //Returns accessible VDU file by name
-    CVDUFile* GetFileByName(CString name);
+    CVDUFile* GetVDUFileByName(CString name);
     //Returns accessible VDU file by access token
-    CVDUFile* GetFileByToken(CString token);
+    CVDUFile* GetVDUFileByToken(CString token);
+    //Ammount of accesisibile files
+    UINT GetVDUFileCount();
 
     //Calculated MD5 of contents in file
     //https://docs.microsoft.com/en-us/windows/win32/seccrypto/example-c-program--creating-an-md-5-hash-from-file-content
@@ -207,6 +209,10 @@ public:
     //Remount filesystem to different drive letter
     NTSTATUS Remount(CString DriveLetter);
 
-    //Spawn a new file
-    BOOL SpawnFile(CVDUFile& vdufile, CHttpFile* httpfile);
+    //Create a new VDU file in filesystem from httpFile
+    BOOL CreateVDUFile(CVDUFile& vdufile, CHttpFile* httpfile);
+    //Update VDU file data
+    BOOL UpdateVDUFile(CVDUFile& vdufile);
+    //Request token invalidation for VDU file
+    void DeleteVDUFile(CVDUFile& vdufile);
 };

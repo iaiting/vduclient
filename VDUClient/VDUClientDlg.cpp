@@ -54,6 +54,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 
 	m_progressBar = (CProgressCtrl*)GetDlgItem(IDC_PROGRESSBAR);
 	m_progressBar->SetRange(0, 100);
+	m_progressBar->SetState(PBST_PAUSED);
 
 	//Set up tray icon
 	SecureZeroMemory(&m_trayData, sizeof(m_trayData));
@@ -181,15 +182,32 @@ void CVDUClientDlg::UpdateStatus()
 	if (session->IsLoggedIn())
 	{
 		trayStatus += _T("\r\nLogged in as " + session->GetUser());
-		windowStatus += _T("User: ") + session->GetUser();
+		windowStatus += _T("User: ") + session->GetUser() + _T(" ");
+
+		CString fileCntStr;
+		fileCntStr.Format(_T("%d"), APP->GetFileSystemService()->GetVDUFileCount());
+
+		trayStatus += _T("\r\n" + fileCntStr + _T(" files"));
+		windowStatus += _T("| Files: ") + fileCntStr; 
 	}
-	else
+
+	if (GetProgressBar()->GetState() != PBST_PAUSED)
 	{
-
+		BOOL failed = GetProgressBar()->GetState() == PBST_ERROR;
+		CString percentage;
+		percentage.Format(_T("%d%%"), GetProgressBar()->GetPos());
+		trayStatus += failed ? _T("\r\nDownload failed ") : _T("\r\nDownloading ") + percentage;
+		windowStatus += failed ? _T(" | Download failed ") : _T(" | Downloading.. ") + percentage;
 	}
 
-	TrayTip(trayStatus);
-	GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(windowStatus);
+	if (trayStatus != m_trayData.szTip)
+		SetTrayTip(trayStatus);
+
+	CString oldWndText;
+	GetDlgItem(IDC_STATIC_STATUS)->GetWindowText(oldWndText);
+
+	if (oldWndText != windowStatus)
+		GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(windowStatus);
 }
 
 BOOL CVDUClientDlg::GetRegValueSz(CString name, CString defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, CString path, ULONG type)
@@ -289,7 +307,7 @@ BOOL CVDUClientDlg::IsLoginUsingCertificate()
 
 CProgressCtrl* CVDUClientDlg::GetProgressBar()
 {
-	return m_progressBar;
+	return (CProgressCtrl*)GetDlgItem(IDC_PROGRESSBAR);
 }
 
 BOOL CVDUClientDlg::OnCommand(WPARAM wParam, LPARAM lParam)
@@ -307,9 +325,9 @@ void CVDUClientDlg::OnCancel()
 
 }
 
-BOOL CVDUClientDlg::TrayTip(CString szTip)
+BOOL CVDUClientDlg::SetTrayTip(CString szTip)
 {
-	m_trayData.uFlags |= NIF_TIP | NIF_SHOWTIP;
+	m_trayData.uFlags = NIF_TIP;
 
 	if (StringCchCopy(m_trayData.szTip, ARRAYSIZE(m_trayData.szTip), szTip) != S_OK)
 		return FALSE;
@@ -319,7 +337,7 @@ BOOL CVDUClientDlg::TrayTip(CString szTip)
 
 BOOL CVDUClientDlg::TrayNotify(CString szTitle, CString szText, SHSTOCKICONID siid)
 {
-	m_trayData.uFlags |= NIF_INFO | NIF_MESSAGE;
+	m_trayData.uFlags = NIF_INFO | NIF_MESSAGE;
 	m_trayData.uTimeout = 1000;
 	m_trayData.dwInfoFlags |= NIIF_INFO | NIIF_USER | NIIF_LARGE_ICON;
 
@@ -385,6 +403,11 @@ void CVDUClientDlg::OnPaint()
 	{
 		CDialogEx::OnPaint();
 	}
+}
+
+BOOL CVDUClientDlg::OnQueryEndSession()
+{
+	return CDialogEx::OnQueryEndSession();
 }
 
 // The system calls this function to obtain the cursor to display while the user drags
@@ -491,44 +514,7 @@ void CVDUClientDlg::OnBnClickedButtonLogin()
 		CString user;
 		GetDlgItem(IDC_USERNAME)->GetWindowText(user);
 
-		//Read client cert data, send them along with login request
-		BYTE* certData = NULL;
-		UINT64 certDataLen = 0;
-		if (IsLoginUsingCertificate() && !m_certPath.IsEmpty())
-		{
-			TRY
-			{
-				CStdioFile certf(m_certPath, CFile::modeRead | CFile::typeBinary);
-				CFileStatus fst;
-				if (certf.GetStatus(fst))
-				{
-					certDataLen = fst.m_size;
-					certData = new BYTE[certDataLen];
-					ASSERT(certData);
-
-					if (certf.Read(certData, certDataLen) != certDataLen)
-					{
-						//Failed to read file?
-						ASSERT(FALSE);
-					}
-				}
-			}
-			CATCH(CFileException, e)
-			{
-				TCHAR err[0x400] = { 0 };
-				e->GetErrorMessage(err, ARRAYSIZE(err));
-				MessageBox(err, TITLENAME, MB_ICONERROR);
-				e->Delete();
-			}
-			END_CATCH;
-		}
-
-		session->Login(user, certData, certDataLen);
-
-		//This is safe to delete, connection constructor is ran in current thread
-		//Data were copied over and are ready for connection thread to handle
-		if (certData)
-			delete[] certData;
+		session->Login(user, IsLoginUsingCertificate() ? m_certPath : _T(""));
 	}
 	else //Log out
 	{
@@ -631,6 +617,9 @@ void CVDUClientDlg::OnBnClickedAccessFile()
 	ASSERT(session);
 
 	session->AccessFile(fileToken);
+
+	GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(FALSE);
+	GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(FALSE);
 }
 
 
