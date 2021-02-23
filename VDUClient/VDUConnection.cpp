@@ -126,7 +126,7 @@ void CVDUConnection::Process()
 			stdf.GetStatus(fst);
 			ULONGLONG writeLen = fst.m_size;
 
-			pFile->SendRequestEx(writeLen);
+			pFile->SendRequestEx((DWORD)writeLen);
 
 			BYTE* buf[0x400];
 			UINT readLen;

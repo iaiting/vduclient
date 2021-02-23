@@ -27,13 +27,13 @@ https://docs.microsoft.com/en-us/windows/win32/wininet/api-flags
 https://weblogs.asp.net/kennykerr/visual-c-in-short-encoding-and-decoding-with-base64 16.02.2021
 https://docs.microsoft.com/en-us/windows/win32/seccrypto/example-c-program--creating-an-md-5-hash-from-file-content
 https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-crypthashdata
-https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfiletime
+https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfiletime 
 https://docs.microsoft.com/en-us/previous-versions/visualstudio/visual-studio-6.0/aa314323(v=vs.60)
 https://docs.microsoft.com/en-us/windows/win32/shell/launch
 https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
 https://docs.microsoft.com/en-us/windows/win32/secauthz/generic-access-rights
 https://docs.microsoft.com/en-us/cpp/mfc/steps-in-a-typical-http-client-application
-https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa379560(v=vs.85)
+https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa379560(v=vs.85) 22.02.2021
 https://docs.microsoft.com/en-us/windows/win32/api/timezoneapi/nf-timezoneapi-systemtimetofiletime
 https://docs.microsoft.com/en-us/windows/win32/fileio/creating-and-using-a-temporary-file
 https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-gettemppathw
@@ -43,5 +43,13 @@ https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-deletefile
 https://docs.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shfileoperationw
 https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcomparememory
 https://docs.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/platform-apis/ms775107(v=vs.85)
-https://docs.microsoft.com/en-us/cpp/mfc/reference/cprogressctrl-class?view=msvc-160
+https://docs.microsoft.com/en-us/cpp/mfc/reference/cprogressctrl-class?view=msvc-160 23.02.2021
 http://ntcoder.com/bab/2007/12/19/programmatically-selecting-a-file-in-windows-explorer/
+https://docs.microsoft.com/en-us/cpp/mfc/reference/chttpfile-class?view=msvc-160
+https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfullpathnamew
+https://docs.microsoft.com/en-us/windows/win32/sysinfo/registry-functions
+https://docs.microsoft.com/en-us/windows/win32/shell/app-registration
+https://docs.microsoft.com/windows/desktop/api//fileapi/nf-fileapi-deletefilew
+https://www.programmersought.com/article/99652049273/
+https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
+https://en.cppreference.com/w/cpp/language/operators

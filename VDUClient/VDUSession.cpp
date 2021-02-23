@@ -67,17 +67,17 @@ void CVDUSession::CallbackPing(CHttpFile* file)
 			file->QueryInfo(HTTP_QUERY_DATE, date);
 			WND->TrayNotify(date, _T("Ping OK."), SIID_WORLD);
 			WND->UpdateStatus();
-			//WND->MessageBox(_T("Ping OK"), TITLENAME, MB_OK);
+			//WND->MessageBoxNB(_T("Ping OK"), TITLENAME, MB_OK);
 		}
 		else
 		{
-			WND->MessageBox(_T("Invalid Ping response"), TITLENAME, MB_ICONERROR);
+			WND->MessageBoxNB(_T("Invalid Ping response"), TITLENAME, MB_ICONERROR);
 		}
 	}
 	else
 	{
 		//TODO: Dont use MessageBox in callback - they are blocking, could lead to deadlock
-		WND->MessageBox(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
+		WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
 
 	WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
@@ -103,14 +103,14 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 
 			if (!file->QueryInfo(HTTP_QUERY_CUSTOM, (LPVOID)apiKey, &apiLeyLen))
 			{
-				WND->MessageBox(_T("Server did not send auth key!"), TITLENAME, MB_ICONERROR);
+				WND->MessageBoxNB(_T("Server did not send auth key!"), TITLENAME, MB_ICONERROR);
 				return;
 			}
 
 			CString expires;
 			if (!file->QueryInfo(HTTP_QUERY_EXPIRES, expires))
 			{
-				WND->MessageBox(_T("Server did not send Expiration Date!"), TITLENAME, MB_ICONERROR);
+				WND->MessageBoxNB(_T("Server did not send Expiration Date!"), TITLENAME, MB_ICONERROR);
 				return;
 			}
 
@@ -119,7 +119,7 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 
 			if (!InternetTimeToSystemTime(expires, &expTime, NULL))
 			{
-				WND->MessageBox(_T("Failed to convert auth token Expiration time!"), TITLENAME, MB_ICONERROR);
+				WND->MessageBoxNB(_T("Failed to convert auth token Expiration time!"), TITLENAME, MB_ICONERROR);
 				return;
 			}
 
@@ -132,7 +132,7 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 			//Expiration date has to be in future
 			if (exp < now)
 			{
-				WND->MessageBox(_T("Auth expiration date in the past!"), TITLENAME, MB_ICONERROR);
+				WND->MessageBoxNB(_T("Auth expiration date in the past!"), TITLENAME, MB_ICONERROR);
 				return;
 			}
 
@@ -151,7 +151,7 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 			WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
 			WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
 			WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
-			WND->MessageBox(_T("Login failed! User or certificate is invalid."), TITLENAME, MB_ICONERROR);
+			WND->MessageBoxNB(_T("Login failed! User or certificate is invalid."), TITLENAME, MB_ICONERROR);
 		}
 	}
 	else
@@ -161,7 +161,7 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 		WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
 		WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
 		WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
-		WND->MessageBox(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
+		WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
 }
 
@@ -182,14 +182,14 @@ void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 
 			if (!file->QueryInfo(HTTP_QUERY_CUSTOM, (LPVOID)apiKey, &apiLeyLen))
 			{
-				WND->MessageBox(_T("Server did not send auth key!"), TITLENAME, MB_ICONERROR);
+				WND->MessageBoxNB(_T("Server did not send auth key!"), TITLENAME, MB_ICONERROR);
 				return;
 			}
 
 			CString expires;
 			if (!file->QueryInfo(HTTP_QUERY_EXPIRES, expires))
 			{
-				WND->MessageBox(_T("Server did not send Expiration Date!"), TITLENAME, MB_ICONERROR);
+				WND->MessageBoxNB(_T("Server did not send Expiration Date!"), TITLENAME, MB_ICONERROR);
 				return;
 			}
 
@@ -198,7 +198,7 @@ void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 
 			if (!InternetTimeToSystemTime(expires, &expTime, NULL))
 			{
-				WND->MessageBox(_T("Failed to convert auth token Expiration time!"), TITLENAME, MB_ICONERROR);
+				WND->MessageBoxNB(_T("Failed to convert auth token Expiration time!"), TITLENAME, MB_ICONERROR);
 				return;
 			}
 
@@ -211,7 +211,7 @@ void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 			//Expiration date has to be in future
 			if (exp < now)
 			{
-				WND->MessageBox(_T("Auth expiration date in the past!"), TITLENAME, MB_ICONERROR);
+				WND->MessageBoxNB(_T("Auth expiration date in the past!"), TITLENAME, MB_ICONERROR);
 				return;
 			}
 
@@ -276,7 +276,7 @@ void CVDUSession::CallbackLogout(CHttpFile* file)
 	}
 	else
 	{
-		WND->MessageBox(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
+		WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
 
 	WND->GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
@@ -298,7 +298,7 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 			CString contentLength;
 			if (!file->QueryInfo(HTTP_QUERY_CONTENT_LENGTH, contentLength))
 			{
-				WND->MessageBox(_T("Server did not send Content-Length!"), TITLENAME, MB_ICONERROR);
+				WND->MessageBoxNB(_T("Server did not send Content-Length!"), TITLENAME, MB_ICONERROR);
 				//return;
 			}
 
@@ -350,32 +350,33 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 				//ShellExecute(WND->GetSafeHwnd(), _T("explore"), APP->GetFileSystemService()->GetDrivePath(), NULL, NULL, SW_SHOWNORMAL); 
 				HINSTANCE result = ShellExecute(WND->GetSafeHwnd(), _T("open"), APP->GetFileSystemService()->GetDrivePath() + vfile.m_name, NULL, NULL, SW_SHOWNORMAL);
 				WND->TrayNotify(vfile.m_name, CString(_T("File successfuly accessed!")), result == (HINSTANCE)SE_ERR_NOASSOC ? SIID_DOCNOASSOC : SIID_DOCASSOC);
+				WND->UpdateStatus();
 			}
 			else
 			{
-				WND->MessageBox(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
+				WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 			}
 		}
 		else if (statusCode == HTTP_STATUS_NOT_FOUND)
 		{
-			WND->MessageBox(_T("File does not exist!"), TITLENAME, MB_ICONERROR);
+			WND->MessageBoxNB(_T("File does not exist!"), TITLENAME, MB_ICONERROR);
 		}
 		else if (statusCode == HTTP_STATUS_BAD_METHOD)
 		{
-			WND->MessageBox(_T("You can not read this file!"), TITLENAME, MB_ICONERROR);
+			WND->MessageBoxNB(_T("You can not read this file!"), TITLENAME, MB_ICONERROR);
 		}
 		else if (statusCode == HTTP_STATUS_DENIED)
 		{
-			WND->MessageBox(_T("Invalid authorization token!\r\nPlease log in again."), TITLENAME, MB_ICONERROR);
+			WND->MessageBoxNB(_T("Invalid authorization token!\r\nPlease log in again."), TITLENAME, MB_ICONERROR);
 		}
 		else
 		{
-			WND->MessageBox(_T("Error accessing file!"), TITLENAME, MB_ICONERROR);
+			WND->MessageBoxNB(_T("Error accessing file!"), TITLENAME, MB_ICONERROR);
 		}
 	}
 	else
 	{
-		WND->MessageBox(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
+		WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
 
 	WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(TRUE);
@@ -392,13 +393,30 @@ void CVDUSession::CallbackUploadFile(CHttpFile* file)
 		DWORD statusCode;
 		file->QueryInfoStatusCode(statusCode);
 
-		if (statusCode == HTTP_STATUS_OK)
+		if (statusCode == HTTP_STATUS_NO_CONTENT)
 		{
-			//TODO: It was ok! Nice
-		}
-		else //TODO: Differentiate status codes
-		{
+			CString filetoken = file->GetObject();
+			filetoken = filetoken.Right(filetoken.GetLength() - 6);
 
+			CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByToken(filetoken);
+
+
+		}
+		else if (statusCode == HTTP_STATUS_NOT_FOUND)
+		{
+			WND->MessageBoxNB(_T("File does not exist!"), TITLENAME, MB_ICONERROR);
+		}
+		else if (statusCode == HTTP_STATUS_REQUEST_TIMEOUT)
+		{
+			WND->MessageBoxNB(_T("Server timed out!"), TITLENAME, MB_ICONERROR);
+		}
+		else if (statusCode == HTTP_STATUS_DENIED)
+		{
+			WND->MessageBoxNB(_T("Invalid authorization token!\r\nPlease log in again."), TITLENAME, MB_ICONERROR);
+		}
+		else
+		{
+			WND->MessageBoxNB(_T("Error accessing file!"), TITLENAME, MB_ICONERROR);
 		}
 	}
 }
@@ -413,13 +431,31 @@ void CVDUSession::CallbackInvalidateFileToken(CHttpFile* file)
 		DWORD statusCode;
 		file->QueryInfoStatusCode(statusCode);
 
-		if (statusCode == HTTP_STATUS_OK)
+		if (statusCode == HTTP_STATUS_NO_CONTENT)
 		{
-			//TODO: It was ok! Nice
-		}
-		else //TODO: Differentiate status codes
-		{
+			CString filetoken = file->GetObject();
+			filetoken = filetoken.Right(filetoken.GetLength() - 6);
 
+			APP->GetFileSystemService()->DeleteFileInternal(filetoken);
+
+			WND->UpdateStatus();
+		}
+		else if (statusCode == HTTP_STATUS_NOT_FOUND)
+		{
+			//Dont worry, sometimes the request is sent twice
+			//WND->MessageBoxNB(_T("File does not exist!"), TITLENAME, MB_ICONERROR);
+		}
+		else if (statusCode == HTTP_STATUS_REQUEST_TIMEOUT)
+		{
+			WND->MessageBoxNB(_T("Server timed out!"), TITLENAME, MB_ICONERROR);
+		}
+		else if (statusCode == HTTP_STATUS_DENIED)
+		{
+			WND->MessageBoxNB(_T("Invalid authorization token!\r\nPlease log in again."), TITLENAME, MB_ICONERROR);
+		}
+		else
+		{
+			WND->MessageBoxNB(_T("Error accessing file!"), TITLENAME, MB_ICONERROR);
 		}
 	}
 }

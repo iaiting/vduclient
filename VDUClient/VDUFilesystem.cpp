@@ -229,32 +229,35 @@ NTSTATUS CVDUFileSystem::Create(
 
     CreateFlags = FILE_FLAG_BACKUP_SEMANTICS;
     if (CreateOptions & FILE_DELETE_ON_CLOSE)
+    {
         CreateFlags |= FILE_FLAG_DELETE_ON_CLOSE;
+    }
 
     if (CreateOptions & FILE_DIRECTORY_FILE)
     {
-        /*
-         * It is not widely known but CreateFileW can be used to create directories!
-         * It requires the specification of both FILE_FLAG_BACKUP_SEMANTICS and
-         * FILE_FLAG_POSIX_SEMANTICS. It also requires that FileAttributes has
-         * FILE_ATTRIBUTE_DIRECTORY set.
-         */
-        CreateFlags |= FILE_FLAG_POSIX_SEMANTICS;
-        FileAttributes |= FILE_ATTRIBUTE_DIRECTORY;
+        //Attempting to create directory.. not supported by our simple file system
+        delete FileDesc;
+        return STATUS_NOT_SUPPORTED;
     }
     else
         FileAttributes &= ~FILE_ATTRIBUTE_DIRECTORY;
 
-    if (0 == FileAttributes)
+    if (!FileAttributes)
         FileAttributes = FILE_ATTRIBUTE_NORMAL;
 
     FileDesc->Handle = CreateFileW(FullPath,
         GrantedAccess, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, &SecurityAttributes,
-        CREATE_NEW, CreateFlags | FileAttributes, 0);
+        OPEN_EXISTING, CreateFlags | FileAttributes, 0);
     if (INVALID_HANDLE_VALUE == FileDesc->Handle)
     {
         delete FileDesc;
-        return NtStatusFromWin32(GetLastError());
+        NTSTATUS result = NtStatusFromWin32(GetLastError());
+
+        //More friendly message, dont create files..
+        if (result == STATUS_OBJECT_NAME_NOT_FOUND)
+            return STATUS_NOT_SUPPORTED;
+
+        return result;
     }
 
     *PFileDesc = FileDesc;
@@ -289,8 +292,23 @@ NTSTATUS CVDUFileSystem::Open(
     FileDesc = new VdufsFileDesc;
 
     CreateFlags = FILE_FLAG_BACKUP_SEMANTICS;
+
+    //File is about to be deleted, (i.e. from explorer)
     if (CreateOptions & FILE_DELETE_ON_CLOSE)
-        CreateFlags |= FILE_FLAG_DELETE_ON_CLOSE;
+    {
+        //Send delete request and pretend file was deleted
+        //If it wasnt, the file will reappear on explorer window refresh
+        //This is to smooth out user experience
+        CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(PathFindFileName(FileName));
+        if (vdufile != CVDUFile::InvalidFile)
+        {
+            APP->GetFileSystemService()->DeleteVDUFile(vdufile);
+        }
+
+        //delete FileDesc;
+        *PFileDesc = FileDesc;
+        return STATUS_SUCCESS;
+    }
 
     FileDesc->Handle = CreateFileW(FullPath,
         GrantedAccess, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0,
@@ -618,6 +636,9 @@ NTSTATUS CVDUFileSystem::CanDelete(
     fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
 #endif
 
+    //We cant delete files the normal way, let every program know right away
+    return STATUS_UNSUCCESSFUL;
+    /*
     HANDLE Handle = HandleFromFileDesc(FileDesc);
     FILE_DISPOSITION_INFO DispositionInfo;
 
@@ -627,7 +648,7 @@ NTSTATUS CVDUFileSystem::CanDelete(
         FileDispositionInfo, &DispositionInfo, sizeof DispositionInfo))
         return NtStatusFromWin32(GetLastError());
 
-    return STATUS_SUCCESS;
+    return STATUS_SUCCESS;*/
 }
 
 NTSTATUS CVDUFileSystem::Rename(
@@ -653,6 +674,9 @@ NTSTATUS CVDUFileSystem::Rename(
 
     if (!ConcatPath(NewFileName, NewFullPath))
         return STATUS_OBJECT_NAME_INVALID;
+
+    //We handle renaming by requesting it from the server
+    return STATUS_SUCCESS;
 
     if (!MoveFileEx(FullPath, NewFullPath, ReplaceIfExists ? MOVEFILE_REPLACE_EXISTING : 0))
         return NtStatusFromWin32(GetLastError());
@@ -761,9 +785,9 @@ NTSTATUS CVDUFileSystem::ReadDirectoryEntry(
     HANDLE FindHandle;
     WIN32_FIND_DATAW FindData;
 
-    if (0 == *PContext)
+    if (*PContext == NULL)
     {
-        if (0 == Pattern)
+        if (!Pattern)
             Pattern = (PWSTR)_T("*");
         PatternLength = (ULONG)wcslen(Pattern);
 
@@ -876,41 +900,109 @@ CString CVDUFileSystemService::GetDrivePath()
     return CString(m_driveLetter) + _T("\\");
 }
 
-CVDUFile* CVDUFileSystemService::GetVDUFileByName(CString name)
+CString CVDUFileSystemService::GetWorkDirPath()
 {
+    return m_workDirPath;
+}
+
+CVDUFile CVDUFileSystemService::GetVDUFileByName(CString name)
+{
+    AcquireSRWLockExclusive(&m_filesLock);
+    CVDUFile* pFile = NULL;
     for (auto it = m_files.begin(); it != m_files.end(); it++)
     {
         CVDUFile* f = &(*it);
-        ASSERT(f);
 
         if (f->m_name == name)
         {
-            return f;
+            pFile = f;
+            break;
         }
     }
+    ReleaseSRWLockExclusive(&m_filesLock);
 
-    return NULL;
+    return pFile ? *pFile : CVDUFile::InvalidFile;
 }
 
-CVDUFile* CVDUFileSystemService::GetVDUFileByToken(CString token)
+CVDUFile CVDUFileSystemService::GetVDUFileByToken(CString token)
 {
+    AcquireSRWLockExclusive(&m_filesLock);
+    CVDUFile* pFile = NULL;
     for (auto it = m_files.begin(); it != m_files.end(); it++)
     {
         CVDUFile* f = &(*it);
-        ASSERT(f);
 
         if (f->m_token == token)
         {
-            return f;
+            pFile = f;
+            break;
+        }
+    }
+    ReleaseSRWLockExclusive(&m_filesLock);
+
+    return pFile ? *pFile : CVDUFile::InvalidFile;
+}
+
+size_t CVDUFileSystemService::GetVDUFileCount()
+{
+    AcquireSRWLockExclusive(&m_filesLock);
+    size_t size = m_files.size();
+    ReleaseSRWLockExclusive(&m_filesLock);
+    return size;
+}
+
+void CVDUFileSystemService::DeleteFileInternal(CString token)
+{
+    AcquireSRWLockExclusive(&m_filesLock);
+
+    //DONT call the Get function, dont deadlock us...
+    CVDUFile* pFile = NULL;
+    for (auto it = m_files.begin(); it != m_files.end(); it++)
+    {
+        CVDUFile* f = &(*it);
+
+        if (f->m_token == token)
+        {
+            pFile = f;
+            break;
         }
     }
 
-    return NULL;
+    CVDUFile vdufile = pFile ? *pFile : CVDUFile::InvalidFile;
+
+    if (!(vdufile == CVDUFile::InvalidFile)) //Already deleted?
+    {
+        //Delete the file on disk
+        if (DeleteFile(GetWorkDirPath() + _T("\\") + vdufile.m_name))
+        {
+            BOOL deletedFile = FALSE;
+            for (auto it = m_files.begin(); it != m_files.end(); it++)
+            {
+                CVDUFile f = (*it);
+
+                if (f == vdufile)
+                {
+                    m_files.erase(it);
+                    deletedFile = TRUE;
+                    break;
+                }
+            }
+
+            if (!deletedFile)
+                WND->MessageBoxNB(_T("Failed to find file to delete!"), TITLENAME, MB_ICONWARNING);
+        }
+        else
+        {
+            WND->MessageBoxNB(_T("Failed to delete file!"), TITLENAME, MB_ICONWARNING);
+        }
+    }
+
+    ReleaseSRWLockExclusive(&m_filesLock);
 }
 
-UINT CVDUFileSystemService::GetVDUFileCount()
+void CVDUFileSystemService::UpdateFileInternal(CString token, CVDUFile newfile)
 {
-    return m_files.size();
+
 }
 
 NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
@@ -928,7 +1020,10 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     CString randomFolderName = APP->GetProfileString(SECTION_SETTINGS, _T("WorkDir"), _T(""));
 
     //If not generated yet, or folder was deleted, generate a brand new one
-    if (randomFolderName.IsEmpty() || GetFileAttributes(CString(tempBuf) + randomFolderName) == 0xFFFFFFFF)
+    //In case the folder is not empty, program must have been shut down unsuccessfully
+    //If user wants to recover unsaved files, the old folder will be there until Windows decides to remove it
+    if (randomFolderName.IsEmpty() || GetFileAttributes(CString(tempBuf) + randomFolderName) == 0xFFFFFFFF ||
+        !PathIsDirectoryEmpty(CString(tempBuf) + randomFolderName))
     {
         GUID guid;
         if (CoCreateGuid(&guid) != S_OK)
@@ -1002,8 +1097,9 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
         return Result;
     }
 
+    m_filesLock = SRWLOCK_INIT;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(DEBUG_PRINT_FILESYSTEM_CALLS)
     if (AllocConsole())
     {
         freopen("CONOUT$", "w", stdout);
@@ -1016,18 +1112,17 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
 
 NTSTATUS CVDUFileSystemService::OnStop()
 {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(DEBUG_PRINT_FILESYSTEM_CALLS)
     FreeConsole();
 #endif
-    //CloseHandle(m_hWorkDir);
     m_host.Unmount();
     return STATUS_SUCCESS;
 }
 
-BYTE* CVDUFileSystemService::CalcFileMD5(CVDUFile* file)
+BYTE* CVDUFileSystemService::CalcFileMD5(CVDUFile file)
 {
     static BYTE rgbHash[MD5_LEN] = { 0 };
-    CString filePath = m_workDirPath + _T("\\") + file->m_name;
+    CString filePath = GetWorkDirPath() + _T("\\") + file.m_name;
 
     HANDLE hFile = CreateFile(filePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 
@@ -1096,7 +1191,7 @@ NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
     return m_host.Mount((PWSTR)m_driveLetter);
 }
 
-BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile& vdufile, CHttpFile* httpfile)
+BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
 {
     TCHAR tempBuf[MAX_PATH + 1] = { 0 };
     GetTempPath(ARRAYSIZE(tempBuf), tempBuf);
@@ -1105,7 +1200,7 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile& vdufile, CHttpFile* httpfile
     if (GetTempFileName(tempBuf, _T("vdu"), 0, tmpFilePath) < 1)
         return FALSE;
 
-    //TEMPORARY -> wont be flushed on disk
+    //TEMPORARY -> wont be flushed on disk unless memory is low, not very good..
     HANDLE hFile = CreateFile(tmpFilePath, GENERIC_ALL, NULL, NULL, CREATE_ALWAYS, /*FILE_ATTRIBUTE_TEMPORARY*/NULL, NULL);
 
     //Cant open file?
@@ -1114,7 +1209,6 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile& vdufile, CHttpFile* httpfile
 
     TRY
     {
-        ShutdownBlockReasonCreate(WND->GetSafeHwnd(), _T("A download is in progress!"));
         WND->GetProgressBar()->SetState(PBST_NORMAL);
         WND->GetProgressBar()->SetPos(0);
         WND->UpdateStatus();
@@ -1129,7 +1223,7 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile& vdufile, CHttpFile* httpfile
                 return FALSE;
             }
             readTotal += readLen;
-            int newpos = ((double)readTotal / vdufile.m_length) * 100;
+            int newpos = (int) (((double)readTotal / vdufile.m_length) * 100);
             if (newpos != WND->GetProgressBar()->GetPos())
             {
                 WND->GetProgressBar()->SetPos(newpos);
@@ -1143,13 +1237,11 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile& vdufile, CHttpFile* httpfile
         DeleteFile(tmpFilePath);
         WND->GetProgressBar()->SetState(PBST_ERROR);
         WND->UpdateStatus();
-        ShutdownBlockReasonDestroy(WND->GetSafeHwnd());
         e->Delete();
         return FALSE;
     }
     END_CATCH;
 
-    ShutdownBlockReasonDestroy(WND->GetSafeHwnd());
     WND->GetProgressBar()->SetState(PBST_PAUSED);
     WND->GetProgressBar()->SetPos(0);
     WND->UpdateStatus();
@@ -1161,10 +1253,10 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile& vdufile, CHttpFile* httpfile
     CloseHandle(hFile);
 
     //Make sure directory exists
-    if (CreateDirectory(m_workDirPath, NULL))
-        SetFileAttributes(m_workDirPath, FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
+    if (CreateDirectory(GetWorkDirPath(), NULL))
+        SetFileAttributes(GetWorkDirPath(), FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
 
-    CString finalPath = m_workDirPath + _T("\\") + vdufile.m_name;
+    CString finalPath = GetWorkDirPath() + _T("\\") + vdufile.m_name;
     if (!MoveFileEx(tmpFilePath, finalPath, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED))
     {
         DWORD errid = GetLastError();
@@ -1173,7 +1265,7 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile& vdufile, CHttpFile* httpfile
     }
 
     //Compare MD5 hash to make sure file is OK
-    BYTE* calcedMD5 = CalcFileMD5(&vdufile);
+    BYTE* calcedMD5 = CalcFileMD5(vdufile);
     if (!calcedMD5)
     {
         DeleteFile(finalPath);
@@ -1189,6 +1281,9 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile& vdufile, CHttpFile* httpfile
 
     m_files.push_back(vdufile);
 
+    //Put this into main thread
+    //ShutdownBlockReasonCreate(WND->GetSafeHwnd(), _T("There are still unsaved files!"));
+
     /*LPWSTR mimeType = 0;
     if (FindMimeFromData(NULL, finalPath, NULL, 0, vdufile.m_type, FMFD_RETURNUPDATEDIMGMIMES | FMFD_URLASFILENAME, &mimeType, 0) == S_OK)
     {
@@ -1198,17 +1293,17 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile& vdufile, CHttpFile* httpfile
     return TRUE;
 }
 
-BOOL CVDUFileSystemService::UpdateVDUFile(CVDUFile& vdufile)
+BOOL CVDUFileSystemService::UpdateVDUFile(CVDUFile vdufile)
 {
     CString headers;
 
-    AfxBeginThread(CVDUConnection::ThreadProc,
-        (LPVOID)new CVDUConnection(APP->GetSession()->GetServerURL(), VDUAPIType::POST_FILE, CVDUSession::CallbackInvalidateFileToken, headers, vdufile.m_token));
+    AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(APP->GetSession()->GetServerURL(), VDUAPIType::POST_FILE,
+        CVDUSession::CallbackInvalidateFileToken, headers, vdufile.m_token, GetWorkDirPath() + _T("\\") + vdufile.m_name));
 
     return TRUE;
 }
 
-void CVDUFileSystemService::DeleteVDUFile(CVDUFile& vdufile)
+void CVDUFileSystemService::DeleteVDUFile(CVDUFile vdufile)
 {
     AfxBeginThread(CVDUConnection::ThreadProc,
         (LPVOID)new CVDUConnection(APP->GetSession()->GetServerURL(), VDUAPIType::DELETE_FILE, CVDUSession::CallbackInvalidateFileToken, _T(""), vdufile.m_token));

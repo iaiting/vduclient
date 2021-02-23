@@ -9,6 +9,7 @@
 #define WM_TRAY_EXIT (WM_APP + 2)
 #define WM_TRAY_AUTORUN_TOGGLE (WM_APP + 3)
 #define WM_TRAY_AUTOLOGIN_TOGGLE (WM_APP + 4)
+#define WM_TRAY_BACKUP_UNSAVED (WM_APP + 5)
 
 // CVDUClientDlg dialog
 CVDUClientDlg::CVDUClientDlg(CWnd* pParent /*=nullptr*/) : CDialogEx(IDD_VDUCLIENT_DIALOG, pParent), m_progressBar(nullptr),
@@ -32,6 +33,7 @@ BEGIN_MESSAGE_MAP(CVDUClientDlg, CDialogEx)
 	ON_COMMAND(WM_TRAY_EXIT, &CVDUClientDlg::OnTrayExitCommand)
 	ON_COMMAND(WM_TRAY_AUTOLOGIN_TOGGLE, &CVDUClientDlg::OnAutologinToggleCommand)
 	ON_COMMAND(WM_TRAY_AUTORUN_TOGGLE, &CVDUClientDlg::OnAutorunToggleCommand)
+	ON_COMMAND(WM_TRAY_BACKUP_UNSAVED, &CVDUClientDlg::OnBackupFilesToggleCommand)
 	ON_BN_CLICKED(IDC_BUTTON_LOGIN, &CVDUClientDlg::OnBnClickedButtonLogin)
 	ON_EN_CHANGE(IDC_USERNAME, &CVDUClientDlg::OnEnChangeUsername)
 	ON_CBN_SELCHANGE(IDC_COMBO_DRIVELETTER, &CVDUClientDlg::OnCbnSelchangeComboDriveletter)
@@ -63,45 +65,49 @@ BOOL CVDUClientDlg::OnInitDialog()
 	ASSERT(IsWindow(GetSafeHwnd()));
 	m_trayData.hWnd = GetSafeHwnd();
 	m_trayData.uCallbackMessage = WM_TRAYICON_EVENT;
-	if (StringCchCopy(m_trayData.szTip, ARRAYSIZE(m_trayData.szTip), TITLENAME) != S_OK)
-		return FALSE;
+	StringCchCopy(m_trayData.szTip, ARRAYSIZE(m_trayData.szTip), TITLENAME);
 	m_trayData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 	m_trayData.hIcon = APP->LoadIcon(IDR_MAINFRAME);
 	m_trayData.uVersion = NOTIFYICON_VERSION_4;
 	Shell_NotifyIcon(NIM_ADD, &m_trayData);
 	//Shell_NotifyIcon(NIM_SETVERSION, &m_trayData); //- Not needed in latest version
 
+	CString moduleFilePath;
+	AfxGetModuleFileName(NULL, moduleFilePath);
+	CString moduleFileName = PathFindFileName(moduleFilePath);
+	CString moduleFolderPath = moduleFilePath.Left(moduleFilePath.GetLength() - moduleFileName.GetLength() - 1);
+
+	//Create an entry on windows startup
+	SetRegValueSz(TITLENAME, moduleFilePath, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"));
+
+	if (TRUE) //Allows application to be searched for and opened using windows shell/search
+	{
+		SetRegValueSz(NULL, moduleFilePath, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\" + moduleFileName));
+		SetRegValueSz(_T("Path"), moduleFolderPath, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\" + moduleFileName));
+	}
+
 	//Create tray popup menu
 	if (m_trayMenu = new CMenu())
 	{
 		m_trayMenu->CreatePopupMenu();
-		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_AUTORUN_TOGGLE, _T("Auto-run")); //1
-		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_AUTOLOGIN_TOGGLE, _T("Auto-login")); //2
-		m_trayMenu->AppendMenu(MF_SEPARATOR); //3
-		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_EXIT, _T("Exit")); //4
+		//m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_AUTORUN_TOGGLE, _T("Run on startup")); //1
+		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_AUTOLOGIN_TOGGLE, _T("Auto Login")); //2
+		//m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_BACKUP_UNSAVED, _T("Backup unsaved files")); //3
+		m_trayMenu->AppendMenu(MF_SEPARATOR); //4
+		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_EXIT, _T("Exit")); //5
 
-
-		int autoLogin = APP->GetProfileInt(SECTION_SETTINGS, _T("AutoLogin"), FALSE);
-		if (autoLogin)
-		{
-			m_trayMenu->CheckMenuItem(1, MF_BYPOSITION | MF_CHECKED);
-		}
+		if (APP->GetProfileInt(SECTION_SETTINGS, _T("AutoLogin"), FALSE))
+			m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
 
 		//TODO AUTORUN FIX
 		DWORD autoRun = FALSE;
-		//GetRegValueI(_T("VDU Client"), autoRun, &autoRun, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run");
+		GetRegValueI(TITLENAME, autoRun, &autoRun, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run"));
 
 		if (autoRun == 2)
 		{
 			m_trayMenu->CheckMenuItem(2, MF_BYPOSITION | MF_CHECKED);
 		}
 	}
-
-	CString moduleFileName;
-	AfxGetModuleFileName(NULL, moduleFileName);
-
-	//Create an entry on windows startup
-	//SetRegValueSz(_T("VDUClient"), moduleFileName, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"));
 
 	m_server = APP->GetProfileString(SECTION_SETTINGS, _T("LastServerAddress"), _T(""));
 	m_username = APP->GetProfileString(SECTION_SETTINGS, _T("LastUserName"), _T(""));
@@ -225,7 +231,7 @@ BOOL CVDUClientDlg::GetRegValueSz(CString name, CString defaultValue, PTCHAR out
 	LSTATUS res;
 	if ((res = RegQueryValueEx(hkey, name, 0, &type, (LPBYTE)out_value, &maxOutvalueSize)) != ERROR_SUCCESS)
 	{
-		res = RegSetValueEx(hkey, name, 0, type, (BYTE*)&defaultValue, maxOutvalueSize);
+		res = RegSetValueEx(hkey, name, 0, type, (BYTE*)defaultValue.GetBuffer(), maxOutvalueSize);
 	}
 
 	RegCloseKey(hkey);
@@ -288,7 +294,7 @@ BOOL CVDUClientDlg::SetRegValueSz(CString name, CString value, CString path, ULO
 		}
 	}
 
-	LSTATUS res = RegSetValueEx(hkey, name, 0, type, (BYTE*)&value, DWORD(sizeof(wchar_t) * (wcslen(value) + 1)));
+	LSTATUS res = RegSetValueEx(hkey, name, 0, type, (BYTE*)value.GetBuffer(), DWORD(sizeof(wchar_t) * (wcslen(value.GetBuffer()) + 1)));
 
 	RegCloseKey(hkey);
 	return res == ERROR_SUCCESS;
@@ -407,6 +413,12 @@ void CVDUClientDlg::OnPaint()
 
 BOOL CVDUClientDlg::OnQueryEndSession()
 {
+	TCHAR reason[0x200];
+	DWORD reasonLen = ARRAYSIZE(reason);
+	if (ShutdownBlockReasonQuery(WND->GetSafeHwnd(), reason, &reasonLen))
+	{
+		return FALSE; //TODO: DO something with reason?
+	}
 	return CDialogEx::OnQueryEndSession();
 }
 
@@ -415,6 +427,12 @@ BOOL CVDUClientDlg::OnQueryEndSession()
 HCURSOR CVDUClientDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
+}
+
+void CVDUClientDlg::OnClose()
+{
+	
+	CDialogEx::OnClose();
 }
 
 LRESULT CVDUClientDlg::OnTrayEvent(WPARAM wParam, LPARAM lParam)
@@ -454,7 +472,19 @@ LRESULT CVDUClientDlg::OnTrayEvent(WPARAM wParam, LPARAM lParam)
 
 void CVDUClientDlg::OnTrayExitCommand()
 {
-	AfxGetMainWnd()->PostMessage(WM_QUIT, 0, 0);
+	if (APP->GetFileSystemService()->GetVDUFileCount() > 0)
+	{
+		INT answer = MessageBox(_T("There are still some accesibile files!\r\nPlease delete all files before exiting.\r\n\r\nDo you want open explorer to delete files?"), TITLENAME, MB_YESNO | MB_ICONINFORMATION);
+		if (answer != IDYES)
+			return;
+		else
+		{
+			ShellExecute(WND->GetSafeHwnd(), _T("explore"), APP->GetFileSystemService()->GetDrivePath(), NULL, NULL, SW_SHOWNORMAL);
+			return;
+		}
+	}
+
+	PostMessage(WM_QUIT, 0, 0);
 }
 
 void CVDUClientDlg::OnAutorunToggleCommand()
@@ -463,15 +493,26 @@ void CVDUClientDlg::OnAutorunToggleCommand()
 
 }
 
+void CVDUClientDlg::OnBackupFilesToggleCommand()
+{
+	INT backupFiles = APP->GetProfileInt(SECTION_SETTINGS, _T("BackupUnsavedFiles"), FALSE);
+	backupFiles = !backupFiles;
+	APP->WriteProfileInt(SECTION_SETTINGS, _T("BackupUnsavedFiles"), backupFiles);
+	if (backupFiles)
+		m_trayMenu->CheckMenuItem(2, MF_BYPOSITION | MF_CHECKED);
+	else
+		m_trayMenu->CheckMenuItem(2, MF_BYPOSITION | MF_UNCHECKED);
+}
+
 void CVDUClientDlg::OnAutologinToggleCommand()
 {
-	int autoLogin = AfxGetApp()->GetProfileInt(SECTION_SETTINGS, _T("AutoLogin"), FALSE);
+	INT autoLogin = APP->GetProfileInt(SECTION_SETTINGS, _T("AutoLogin"), FALSE);
 	autoLogin = !autoLogin;
-	AfxGetApp()->WriteProfileInt(SECTION_SETTINGS, _T("AutoLogin"), autoLogin);
+	APP->WriteProfileInt(SECTION_SETTINGS, _T("AutoLogin"), autoLogin);
 	if (autoLogin)
-		m_trayMenu->CheckMenuItem(1, MF_BYPOSITION | MF_CHECKED);
+		m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
 	else
-		m_trayMenu->CheckMenuItem(1, MF_BYPOSITION | MF_UNCHECKED);
+		m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_UNCHECKED);
 }
 
 void CVDUClientDlg::OnEnChangeServerAddress()
@@ -611,6 +652,11 @@ void CVDUClientDlg::OnBnClickedAccessFile()
 		AfxMessageBox(_T("Please input the file token."), MB_ICONWARNING);
 		return;
 	}
+	else if (APP->GetFileSystemService()->GetVDUFileByToken(fileToken) != CVDUFile::InvalidFile)
+	{
+		MessageBox(_T("File already accessed"), TITLENAME, MB_ICONINFORMATION);
+		return;
+	}
 
 	//VDU_SESSION_LOCK not needed? Access token is filled in last anyway..
 	CVDUSession* session = APP->GetSession();
@@ -630,4 +676,34 @@ void CVDUClientDlg::OnEnSetfocusFileToken()
 	{
 		GetClipboardData(CF_TEXT);
 	}*/
+}
+
+//HACK ALERT
+//I really wanna use messageboxes from worker threads so here we are..
+
+class MsgBoxParams
+{
+public:
+	CString text;
+	CString title;
+	UINT flags;
+};
+
+//Doesnt block the main thread! WOW!
+UINT ThreadProcMsgBoxNB(LPVOID mbp0)
+{
+	MsgBoxParams* mbp = (MsgBoxParams*)mbp0;
+	WND->MessageBoxW(mbp->text, mbp->title, mbp->flags);
+	delete mbp;
+	return 0;
+}
+
+void CVDUClientDlg::MessageBoxNB(CString text, CString title, UINT flags)
+{
+	MsgBoxParams* mbp = new MsgBoxParams();
+	mbp->text = CString(text);
+	mbp->title = CString(title);
+	mbp->flags = flags;
+
+	AfxBeginThread(ThreadProcMsgBoxNB, (LPVOID)mbp);
 }

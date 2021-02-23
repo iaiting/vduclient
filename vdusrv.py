@@ -8,7 +8,7 @@ FILE_CHUNK_READ_DELAY = 0.0000001
 #Api key expiration time, seconds
 KEY_EXPIRATION_TIME = 120
 #Probability that file request will time out (for testing)
-TIMEOUT_PROBABILITY = 0.25
+TIMEOUT_PROBABILITY = 0.01
 
 
 #Current list of users who can generate keys, 

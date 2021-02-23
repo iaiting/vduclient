@@ -17,7 +17,7 @@
 
 #ifdef _DEBUG
 #include <ctime>
-#define DEBUG_PRINT_FILESYSTEM_CALLS //Should print fn calls of filesystem
+//#define DEBUG_PRINT_FILESYSTEM_CALLS //Should print fn calls of filesystem
 #endif
 
 #define PROGNAME                        "vdufs"
@@ -174,6 +174,7 @@ struct VdufsFileDesc
     PVOID DirBuffer;
 };
 
+
 //File system service that handles the filesystem
 class CVDUFileSystemService : public Fsp::Service
 {
@@ -183,6 +184,7 @@ private:
     TCHAR m_driveLetter[128]; //Drive letter buffer
     CString m_workDirPath; //Path to work directory
     //HANDLE m_hWorkDir; //Handle to work directory, held by the service
+    SRWLOCK m_filesLock;
     std::vector<CVDUFile> m_files; //Vector of accessable files
 protected:
     NTSTATUS OnStart(ULONG Argc, PWSTR* Argv);
@@ -194,25 +196,31 @@ public:
     Fsp::FileSystemHost& GetHost();
     //Returns the active virtual drive path
     CString GetDrivePath();
+    //Returns the work directory path
+    CString GetWorkDirPath();
     //Returns accessible VDU file by name
-    CVDUFile* GetVDUFileByName(CString name);
+    CVDUFile GetVDUFileByName(CString name);
     //Returns accessible VDU file by access token
-    CVDUFile* GetVDUFileByToken(CString token);
+    CVDUFile GetVDUFileByToken(CString token);
     //Ammount of accesisibile files
-    UINT GetVDUFileCount();
+    size_t GetVDUFileCount();
+    //Deletes a VDU file internally, from disk, from memory
+    void DeleteFileInternal(CString token);
+    //Updates a VDU file internally
+    void UpdateFileInternal(CString token, CVDUFile newfile);
 
     //Calculated MD5 of contents in file
     //https://docs.microsoft.com/en-us/windows/win32/seccrypto/example-c-program--creating-an-md-5-hash-from-file-content
     //Returnts ptr to static buffer of MD5_LEN bytes or NULL
-    BYTE* CalcFileMD5(CVDUFile* file);
+    BYTE* CalcFileMD5(CVDUFile file);
 
     //Remount filesystem to different drive letter
     NTSTATUS Remount(CString DriveLetter);
 
     //Create a new VDU file in filesystem from httpFile
-    BOOL CreateVDUFile(CVDUFile& vdufile, CHttpFile* httpfile);
+    BOOL CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile);
     //Update VDU file data
-    BOOL UpdateVDUFile(CVDUFile& vdufile);
+    BOOL UpdateVDUFile(CVDUFile vdufile);
     //Request token invalidation for VDU file
-    void DeleteVDUFile(CVDUFile& vdufile);
+    void DeleteVDUFile(CVDUFile vdufile);
 };

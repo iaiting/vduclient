@@ -45,8 +45,10 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg BOOL OnQueryEndSession();
 	afx_msg HCURSOR OnQueryDragIcon();
+	afx_msg void OnClose();
 	afx_msg LRESULT OnTrayEvent(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnAutorunToggleCommand();
+	afx_msg void OnBackupFilesToggleCommand();
 	afx_msg void OnAutologinToggleCommand();
 	DECLARE_MESSAGE_MAP()
 public:
@@ -73,6 +75,8 @@ public:
 	//Updates the client status, seen in tray icon and in the window
 	void UpdateStatus();
 
+	//Non-blocking MessageBox 
+	void MessageBoxNB(CString text, CString title, UINT flags);
 public:
 	afx_msg void OnTrayExitCommand();
 	afx_msg void OnEnChangeServerAddress();
