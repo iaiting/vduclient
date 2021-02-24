@@ -13,6 +13,10 @@ SSL:
 https://docs.microsoft.com/en-us/windows/win32/winhttp/ssl-in-winhttp
 https://blog.devolutions.net/2020/07/tutorial-how-to-generate-secure-self-signed-server-and-client-certificates-with-openssl
 
+Books:
+https://www.csie.ntu.edu.tw/~r93020/eBook/Learn%20the%20MFC%20C++%20Classes.pdf
+https://vulms.vu.edu.pk/Courses/CS410/Downloads/Charles%20Petzold%20-%20Programming%20Windows%20-%205th%20Ed.pdf
+
 Various MS DOCS:
 https://docs.microsoft.com/en-us/windows/win32/winhttp/http-status-codes 14.02.2021
 https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathfindfilenamew 15.02.2021

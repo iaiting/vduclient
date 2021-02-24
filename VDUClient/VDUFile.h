@@ -14,7 +14,7 @@ public:
 	CString m_token; //Access token
 	BOOL m_canRead; //Is file readable?
 	BOOL m_canWrite; //Is file writable?
-	INT m_length; //content length
+	UINT32 m_length; //content length
 	CString m_encoding; //Content MIME encoding
 	CString m_name; //File name
 	CString m_type; //Content MIME type
@@ -23,7 +23,7 @@ public:
 	BYTE m_md5[MD5_LEN]; //
 	CString m_etag; //File version
 public:
-	CVDUFile(CString token, BOOL canRead, BOOL canWrite, INT length, CString enconding, CString name, CString type, SYSTEMTIME& lastModified, SYSTEMTIME& expires, BYTE* md5, CString etag);
+	CVDUFile(CString token, BOOL canRead, BOOL canWrite, UINT32 length, CString enconding, CString name, CString type, SYSTEMTIME& lastModified, SYSTEMTIME& expires, BYTE* md5, CString etag);
 	CVDUFile();
 	~CVDUFile();
 

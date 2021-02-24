@@ -162,7 +162,7 @@ private:
 
 struct VdufsFileDesc
 {
-    VdufsFileDesc() : Handle(INVALID_HANDLE_VALUE), DirBuffer()
+    VdufsFileDesc(UINT32 grantedAccess) : Handle(INVALID_HANDLE_VALUE), DirBuffer(), GrantedAccess(grantedAccess)
     {
     }
     ~VdufsFileDesc()
@@ -172,6 +172,7 @@ struct VdufsFileDesc
     }
     HANDLE Handle;
     PVOID DirBuffer;
+    UINT32 GrantedAccess;
 };
 
 
@@ -207,7 +208,7 @@ public:
     //Deletes a VDU file internally, from disk, from memory
     void DeleteFileInternal(CString token);
     //Updates a VDU file internally
-    void UpdateFileInternal(CString token, CVDUFile newfile);
+    void UpdateFileInternal(CVDUFile newfile);
 
     //Calculated MD5 of contents in file
     //https://docs.microsoft.com/en-us/windows/win32/seccrypto/example-c-program--creating-an-md-5-hash-from-file-content
@@ -220,7 +221,9 @@ public:
     //Create a new VDU file in filesystem from httpFile
     BOOL CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile);
     //Update VDU file data
-    BOOL UpdateVDUFile(CVDUFile vdufile);
+    //This function is BLOCKING if newName is set, in order to confirm success
+    //Returns success or exit code if newName is set
+    INT UpdateVDUFile(CVDUFile vdufile, CString newName = _T(""));
     //Request token invalidation for VDU file
     void DeleteVDUFile(CVDUFile vdufile);
 };

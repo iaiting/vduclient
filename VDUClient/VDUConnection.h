@@ -20,7 +20,8 @@ enum class VDUAPIType
 //Connection callback with HTTP response as a parameter
 //Has guaranteed exclusive access to VDU session
 //Is executed on calling thread
-typedef void (*VDU_CONNECTION_CALLBACK)(CHttpFile* httpResponse);
+//Return value will be thread exit code
+typedef INT (*VDU_CONNECTION_CALLBACK)(CHttpFile* httpResponse);
 
 //A single connection to a VDU server, halts thread it is executed on
 class CVDUConnection
@@ -40,7 +41,8 @@ public:
 
 	//Processes the connection and halts executing thread until done
 	//Should NOT be run in main thread
-	void Process();
+	//Returns callback result or SUCCESS
+	INT Process();
 
 	//Starting thread procedure for new threads, expects connection created by 'new'
 	static UINT ThreadProc(LPVOID pCon);

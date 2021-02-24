@@ -54,7 +54,7 @@ void CVDUSession::SetUser(CString user)
 	m_user = user;
 }
 
-void CVDUSession::CallbackPing(CHttpFile* file)
+INT CVDUSession::CallbackPing(CHttpFile* file)
 {
 	if (file)
 	{
@@ -81,9 +81,10 @@ void CVDUSession::CallbackPing(CHttpFile* file)
 	}
 
 	WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
+	return EXIT_SUCCESS;
 }
 
-void CVDUSession::CallbackLogin(CHttpFile* file)
+INT CVDUSession::CallbackLogin(CHttpFile* file)
 {
 	CVDUSession* session = APP->GetSession();
 	ASSERT(session);
@@ -104,14 +105,14 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 			if (!file->QueryInfo(HTTP_QUERY_CUSTOM, (LPVOID)apiKey, &apiLeyLen))
 			{
 				WND->MessageBoxNB(_T("Server did not send auth key!"), TITLENAME, MB_ICONERROR);
-				return;
+				return EXIT_FAILURE;
 			}
 
 			CString expires;
 			if (!file->QueryInfo(HTTP_QUERY_EXPIRES, expires))
 			{
 				WND->MessageBoxNB(_T("Server did not send Expiration Date!"), TITLENAME, MB_ICONERROR);
-				return;
+				return EXIT_FAILURE;
 			}
 
 			SYSTEMTIME expTime;
@@ -120,7 +121,7 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 			if (!InternetTimeToSystemTime(expires, &expTime, NULL))
 			{
 				WND->MessageBoxNB(_T("Failed to convert auth token Expiration time!"), TITLENAME, MB_ICONERROR);
-				return;
+				return EXIT_FAILURE;
 			}
 
 			SYSTEMTIME cstime;
@@ -133,7 +134,7 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 			if (exp < now)
 			{
 				WND->MessageBoxNB(_T("Auth expiration date in the past!"), TITLENAME, MB_ICONERROR);
-				return;
+				return EXIT_FAILURE;
 			}
 
 			//Login successful
@@ -163,9 +164,11 @@ void CVDUSession::CallbackLogin(CHttpFile* file)
 		WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
 		WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
+
+	return EXIT_SUCCESS;
 }
 
-void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
+INT CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 {
 	CVDUSession* session = APP->GetSession();
 	ASSERT(session);
@@ -183,14 +186,14 @@ void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 			if (!file->QueryInfo(HTTP_QUERY_CUSTOM, (LPVOID)apiKey, &apiLeyLen))
 			{
 				WND->MessageBoxNB(_T("Server did not send auth key!"), TITLENAME, MB_ICONERROR);
-				return;
+				return EXIT_FAILURE;
 			}
 
 			CString expires;
 			if (!file->QueryInfo(HTTP_QUERY_EXPIRES, expires))
 			{
 				WND->MessageBoxNB(_T("Server did not send Expiration Date!"), TITLENAME, MB_ICONERROR);
-				return;
+				return EXIT_FAILURE;
 			}
 
 			SYSTEMTIME expTime;
@@ -199,7 +202,7 @@ void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 			if (!InternetTimeToSystemTime(expires, &expTime, NULL))
 			{
 				WND->MessageBoxNB(_T("Failed to convert auth token Expiration time!"), TITLENAME, MB_ICONERROR);
-				return;
+				return EXIT_FAILURE;
 			}
 
 			SYSTEMTIME cstime;
@@ -212,7 +215,7 @@ void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 			if (exp < now)
 			{
 				WND->MessageBoxNB(_T("Auth expiration date in the past!"), TITLENAME, MB_ICONERROR);
-				return;
+				return EXIT_FAILURE;
 			}
 
 			session->SetAuthData(apiKey, exp);
@@ -234,15 +237,18 @@ void CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 	else
 	{
 		//Connection failed, let refreshing thread know to sleep for a bit and try again later
-		VDU_SESSION_UNLOCK;
-		AfxEndThread(2, FALSE);
+		//VDU_SESSION_UNLOCK;
+		//AfxEndThread(2, FALSE);
+		return 2;
 
 		//session->Reset(session->GetServerURL());
 		//WND->TrayNotify(_T("Authentification failed"), _T("Could not connect to server."), SIID_INTERNET);
 	}
+
+	return EXIT_SUCCESS;
 }
 
-void CVDUSession::CallbackLogout(CHttpFile* file)
+INT CVDUSession::CallbackLogout(CHttpFile* file)
 {
 	CVDUSession* session = APP->GetSession();
 	ASSERT(session);
@@ -281,9 +287,11 @@ void CVDUSession::CallbackLogout(CHttpFile* file)
 
 	WND->GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
 	WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
+
+	return EXIT_SUCCESS;
 }
 
-void CVDUSession::CallbackDownloadFile(CHttpFile* file)
+INT CVDUSession::CallbackDownloadFile(CHttpFile* file)
 {
 	CVDUSession* session = APP->GetSession();
 	ASSERT(session);
@@ -381,9 +389,11 @@ void CVDUSession::CallbackDownloadFile(CHttpFile* file)
 
 	WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(TRUE);
 	WND->GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(TRUE);
+
+	return EXIT_SUCCESS;
 }
 
-void CVDUSession::CallbackUploadFile(CHttpFile* file)
+INT CVDUSession::CallbackUploadFile(CHttpFile* file)
 {
 	CVDUSession* session = APP->GetSession();
 	ASSERT(session);
@@ -393,18 +403,58 @@ void CVDUSession::CallbackUploadFile(CHttpFile* file)
 		DWORD statusCode;
 		file->QueryInfoStatusCode(statusCode);
 
-		if (statusCode == HTTP_STATUS_NO_CONTENT)
+		CString filetoken = file->GetObject();
+		filetoken = filetoken.Right(filetoken.GetLength() - 6);
+
+		if (statusCode == HTTP_STATUS_CREATED)
 		{
-			CString filetoken = file->GetObject();
-			filetoken = filetoken.Right(filetoken.GetLength() - 6);
-
 			CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByToken(filetoken);
+			if (vdufile != CVDUFile::InvalidFile)
+			{
+				CString expires;
+				file->QueryInfo(HTTP_QUERY_EXPIRES, expires);
+				SYSTEMTIME expiresST;
+				InternetTimeToSystemTime(expires, &expiresST, 0);
 
+				CString etag;
+				file->QueryInfo(HTTP_QUERY_ETAG, etag);
 
+				CString allow;
+				file->QueryInfo(HTTP_QUERY_ALLOW, allow);
+				allow = allow.MakeUpper();
+
+				vdufile.m_etag = etag;
+				vdufile.m_expires = expiresST;
+				vdufile.m_canRead = allow.Find(_T("GET")) != -1;
+				vdufile.m_canWrite = allow.Find(_T("POST")) != -1;
+
+				APP->GetFileSystemService()->UpdateFileInternal(vdufile);
+			}
+			else
+			{
+				WND->MessageBoxNB(_T("Local file does not exist!\r\nPlease re-access the file."), TITLENAME, MB_ICONERROR);
+			}
+		}
+		else if (statusCode == HTTP_STATUS_RESET_CONTENT)
+		{
+			APP->GetFileSystemService()->DeleteFileInternal(filetoken);
+
+			WND->MessageBoxNB(_T("Token for currently edited file has expired after last successful upload.\r\nIn order to continue work on the file, access via new token."),
+				TITLENAME, MB_ICONINFORMATION);
+
+			return 2;
+		}
+		else if (statusCode == HTTP_STATUS_CONFLICT)
+		{
+			WND->MessageBoxNB(_T("The changes you made to the file are in conflict!\r\nPlease resolve these changes or delete your file."), TITLENAME, MB_ICONERROR);
 		}
 		else if (statusCode == HTTP_STATUS_NOT_FOUND)
 		{
 			WND->MessageBoxNB(_T("File does not exist!"), TITLENAME, MB_ICONERROR);
+		}
+		else if (statusCode == HTTP_STATUS_BAD_METHOD)
+		{
+			WND->MessageBoxNB(_T("Method not allowed!\r\nYoure trying to write to a read-only resource?"), TITLENAME, MB_ICONERROR);
 		}
 		else if (statusCode == HTTP_STATUS_REQUEST_TIMEOUT)
 		{
@@ -419,9 +469,15 @@ void CVDUSession::CallbackUploadFile(CHttpFile* file)
 			WND->MessageBoxNB(_T("Error accessing file!"), TITLENAME, MB_ICONERROR);
 		}
 	}
+	else
+	{
+		WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
+	}
+
+	return EXIT_SUCCESS;
 }
 
-void CVDUSession::CallbackInvalidateFileToken(CHttpFile* file)
+INT CVDUSession::CallbackInvalidateFileToken(CHttpFile* file)
 {
 	CVDUSession* session = APP->GetSession();
 	ASSERT(session);
@@ -458,6 +514,8 @@ void CVDUSession::CallbackInvalidateFileToken(CHttpFile* file)
 			WND->MessageBoxNB(_T("Error accessing file!"), TITLENAME, MB_ICONERROR);
 		}
 	}
+
+	return EXIT_SUCCESS;
 }
 
 void CVDUSession::Login(CString user, CString certPath)

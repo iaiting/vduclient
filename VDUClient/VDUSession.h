@@ -39,11 +39,11 @@ public:
 	void AccessFile(CString fileToken);
 
 	//Callbacks are guaranteed to have exclusive access to session
-	static void CallbackPing(CHttpFile* file);
-	static void CallbackLogin(CHttpFile* file);
-	static void CallbackLoginRefresh(CHttpFile* file);
-	static void CallbackLogout(CHttpFile* file);
-	static void CallbackDownloadFile(CHttpFile* file);
-	static void CallbackUploadFile(CHttpFile* file);
-	static void CallbackInvalidateFileToken(CHttpFile* file);
+	static INT CallbackPing(CHttpFile* file);
+	static INT CallbackLogin(CHttpFile* file);
+	static INT CallbackLoginRefresh(CHttpFile* file);
+	static INT CallbackLogout(CHttpFile* file);
+	static INT CallbackDownloadFile(CHttpFile* file);
+	static INT CallbackUploadFile(CHttpFile* file);
+	static INT CallbackInvalidateFileToken(CHttpFile* file);
 };

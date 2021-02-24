@@ -693,6 +693,7 @@ public:
 UINT ThreadProcMsgBoxNB(LPVOID mbp0)
 {
 	MsgBoxParams* mbp = (MsgBoxParams*)mbp0;
+	WND->SetForegroundWindow();
 	WND->MessageBoxW(mbp->text, mbp->title, mbp->flags);
 	delete mbp;
 	return 0;

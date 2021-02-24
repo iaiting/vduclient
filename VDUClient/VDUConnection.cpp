@@ -8,7 +8,7 @@
 //initialize error buffer
 TCHAR CVDUConnection::LastError[0x400] = { 0 };
 
-void CVDUConnection::Process()
+INT CVDUConnection::Process()
 {
 	CInternetSession inetsession(_T("VDUClient 1.0, Windows"));
 	int httpVerb;
@@ -60,7 +60,7 @@ void CVDUConnection::Process()
 	}
 	default:
 		WND->MessageBox(_T("Invalid VDUAPI Type"), TITLENAME, MB_ICONWARNING);
-		return;
+		return EXIT_FAILURE;
 	}
 
 	CString httpObjectPath;
@@ -75,7 +75,7 @@ void CVDUConnection::Process()
 
 	//Empty URL causes exception
 	if (m_serverURL.IsEmpty())
-		return;
+		return EXIT_FAILURE;
 
 	//Lock the session if this connection has a callback, it will then be responsibile for unlocking
 	if (m_callback != nullptr)
@@ -113,6 +113,9 @@ void CVDUConnection::Process()
 	if (!m_requestHeaders.IsEmpty())
 		pFile->AddRequestHeaders(m_requestHeaders);
 
+	INT result = EXIT_SUCCESS;
+	//HANDLE hFile = INVALID_HANDLE_VALUE;
+
 	TRY
 	{
 		if (m_contentFile.IsEmpty())
@@ -121,7 +124,29 @@ void CVDUConnection::Process()
 		}
 		else
 		{
-			CStdioFile stdf(m_contentFile, CFile::modeRead | CFile::typeBinary);
+			/*hFile = CreateFile(m_contentFile, GENERIC_READ,
+				FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+
+			if (hFile == INVALID_HANDLE_VALUE)
+				throw new CFileException(GetLastError());
+
+			ULONGLONG writeLen = GetFileSize(hFile, NULL);
+
+			pFile->SendRequestEx((DWORD)writeLen);
+
+			BYTE* buf[0xC00];
+			DWORD readLen;
+			while (ReadFile(hFile, buf, ARRAYSIZE(buf), &readLen, NULL))
+			{
+				if (readLen <= 0)
+					break;
+				pFile->Write(buf, readLen);
+				pFile->Flush();
+			}
+			CloseHandle(hFile);
+			hFile = INVALID_HANDLE_VALUE;
+			pFile->EndRequest();*/
+			CStdioFile stdf(m_contentFile, CFile::modeRead | CFile::typeBinary | CFile::shareDenyNone);
 			CFileStatus fst;
 			stdf.GetStatus(fst);
 			ULONGLONG writeLen = fst.m_size;
@@ -157,16 +182,17 @@ void CVDUConnection::Process()
 		}
 		con = nullptr;
 
-		inetsession.Close();
+		//if (hFile != INVALID_HANDLE_VALUE)
+		//	CloseHandle(hFile);
 
-		e->Delete();
+		inetsession.Close();
 	}
 	END_CATCH;
-
 	//Call our callback
 	if (m_callback != nullptr)
 	{
-		m_callback(pFile);
+		result = m_callback(pFile);
+
 		VDU_SESSION_UNLOCK;
 	}
 
@@ -182,6 +208,8 @@ void CVDUConnection::Process()
 		con->Close();
 		delete con;
 	}
+
+	return result;
 }
 
 CVDUConnection::CVDUConnection(CString serverURL, VDUAPIType type, VDU_CONNECTION_CALLBACK callback, CString requestHeaders, CString parameter, CString fileContentPath) :
@@ -195,10 +223,11 @@ UINT CVDUConnection::ThreadProc(LPVOID pCon)
 	CVDUConnection* con = (CVDUConnection*)pCon;
 	if (con)
 	{
-		con->Process();
+		INT returnCode = con->Process();
 		delete con;
+		return returnCode;
 	}
 	else
-		MessageBox(NULL, _T("Connection::ThreadProc: connection was null"), TITLENAME, MB_ICONERROR);
+		WND->MessageBoxNB(_T("Connection::ThreadProc: connection was null"), TITLENAME, MB_ICONERROR);
 	return EXIT_SUCCESS;
 }

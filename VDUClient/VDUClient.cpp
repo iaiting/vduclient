@@ -90,6 +90,16 @@ BOOL VDUClient::InitInstance()
 	// such as the name of your company or organization
 	SetRegistryKey(VFSNAME);
 
+	//Check if WinFSP is installed on the system
+	HKEY hkey;
+	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("SYSTEM\\CurrentControlSet\\Services\\WinFsp"), 0, KEY_READ, &hkey) != ERROR_SUCCESS)
+	{
+		MessageBox(NULL, _T("WinFSP is not insalled on the system!"), TITLENAME, MB_ICONERROR);
+		return FALSE;
+	}
+	else
+		RegCloseKey(hkey);
+
 	BOOL silent = FALSE;
 	//Check for startup options
 	int argc;
