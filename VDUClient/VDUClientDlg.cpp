@@ -78,7 +78,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 	CString moduleFolderPath = moduleFilePath.Left(moduleFilePath.GetLength() - moduleFileName.GetLength() - 1);
 
 	//Create an entry on windows startup
-	SetRegValueSz(TITLENAME, moduleFilePath, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"));
+	SetRegValueSz(TITLENAME, moduleFilePath + _T(" -silent"), _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"));
 
 	if (TRUE) //Allows application to be searched for and opened using windows shell/search
 	{
@@ -100,13 +100,13 @@ BOOL CVDUClientDlg::OnInitDialog()
 			m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
 
 		//TODO AUTORUN FIX
-		DWORD autoRun = FALSE;
-		GetRegValueI(TITLENAME, autoRun, &autoRun, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run"));
+		//DWORD autoRun = FALSE;
+		//GetRegValueI(TITLENAME, autoRun, &autoRun, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run"));
 
-		if (autoRun == 2)
+		/*if (autoRun == 2)
 		{
 			m_trayMenu->CheckMenuItem(2, MF_BYPOSITION | MF_CHECKED);
-		}
+		}*/
 	}
 
 	m_server = APP->GetProfileString(SECTION_SETTINGS, _T("LastServerAddress"), _T(""));
@@ -191,7 +191,7 @@ void CVDUClientDlg::UpdateStatus()
 		windowStatus += _T("User: ") + session->GetUser() + _T(" ");
 
 		CString fileCntStr;
-		fileCntStr.Format(_T("%d"), APP->GetFileSystemService()->GetVDUFileCount());
+		fileCntStr.Format(_T("%llu"), APP->GetFileSystemService()->GetVDUFileCount());
 
 		trayStatus += _T("\r\n" + fileCntStr + _T(" files"));
 		windowStatus += _T("| Files: ") + fileCntStr; 
@@ -444,7 +444,7 @@ LRESULT CVDUClientDlg::OnTrayEvent(WPARAM wParam, LPARAM lParam)
 	{
 		case WM_MOUSEMOVE:
 		{
-
+			UpdateStatus();
 			break;
 		}
 		case WM_LBUTTONUP:
@@ -452,8 +452,8 @@ LRESULT CVDUClientDlg::OnTrayEvent(WPARAM wParam, LPARAM lParam)
 			if (IsIconic())
 			{
 				AfxGetMainWnd()->ShowWindow(SW_RESTORE);
-				AfxGetMainWnd()->SetForegroundWindow();
 			}
+			AfxGetMainWnd()->SetForegroundWindow();
 			break;
 		}
 		case WM_RBUTTONUP:

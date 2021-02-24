@@ -885,7 +885,7 @@ static ULONG wcstol_deflt(wchar_t* w, ULONG deflt)
     return L'\0' != w[0] && L'\0' == *endp ? ul : deflt;
 }
 
-CVDUFileSystemService::CVDUFileSystemService(CString DriveLetter) : Service(_T(PROGNAME)), m_fs(), m_host(m_fs)//, m_hWorkDir(INVALID_HANDLE_VALUE)
+CVDUFileSystemService::CVDUFileSystemService(CString DriveLetter) : Service(_T(PROGNAME)), m_fs(), m_host(m_fs), m_filesLock(SRWLOCK_INIT)//, m_hWorkDir(INVALID_HANDLE_VALUE)
 {
     StringCchCopy(m_driveLetter, ARRAYSIZE(m_driveLetter), DriveLetter);
 }
@@ -1007,10 +1007,9 @@ void CVDUFileSystemService::UpdateFileInternal(CString token, CVDUFile newfile)
 
 NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
 {
-
-    PWSTR DebugLogFile = _T("vfsdebug.log");
-    ULONG DebugFlags = 0;
-    HANDLE DebugLogHandle = INVALID_HANDLE_VALUE;
+   // PWSTR DebugLogFile = _T("vfsdebug.log");
+    //ULONG DebugFlags = 0;
+    //HANDLE DebugLogHandle = INVALID_HANDLE_VALUE;
     TCHAR PathBuf[MAX_PATH + 2] = { 0 }; //In case of SHFileOperation, path must be double zero terminated
     NTSTATUS Result;
 
@@ -1069,7 +1068,7 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
 
     EnableBackupRestorePrivileges();
 
-    if (0 != DebugLogFile)
+    /*if (0 != DebugLogFile)
     {
         Result = Fsp::FileSystemHost::SetDebugLogFile(DebugLogFile);
         if (!NT_SUCCESS(Result))
@@ -1077,7 +1076,7 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
             fail(_T("cannot open debug log file"));
             return Result;
         }
-    }
+    }*/
 
     Result = m_fs.SetPath(PathBuf);
     if (!NT_SUCCESS(Result))
@@ -1090,14 +1089,12 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
 
     m_host.SetFileSystemName(_T("VDU"));
 
-    Result = m_host.Mount(m_driveLetter, 0, FALSE, DebugFlags);
+    Result = m_host.Mount(m_driveLetter);
     if (!NT_SUCCESS(Result))
     {
         fail(_T("cannot mount file system"));
         return Result;
     }
-
-    m_filesLock = SRWLOCK_INIT;
 
 #if defined(_DEBUG) && defined(DEBUG_PRINT_FILESYSTEM_CALLS)
     if (AllocConsole())

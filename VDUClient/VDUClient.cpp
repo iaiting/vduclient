@@ -123,15 +123,15 @@ BOOL VDUClient::InitInstance()
 		{
 			pDlg->ShowWindow(SW_SHOWNORMAL);
 		}
-
-		CString preferredLetter = APP->GetProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), _T(""));
-		m_svcThread = AfxBeginThread(ThreadProcFilesystemService, (LPVOID)(m_svc = new CVDUFileSystemService(preferredLetter)));
 	}
 	else
 	{
 		//Failed to create dialog?
 		return FALSE;
 	}
+
+	CString preferredLetter = APP->GetProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), _T(""));
+	m_svcThread = AfxBeginThread(ThreadProcFilesystemService, (LPVOID)(m_svc = new CVDUFileSystemService(preferredLetter)));
 
 	//TODO: Use this later
 	//ShutdownBlockReasonCreate(WND->GetSafeHwnd(), _T("Please exit the application"));
