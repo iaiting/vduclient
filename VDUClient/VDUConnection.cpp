@@ -68,8 +68,8 @@ void CVDUConnection::Process()
 	httpObjectPath += m_parameter;
 
 	INTERNET_PORT port = INTERNET_DEFAULT_HTTPS_PORT;
-#ifdef _DEBUG //If debug server
-	if (m_serverURL == _T("127.0.0.1"))
+#if defined(_DEBUG) || defined(ALLOW_DEBUG_SERVER)  //If debug server
+	if (m_serverURL == _T("127.0.0.1") || m_serverURL.Left(3) == _T("172"))
 		port = 4443;
 #endif
 
@@ -86,7 +86,7 @@ void CVDUConnection::Process()
 	CHttpConnection* con = inetsession.GetHttpConnection(m_serverURL, port, NULL, NULL);
 	CHttpFile* pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL,
 		INTERNET_FLAG_SECURE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_DONT_CACHE
-#ifdef _DEBUG //Ignores certificates in debug mode
+#if defined(_DEBUG) || defined(ALLOW_DEBUG_SERVER) //Ignores certificates in debug mode
 		| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
 	DWORD opt;
 	pFile->QueryOption(INTERNET_OPTION_SECURITY_FLAGS, opt);

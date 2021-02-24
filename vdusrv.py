@@ -213,7 +213,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                         Log("DELETE %s From:%s (204)" % (self.path, ApiKeys[apiKey]["User"]))
 
 
-httpd = http.server.HTTPServer(("127.0.0.1", 4443), VDUHTTPRequestHandler)
+httpd = http.server.HTTPServer(("0.0.0.0", 4443), VDUHTTPRequestHandler)
 httpd.socket = ssl.wrap_socket(httpd.socket, server_side=True, 
 certfile=thispath + "\\server.crt",
 keyfile=thispath + "\\server.key",
