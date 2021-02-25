@@ -20,6 +20,7 @@ FileTokens = {
     "c" : {"Path" : thispath + "\\TestFiles\\obrazok.png", "ETag": "1", "Expires":0},
     "d" : {"Path" : thispath + "\\TestFiles\\hugefile.bin", "ETag": "1", "Expires":0},
     "e" : {"Path" : thispath + "\\TestFiles\\random.py", "ETag": "1", "Expires":0}, 
+    "f" : {"Path" : thispath + "\\TestFiles\\document.docx", "ETag": "1", "Expires":0}, 
     }
 #Current valid api keys, will be generated on user login
 ApiKeys = {}
@@ -222,9 +223,9 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     newEncoding = self.headers.get("Content-Encoding")
                     newType = self.headers.get("Content-Type")
 
-                    if (mimeType[1] != newEncoding):
+                    if (str(mimeType[1]) != newEncoding):
                         Log("Encoding mismatch!!")
-                    if (mimeType[0] != newType):
+                    if (str(mimeType[0]) != newType):
                         Log("Type mismatch!!!")
 
                     finst["ETag"] = str(int(finst["ETag"]) + 1)

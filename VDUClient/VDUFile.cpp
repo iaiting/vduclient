@@ -47,5 +47,5 @@ bool CVDUFile::operator!=(const CVDUFile& f)
 
 bool CVDUFile::IsValid()
 {
-	return !this->m_token.IsEmpty();
+	return !this->m_token.IsEmpty() && *this != CVDUFile::InvalidFile;
 }

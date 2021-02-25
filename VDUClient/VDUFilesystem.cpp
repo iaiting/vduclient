@@ -305,8 +305,14 @@ NTSTATUS CVDUFileSystem::Open(
         //Send delete request and pretend file was deleted
         //If it wasnt, the file will reappear on explorer window refresh
         //This is to smooth out user experience
-        if (vdufile != CVDUFile::InvalidFile)
+        if (vdufile.IsValid())
         {
+            CString newMd5b64 = APP->GetFileSystemService()->CalcFileMD5Base64(vdufile);
+            if (newMd5b64 != vdufile.m_md5base64)
+            {
+                //vdufile.m_md5base64 = newMd5b64;
+                APP->GetFileSystemService()->UpdateVDUFile(vdufile);
+            }
             APP->GetFileSystemService()->DeleteVDUFile(vdufile);
             //delete FileDesc;
             *PFileDesc = FileDesc;
@@ -314,7 +320,7 @@ NTSTATUS CVDUFileSystem::Open(
         }
     }
 
-    if (vdufile != CVDUFile::InvalidFile)
+    if (vdufile.IsValid())
     {
         if (!vdufile.m_canWrite &&
             (GrantedAccess & GENERIC_WRITE || GrantedAccess & WRITE_DAC || GrantedAccess & WRITE_OWNER))
@@ -418,7 +424,7 @@ VOID CVDUFileSystem::Cleanup(
         CString fname = PathFindFileName(FullPath);
 
         CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(fname);
-        if (vdufile != CVDUFile::InvalidFile)
+        if (vdufile.IsValid())
         {
             //Get file size, calculate hash, and try updating
             HANDLE hFile = CreateFile(FullPath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
@@ -688,7 +694,7 @@ NTSTATUS CVDUFileSystem::CanDelete(
     CString fname = PathFindFileName(FullPath);
 
     CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(fname);
-    if (vdufile != CVDUFile::InvalidFile)
+    if (vdufile.IsValid())
     {
         //VDU Files are not deletable
         return STATUS_UNSUCCESSFUL;
@@ -735,12 +741,18 @@ NTSTATUS CVDUFileSystem::Rename(
 
     //We handle renaming by requesting it from the server and waiting. 
     CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(oldname);
-    if (vdufile != CVDUFile::InvalidFile)
+
+    //Explanation for ReplaceIfExists:
+    //  Some editors save files by creating a new temporary file with saved content, and renaming the old one
+    //  with ReplaceIfExists tag. This is not a valid file renaming action that should be shared with the server
+    if (vdufile.IsValid() && !ReplaceIfExists)
     {
         //We force close the handle prematurely, to get immediate access to our file
         CloseHandle(HandleFromFileDesc(FileDesc));
         HandleFromFileDesc(FileDesc) = INVALID_HANDLE_VALUE;
 
+        //Handle renaming by requesting it from the server and waiting for result
+        //Yes, its blocking, hopefully for not too long..
         INT result = APP->GetFileSystemService()->UpdateVDUFile(vdufile, newname);
 
         if (result != EXIT_SUCCESS)
@@ -750,8 +762,12 @@ NTSTATUS CVDUFileSystem::Rename(
     if (!MoveFileEx(FullPath, NewFullPath, ReplaceIfExists ? MOVEFILE_REPLACE_EXISTING : 0))
         return NtStatusFromWin32(GetLastError());
 
-    vdufile.m_name = newname;
-    APP->GetFileSystemService()->UpdateFileInternal(vdufile);
+    //After successful move, update file internally
+    if (vdufile.IsValid() && !ReplaceIfExists)
+    {
+        vdufile.m_name = newname;
+        APP->GetFileSystemService()->UpdateFileInternal(vdufile);
+    }
 
     return STATUS_SUCCESS;
 }
@@ -1041,8 +1057,7 @@ void CVDUFileSystemService::DeleteFileInternal(CString token)
     }
 
     CVDUFile vdufile = pFile ? *pFile : CVDUFile::InvalidFile;
-
-    if (vdufile != CVDUFile::InvalidFile) //Already deleted?
+    if (vdufile.IsValid()) //Already deleted?
     {
         //Delete the file on disk
         if (DeleteFile(GetWorkDirPath() + _T("\\") + vdufile.m_name))
@@ -1259,7 +1274,7 @@ NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
 
 BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
 {
-    if (GetVDUFileByToken(vdufile.m_token) != CVDUFile::InvalidFile)
+    if (GetVDUFileByToken(vdufile.m_token).IsValid())
         return FALSE;
 
     TCHAR tempBuf[MAX_PATH + 1] = { 0 };
