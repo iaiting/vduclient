@@ -10,20 +10,19 @@ KEY_EXPIRATION_TIME = 120
 #Probability that file request will time out (for testing)
 TIMEOUT_PROBABILITY = 0.01
 
-
 #Current list of users who can generate keys, 
 Users = ["test@example.com", "john"]
 #Active file tokens for request testing
+#You can add this with a program or manually, just for testing
 FileTokens = {
-    "a" : {"Path" : "C:\\Browse.VC.db-shm", "ETag": "1", "Expires":0},
-    "b" : {"Path" : "C:\\lidl.txt", "ETag": "1", "Expires":0},
-    "c" : {"Path" : "C:\\lidl.txt.gz", "ETag": "1", "Expires":0},
-    "d" : {"Path" : "C:\\chromium.7z", "ETag": "1", "Expires":0},
-    "e" : {"Path" : "C:\\119842878_378697899829823_2582828538790603002_n.mp4", "ETag": "1", "Expires":0}, 
+    "a" : {"Path" : thispath + "\\TestFiles\\lidl.txt", "ETag": "1", "Expires":0},
+    "b" : {"Path" : thispath + "\\TestFiles\\lidl.zip", "ETag": "1", "Expires":0},
+    "c" : {"Path" : thispath + "\\TestFiles\\obrazok.png", "ETag": "1", "Expires":0},
+    "d" : {"Path" : thispath + "\\TestFiles\\hugefile.bin", "ETag": "1", "Expires":0},
+    "e" : {"Path" : thispath + "\\TestFiles\\random.py", "ETag": "1", "Expires":0}, 
     }
-#Current valid api keys
+#Current valid api keys, will be generated on user login
 ApiKeys = {}
-
 
 def dump(r):
     s = json.dumps(r, indent=4, sort_keys=True)
@@ -103,8 +102,10 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                         allowMode = ""
                         if (os.access(fpath, os.R_OK)):
                             allowMode += "GET"
+
                         if (os.access(fpath, os.W_OK)):
                             allowMode += " POST"
+                        
                         mimeType = mimetypes.guess_type(fpath)
                         self.send_response_only(200)
                         self.send_header("Allow", allowMode)
@@ -180,11 +181,13 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     allowMode = ""
                     if (os.access(fpath, os.R_OK)):
                         allowMode += "GET"
+
                     if (os.access(fpath, os.W_OK)):
                         allowMode += " POST"
-                    if allowMode == "":
+                    else:
                         self.send_response_only(405)
                         self.end_headers()
+                        Log("POST %s From:%s (405)" % (self.path, ApiKeys[apiKey]["User"]))
                         return
 
                     #Needs renaming?

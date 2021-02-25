@@ -122,6 +122,8 @@ NTSTATUS CVDUFileSystem::GetVolumeInfo(VolumeInfo* VolumeInfo)
         } while (FindNextFile(hFind, &FindFileData));
     }
 
+    VolumeInfo->FreeSize = VolumeInfo->TotalSize * 2;
+
     return STATUS_SUCCESS;
 }
 
@@ -213,9 +215,7 @@ NTSTATUS CVDUFileSystem::Create(
     fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
 #endif
 
-    return STATUS_NOT_SUPPORTED;
-
-    /*WCHAR FullPath[FULLPATH_SIZE];
+    WCHAR FullPath[FULLPATH_SIZE];
     SECURITY_ATTRIBUTES SecurityAttributes;
     ULONG CreateFlags;
     VdufsFileDesc* FileDesc;
@@ -244,12 +244,14 @@ NTSTATUS CVDUFileSystem::Create(
     else
         FileAttributes &= ~FILE_ATTRIBUTE_DIRECTORY;
 
-    if (!FileAttributes)
-        FileAttributes = FILE_ATTRIBUTE_NORMAL;
+    //If programs are creating temporary files, hide them from user
+    FileAttributes |= FILE_ATTRIBUTE_HIDDEN;
+    //Temporary flag is good because it doesnt save those temporary files on physical disk
+    FileAttributes |= FILE_ATTRIBUTE_TEMPORARY;
 
     FileDesc->Handle = CreateFileW(FullPath,
         GrantedAccess, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, &SecurityAttributes,
-        OPEN_EXISTING, CreateFlags | FileAttributes, 0);
+        OPEN_ALWAYS, CreateFlags | FileAttributes, 0);
     if (INVALID_HANDLE_VALUE == FileDesc->Handle)
     {
         delete FileDesc;
@@ -264,7 +266,7 @@ NTSTATUS CVDUFileSystem::Create(
 
     *PFileDesc = FileDesc;
 
-    return GetFileInfoInternal(FileDesc->Handle, &OpenFileInfo->FileInfo);*/
+    return GetFileInfoInternal(FileDesc->Handle, &OpenFileInfo->FileInfo);
 }
 
 NTSTATUS CVDUFileSystem::Open(
@@ -291,9 +293,11 @@ NTSTATUS CVDUFileSystem::Open(
     if (!ConcatPath(FileName, FullPath))
         return STATUS_OBJECT_NAME_INVALID;
 
-    FileDesc = new VdufsFileDesc(GrantedAccess);
+    FileDesc = new VdufsFileDesc();
 
     CreateFlags = FILE_FLAG_BACKUP_SEMANTICS;
+
+    CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(PathFindFileName(FileName));
 
     //File is about to be deleted, (i.e. from explorer)
     if (CreateOptions & FILE_DELETE_ON_CLOSE)
@@ -301,15 +305,23 @@ NTSTATUS CVDUFileSystem::Open(
         //Send delete request and pretend file was deleted
         //If it wasnt, the file will reappear on explorer window refresh
         //This is to smooth out user experience
-        CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(PathFindFileName(FileName));
         if (vdufile != CVDUFile::InvalidFile)
         {
             APP->GetFileSystemService()->DeleteVDUFile(vdufile);
+            //delete FileDesc;
+            *PFileDesc = FileDesc;
+            return STATUS_SUCCESS;
         }
+    }
 
-        //delete FileDesc;
-        *PFileDesc = FileDesc;
-        return STATUS_SUCCESS;
+    if (vdufile != CVDUFile::InvalidFile)
+    {
+        if (!vdufile.m_canWrite &&
+            (GrantedAccess & GENERIC_WRITE || GrantedAccess & WRITE_DAC || GrantedAccess & WRITE_OWNER))
+        {
+            //You dont have rights for this access to VDU file
+            return STATUS_ACCESS_DENIED;
+        }
     }
 
     FileDesc->Handle = CreateFileW(FullPath,
@@ -397,7 +409,7 @@ VOID CVDUFileSystem::Cleanup(
 
     HANDLE Handle = HandleFromFileDesc(FileDesc);
 
-    if (Flags & CleanupSetLastWriteTime)
+    if (Flags & CleanupSetLastWriteTime || Flags & CleanupSetChangeTime)
     {
         WCHAR FullPath[FULLPATH_SIZE];
         ULONG Length = GetFinalPathNameByHandle(HandleFromFileDesc(FileDesc), FullPath, ARRAYSIZE(FullPath) - 1, 0);
@@ -408,6 +420,7 @@ VOID CVDUFileSystem::Cleanup(
         CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(fname);
         if (vdufile != CVDUFile::InvalidFile)
         {
+            //Get file size, calculate hash, and try updating
             HANDLE hFile = CreateFile(FullPath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
             if (hFile != INVALID_HANDLE_VALUE)
             {
@@ -668,9 +681,19 @@ NTSTATUS CVDUFileSystem::CanDelete(
     fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
 #endif
 
-    //We cant delete files the normal way, let every program know right away
-    return STATUS_UNSUCCESSFUL;
-    /*
+    WCHAR FullPath[FULLPATH_SIZE];
+    ULONG Length = GetFinalPathNameByHandle(HandleFromFileDesc(FileDesc), FullPath, ARRAYSIZE(FullPath) - 1, 0);
+    FullPath[Length] = '\0';
+
+    CString fname = PathFindFileName(FullPath);
+
+    CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(fname);
+    if (vdufile != CVDUFile::InvalidFile)
+    {
+        //VDU Files are not deletable
+        return STATUS_UNSUCCESSFUL;
+    }
+
     HANDLE Handle = HandleFromFileDesc(FileDesc);
     FILE_DISPOSITION_INFO DispositionInfo;
 
@@ -680,7 +703,7 @@ NTSTATUS CVDUFileSystem::CanDelete(
         FileDispositionInfo, &DispositionInfo, sizeof DispositionInfo))
         return NtStatusFromWin32(GetLastError());
 
-    return STATUS_SUCCESS;*/
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS CVDUFileSystem::Rename(
@@ -712,7 +735,6 @@ NTSTATUS CVDUFileSystem::Rename(
 
     //We handle renaming by requesting it from the server and waiting. 
     CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(oldname);
-
     if (vdufile != CVDUFile::InvalidFile)
     {
         //We force close the handle prematurely, to get immediate access to our file
@@ -727,6 +749,9 @@ NTSTATUS CVDUFileSystem::Rename(
 
     if (!MoveFileEx(FullPath, NewFullPath, ReplaceIfExists ? MOVEFILE_REPLACE_EXISTING : 0))
         return NtStatusFromWin32(GetLastError());
+
+    vdufile.m_name = newname;
+    APP->GetFileSystemService()->UpdateFileInternal(vdufile);
 
     return STATUS_SUCCESS;
 }
@@ -1235,8 +1260,7 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
     if (GetTempFileName(tempBuf, _T("vdu"), 0, tmpFilePath) < 1)
         return FALSE;
 
-    //TEMPORARY -> wont be flushed on disk unless memory is low, not very good..
-    HANDLE hFile = CreateFile(tmpFilePath, GENERIC_ALL, NULL, NULL, CREATE_ALWAYS, /*FILE_ATTRIBUTE_TEMPORARY*/NULL, NULL);
+    HANDLE hFile = CreateFile(tmpFilePath, GENERIC_ALL, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
 
     //Cant open file?
     if (hFile == INVALID_HANDLE_VALUE)

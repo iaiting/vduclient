@@ -474,10 +474,11 @@ void CVDUClientDlg::OnTrayExitCommand()
 {
 	if (APP->GetFileSystemService()->GetVDUFileCount() > 0)
 	{
-		INT answer = MessageBox(_T("There are still some accesibile files!\r\nPlease delete all files before exiting.\r\n\r\nDo you want open explorer to delete files?"), TITLENAME, MB_YESNO | MB_ICONINFORMATION);
-		if (answer != IDYES)
+		INT answer = MessageBox(_T("There are still some accesibile files!\r\n\r\nYES - Exit without invalidating file tokens\r\nNO - Be taken to file directory (delete by yourself)\r\nCANCEL - Do nothing"),
+			TITLENAME, MB_YESNOCANCEL | MB_ICONINFORMATION);
+		if (answer == IDCANCEL)
 			return;
-		else
+		else if (answer == IDNO)
 		{
 			ShellExecute(WND->GetSafeHwnd(), _T("explore"), APP->GetFileSystemService()->GetDrivePath(), NULL, NULL, SW_SHOWNORMAL);
 			return;

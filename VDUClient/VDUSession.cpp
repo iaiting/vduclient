@@ -355,7 +355,6 @@ INT CVDUSession::CallbackDownloadFile(CHttpFile* file)
 			//If file created successfuly, open it and notify user
 			if (APP->GetFileSystemService()->CreateVDUFile(vfile, file))
 			{
-				//ShellExecute(WND->GetSafeHwnd(), _T("explore"), APP->GetFileSystemService()->GetDrivePath(), NULL, NULL, SW_SHOWNORMAL); 
 				HINSTANCE result = ShellExecute(WND->GetSafeHwnd(), _T("open"), APP->GetFileSystemService()->GetDrivePath() + vfile.m_name, NULL, NULL, SW_SHOWNORMAL);
 				WND->TrayNotify(vfile.m_name, CString(_T("File successfuly accessed!")), result == (HINSTANCE)SE_ERR_NOASSOC ? SIID_DOCNOASSOC : SIID_DOCASSOC);
 				WND->UpdateStatus();
@@ -405,10 +404,10 @@ INT CVDUSession::CallbackUploadFile(CHttpFile* file)
 
 		CString filetoken = file->GetObject();
 		filetoken = filetoken.Right(filetoken.GetLength() - 6);
+		CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByToken(filetoken);
 
 		if (statusCode == HTTP_STATUS_CREATED)
 		{
-			CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByToken(filetoken);
 			if (vdufile != CVDUFile::InvalidFile)
 			{
 				CString expires;
@@ -429,52 +428,58 @@ INT CVDUSession::CallbackUploadFile(CHttpFile* file)
 				vdufile.m_canWrite = allow.Find(_T("POST")) != -1;
 
 				APP->GetFileSystemService()->UpdateFileInternal(vdufile);
+				WND->UpdateStatus();
 			}
 			else
 			{
 				WND->MessageBoxNB(_T("Local file does not exist!\r\nPlease re-access the file."), TITLENAME, MB_ICONERROR);
 			}
+			return EXIT_SUCCESS;
 		}
 		else if (statusCode == HTTP_STATUS_RESET_CONTENT)
 		{
 			APP->GetFileSystemService()->DeleteFileInternal(filetoken);
+			WND->UpdateStatus();
 
 			WND->MessageBoxNB(_T("Token for currently edited file has expired after last successful upload.\r\nIn order to continue work on the file, access via new token."),
 				TITLENAME, MB_ICONINFORMATION);
 
 			return 2;
 		}
-		else if (statusCode == HTTP_STATUS_CONFLICT)
-		{
-			WND->MessageBoxNB(_T("The changes you made to the file are in conflict!\r\nPlease resolve these changes or delete your file."), TITLENAME, MB_ICONERROR);
-		}
-		else if (statusCode == HTTP_STATUS_NOT_FOUND)
-		{
-			WND->MessageBoxNB(_T("File does not exist!"), TITLENAME, MB_ICONERROR);
-		}
-		else if (statusCode == HTTP_STATUS_BAD_METHOD)
-		{
-			WND->MessageBoxNB(_T("Method not allowed!\r\nYoure trying to write to a read-only resource?"), TITLENAME, MB_ICONERROR);
-		}
-		else if (statusCode == HTTP_STATUS_REQUEST_TIMEOUT)
-		{
-			WND->MessageBoxNB(_T("Server timed out!"), TITLENAME, MB_ICONERROR);
-		}
-		else if (statusCode == HTTP_STATUS_DENIED)
-		{
-			WND->MessageBoxNB(_T("Invalid authorization token!\r\nPlease log in again."), TITLENAME, MB_ICONERROR);
-		}
 		else
 		{
-			WND->MessageBoxNB(_T("Error accessing file!"), TITLENAME, MB_ICONERROR);
+			if (statusCode == HTTP_STATUS_CONFLICT)
+			{
+				WND->MessageBoxNB(_T("The changes you made to the file are in conflict!\r\nPlease resolve these changes or delete your file."), TITLENAME, MB_ICONERROR);
+			}
+			else if (statusCode == HTTP_STATUS_NOT_FOUND)
+			{
+				WND->MessageBoxNB(_T("File does not exist!"), TITLENAME, MB_ICONERROR);
+			}
+			else if (statusCode == HTTP_STATUS_BAD_METHOD)
+			{
+				WND->MessageBoxNB(_T("Method not allowed!\r\nYoure trying to write to a read-only resource?"), TITLENAME, MB_ICONERROR);
+			}
+			else if (statusCode == HTTP_STATUS_REQUEST_TIMEOUT)
+			{
+				WND->MessageBoxNB(_T("Server timed out!"), TITLENAME, MB_ICONERROR);
+			}
+			else if (statusCode == HTTP_STATUS_DENIED)
+			{
+				WND->MessageBoxNB(_T("Invalid authorization token!\r\nPlease log in again."), TITLENAME, MB_ICONERROR);
+			}
+			else
+			{
+				WND->MessageBoxNB(_T("Error accessing file!"), TITLENAME, MB_ICONERROR);
+			}
 		}
 	}
 	else
 	{
-		WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
+		//WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
 
-	return EXIT_SUCCESS;
+	return EXIT_FAILURE;
 }
 
 INT CVDUSession::CallbackInvalidateFileToken(CHttpFile* file)
@@ -493,13 +498,11 @@ INT CVDUSession::CallbackInvalidateFileToken(CHttpFile* file)
 			filetoken = filetoken.Right(filetoken.GetLength() - 6);
 
 			APP->GetFileSystemService()->DeleteFileInternal(filetoken);
-
 			WND->UpdateStatus();
 		}
 		else if (statusCode == HTTP_STATUS_NOT_FOUND)
 		{
-			//Dont worry, sometimes the request is sent twice
-			//WND->MessageBoxNB(_T("File does not exist!"), TITLENAME, MB_ICONERROR);
+			WND->MessageBoxNB(_T("File does not exist!"), TITLENAME, MB_ICONERROR);
 		}
 		else if (statusCode == HTTP_STATUS_REQUEST_TIMEOUT)
 		{

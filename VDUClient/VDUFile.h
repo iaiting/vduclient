@@ -23,7 +23,8 @@ public:
 	BYTE m_md5[MD5_LEN]; //
 	CString m_etag; //File version
 public:
-	CVDUFile(CString token, BOOL canRead, BOOL canWrite, UINT32 length, CString enconding, CString name, CString type, SYSTEMTIME& lastModified, SYSTEMTIME& expires, BYTE* md5, CString etag);
+	CVDUFile(CString token, BOOL canRead, BOOL canWrite, UINT32 length, CString enconding, CString name, CString type,
+		SYSTEMTIME& lastModified, SYSTEMTIME& expires, BYTE* md5, CString etag);
 	CVDUFile();
 	~CVDUFile();
 
@@ -33,9 +34,6 @@ public:
 
 	//Is the file a valid file?
 	bool IsValid();
-
-	//Returns readability and writability as access flags
-	DWORD AccessFlags();
 	
 	static CVDUFile InvalidFile;
 };

@@ -124,28 +124,6 @@ INT CVDUConnection::Process()
 		}
 		else
 		{
-			/*hFile = CreateFile(m_contentFile, GENERIC_READ,
-				FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-
-			if (hFile == INVALID_HANDLE_VALUE)
-				throw new CFileException(GetLastError());
-
-			ULONGLONG writeLen = GetFileSize(hFile, NULL);
-
-			pFile->SendRequestEx((DWORD)writeLen);
-
-			BYTE* buf[0xC00];
-			DWORD readLen;
-			while (ReadFile(hFile, buf, ARRAYSIZE(buf), &readLen, NULL))
-			{
-				if (readLen <= 0)
-					break;
-				pFile->Write(buf, readLen);
-				pFile->Flush();
-			}
-			CloseHandle(hFile);
-			hFile = INVALID_HANDLE_VALUE;
-			pFile->EndRequest();*/
 			CStdioFile stdf(m_contentFile, CFile::modeRead | CFile::typeBinary | CFile::shareDenyNone);
 			CFileStatus fst;
 			stdf.GetStatus(fst);

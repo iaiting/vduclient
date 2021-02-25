@@ -162,7 +162,7 @@ private:
 
 struct VdufsFileDesc
 {
-    VdufsFileDesc(UINT32 grantedAccess) : Handle(INVALID_HANDLE_VALUE), DirBuffer(), GrantedAccess(grantedAccess)
+    VdufsFileDesc() : Handle(INVALID_HANDLE_VALUE), DirBuffer()
     {
     }
     ~VdufsFileDesc()
@@ -172,7 +172,6 @@ struct VdufsFileDesc
     }
     HANDLE Handle;
     PVOID DirBuffer;
-    UINT32 GrantedAccess;
 };
 
 
