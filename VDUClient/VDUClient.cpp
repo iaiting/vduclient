@@ -17,10 +17,18 @@ BEGIN_MESSAGE_MAP(VDUClient, CWinApp)
 	ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
 END_MESSAGE_MAP()
 
+LPTOP_LEVEL_EXCEPTION_FILTER oldFilter = NULL;
+LONG WINAPI OnUnhandledException(_EXCEPTION_POINTERS* ExceptionInfo)
+{
+	
+	return oldFilter(ExceptionInfo);
+}
 
 // VDUClient construction
 VDUClient::VDUClient() : m_srefThread(nullptr), m_svc(nullptr), m_svcThread(nullptr)
 {
+	oldFilter = SetUnhandledExceptionFilter(OnUnhandledException);
+
 	// support Restart Manager
 	m_dwRestartManagerSupportFlags = AFX_RESTART_MANAGER_SUPPORT_RESTART;
 

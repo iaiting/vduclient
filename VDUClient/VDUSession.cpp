@@ -324,10 +324,10 @@ INT CVDUSession::CallbackDownloadFile(CHttpFile* file)
 
 			CString contentMD5W;
 			file->QueryInfo(HTTP_QUERY_CONTENT_MD5, contentMD5W);
-			CStringA contentMD5 = CStringA(contentMD5W);
+			/*CStringA contentMD5 = CStringA(contentMD5W);
 			BYTE contentmd5[0x400] = {0};
 			int contentmd5Len = ARRAYSIZE(contentmd5);
-			Base64Decode(contentMD5, contentMD5.GetLength(), contentmd5, &contentmd5Len);
+			Base64Decode(contentMD5, contentMD5.GetLength(), contentmd5, &contentmd5Len);*/
 
 			CString contentType;
 			file->QueryInfo(HTTP_QUERY_CONTENT_TYPE, contentType);
@@ -350,7 +350,7 @@ INT CVDUSession::CallbackDownloadFile(CHttpFile* file)
 			CString filetoken = file->GetObject();
 			filetoken = filetoken.Right(filetoken.GetLength() - 6);
 
-			CVDUFile vfile(filetoken, canRead, canWrite, contentLen, contentEncoding, contentLocation, contentType, lastModifiedST, expiresST, contentmd5, etag);
+			CVDUFile vfile(filetoken, canRead, canWrite, contentLen, contentEncoding, contentLocation, contentType, lastModifiedST, expiresST, contentMD5W, etag);
 
 			//If file created successfuly, open it and notify user
 			if (APP->GetFileSystemService()->CreateVDUFile(vfile, file))
@@ -426,6 +426,7 @@ INT CVDUSession::CallbackUploadFile(CHttpFile* file)
 				vdufile.m_expires = expiresST;
 				vdufile.m_canRead = allow.Find(_T("GET")) != -1;
 				vdufile.m_canWrite = allow.Find(_T("POST")) != -1;
+				vdufile.m_md5base64 = APP->GetFileSystemService()->CalcFileMD5Base64(vdufile);
 
 				APP->GetFileSystemService()->UpdateFileInternal(vdufile);
 				WND->UpdateStatus();

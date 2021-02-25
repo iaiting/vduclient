@@ -20,11 +20,11 @@ public:
 	CString m_type; //Content MIME type
 	SYSTEMTIME m_lastModified; //Last modified ST
 	SYSTEMTIME m_expires; //Expires ST
-	BYTE m_md5[MD5_LEN]; //
+	CString m_md5base64; //Base64 of MD5 hash
 	CString m_etag; //File version
 public:
 	CVDUFile(CString token, BOOL canRead, BOOL canWrite, UINT32 length, CString enconding, CString name, CString type,
-		SYSTEMTIME& lastModified, SYSTEMTIME& expires, BYTE* md5, CString etag);
+		SYSTEMTIME& lastModified, SYSTEMTIME& expires, CString md5b64, CString etag);
 	CVDUFile();
 	~CVDUFile();
 

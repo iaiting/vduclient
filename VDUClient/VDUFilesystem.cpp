@@ -430,10 +430,10 @@ VOID CVDUFileSystem::Cleanup(
                 //NOTE: Ignoring first clean up, data is written after second
                 if (vdufile.m_length > 0)
                 {
-                    BYTE* newmd5 = APP->GetFileSystemService()->CalcFileMD5(vdufile);
-                    if (newmd5)
+                    CString newMd5b64 = APP->GetFileSystemService()->CalcFileMD5Base64(vdufile);
+                    if (newMd5b64 != vdufile.m_md5base64)
                     {
-                        CopyMemory(vdufile.m_md5, newmd5, ARRAYSIZE(vdufile.m_md5));
+                        //vdufile.m_md5base64 = newMd5b64;
                         APP->GetFileSystemService()->UpdateVDUFile(vdufile);
                     }
                 }
@@ -1176,9 +1176,10 @@ NTSTATUS CVDUFileSystemService::OnStop()
     return STATUS_SUCCESS;
 }
 
-BYTE* CVDUFileSystemService::CalcFileMD5(CVDUFile file)
+CString CVDUFileSystemService::CalcFileMD5Base64(CVDUFile file)
 {
-    static BYTE rgbHash[MD5_LEN] = { 0 };
+    CString finalHash;
+    BYTE rgbHash[MD5_LEN] = { 0 };
     CString filePath = GetWorkDirPath() + _T("\\") + file.m_name;
 
     HANDLE hFile = CreateFile(filePath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0);
@@ -1186,7 +1187,7 @@ BYTE* CVDUFileSystemService::CalcFileMD5(CVDUFile file)
     if (hFile == INVALID_HANDLE_VALUE)
     {
         DWORD lastError = GetLastError();
-        return NULL;
+        return finalHash;
     }
 
     HCRYPTPROV hProv;
@@ -1194,7 +1195,7 @@ BYTE* CVDUFileSystemService::CalcFileMD5(CVDUFile file)
     {
         //err?
         CloseHandle(hFile);
-        return NULL;
+        return finalHash;
     }
 
     HCRYPTPROV hHash;
@@ -1202,7 +1203,7 @@ BYTE* CVDUFileSystemService::CalcFileMD5(CVDUFile file)
     {
         CloseHandle(hFile);
         CryptReleaseContext(hProv, 0);
-        return NULL;
+        return finalHash;
     }
 
     BYTE rgbFile[0x400];
@@ -1217,7 +1218,7 @@ BYTE* CVDUFileSystemService::CalcFileMD5(CVDUFile file)
             CryptReleaseContext(hProv, 0);
             CryptDestroyHash(hHash);
             CloseHandle(hFile);
-            return NULL;
+            return finalHash;
         }
     }
 
@@ -1226,7 +1227,7 @@ BYTE* CVDUFileSystemService::CalcFileMD5(CVDUFile file)
         CryptReleaseContext(hProv, 0);
         CryptDestroyHash(hHash);
         CloseHandle(hFile);
-        return NULL;
+        return finalHash;
     }
 
     DWORD cbHash = MD5_LEN;
@@ -1236,7 +1237,15 @@ BYTE* CVDUFileSystemService::CalcFileMD5(CVDUFile file)
     CryptReleaseContext(hProv, 0);
     CloseHandle(hFile);
 
-    return bResult ? rgbHash : NULL;
+    if (bResult)
+    {
+        BYTE md5base64[0x400] = { 0 };
+        INT md5base64len = ARRAYSIZE(md5base64);
+        Base64Encode(rgbHash, cbHash, (LPSTR)md5base64, &md5base64len);
+        finalHash = CString(md5base64);
+    }
+
+    return finalHash;
 }
 
 NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
@@ -1323,15 +1332,9 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
         return FALSE;
     }
 
-    //Compare MD5 hash to make sure file is OK
-    BYTE* calcedMD5 = CalcFileMD5(vdufile);
-    if (!calcedMD5)
-    {
-        DeleteFile(finalPath);
-        return FALSE;
-    }
 
-    if (RtlCompareMemory(vdufile.m_md5, calcedMD5, MD5_LEN) != MD5_LEN)
+    //Make sure MD5 hash matches
+    if (CalcFileMD5Base64(vdufile) != vdufile.m_md5base64)
     {
         //MD5 hash check failed?
         DeleteFile(finalPath);
@@ -1354,11 +1357,7 @@ INT CVDUFileSystemService::UpdateVDUFile(CVDUFile vdufile, CString newName)
     headers += _T("Content-Type: ") + vdufile.m_type + _T("\r\n");
     headers += _T("Content-Location: ") + (newName.IsEmpty() ? vdufile.m_name : newName) + _T("\r\n");
     headers += _T("Content-Length: ") + length + _T("\r\n");
-
-    BYTE md5base64[0x400] = { 0 };
-    INT md5base64len = ARRAYSIZE(md5base64);
-    Base64Encode(vdufile.m_md5, ARRAYSIZE(vdufile.m_md5), (LPSTR)md5base64, &md5base64len);
-    headers += _T("Content-MD5: ") + CString(md5base64) + _T("\r\n");
+    headers += _T("Content-MD5: ") + CalcFileMD5Base64(vdufile) + _T("\r\n");
 
     //If sync, we wait for this thread to finish to get its exit code
     if (newName.IsEmpty())

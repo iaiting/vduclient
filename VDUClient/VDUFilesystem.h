@@ -211,8 +211,8 @@ public:
 
     //Calculated MD5 of contents in file
     //https://docs.microsoft.com/en-us/windows/win32/seccrypto/example-c-program--creating-an-md-5-hash-from-file-content
-    //Returnts ptr to static buffer of MD5_LEN bytes or NULL
-    BYTE* CalcFileMD5(CVDUFile file);
+    //Returns base64 of md5 bytes or empty string on failure
+    CString CalcFileMD5Base64(CVDUFile file);
 
     //Remount filesystem to different drive letter
     NTSTATUS Remount(CString DriveLetter);

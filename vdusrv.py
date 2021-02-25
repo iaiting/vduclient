@@ -239,7 +239,11 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     self.send_response_only(201)
                     self.send_header("Allow", allowMode)
                     self.send_header("Date", self.date_time_string())
-                    self.send_header("Expires", self.date_time_string(time.time() + KEY_EXPIRATION_TIME))
+
+                    #New expiration time
+                    finst["Expires"] = time.time() + KEY_EXPIRATION_TIME
+
+                    self.send_header("Expires", finst["Expires"])
                     self.send_header("ETag", finst["ETag"])
                     self.end_headers()
                     Log("POST %s From:%s File:%s (204)" % (self.path, ApiKeys[apiKey]["User"], fpath))
