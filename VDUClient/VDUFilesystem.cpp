@@ -996,12 +996,12 @@ CString CVDUFileSystemService::GetWorkDirPath()
 CVDUFile CVDUFileSystemService::GetVDUFileByName(CString name)
 {
     AcquireSRWLockExclusive(&m_filesLock);
-    CVDUFile* pFile = NULL;
+    CVDUFile pFile = CVDUFile::InvalidFile;
     for (auto it = m_files.begin(); it != m_files.end(); it++)
     {
-        CVDUFile* f = &(*it);
+        CVDUFile& f = (*it);
 
-        if (f->m_name.CompareNoCase(name) == 0)
+        if (f.m_name.CompareNoCase(name) == 0)
         {
             pFile = f;
             break;
@@ -1009,18 +1009,18 @@ CVDUFile CVDUFileSystemService::GetVDUFileByName(CString name)
     }
     ReleaseSRWLockExclusive(&m_filesLock);
 
-    return pFile ? *pFile : CVDUFile::InvalidFile;
+    return pFile;
 }
 
 CVDUFile CVDUFileSystemService::GetVDUFileByToken(CString token)
 {
     AcquireSRWLockExclusive(&m_filesLock);
-    CVDUFile* pFile = NULL;
+    CVDUFile pFile = CVDUFile::InvalidFile;
     for (auto it = m_files.begin(); it != m_files.end(); it++)
     {
-        CVDUFile* f = &(*it);
+        CVDUFile& f = (*it);
 
-        if (f->m_token == token)
+        if (f.m_token == token)
         {
             pFile = f;
             break;
@@ -1028,7 +1028,7 @@ CVDUFile CVDUFileSystemService::GetVDUFileByToken(CString token)
     }
     ReleaseSRWLockExclusive(&m_filesLock);
 
-    return pFile ? *pFile : CVDUFile::InvalidFile;
+    return pFile;
 }
 
 size_t CVDUFileSystemService::GetVDUFileCount()
