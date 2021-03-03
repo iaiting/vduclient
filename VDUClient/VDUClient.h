@@ -20,6 +20,11 @@
 #define VDU_SESSION_LOCK CVDUSession* session = APP->GetSession();AcquireSRWLockExclusive(&session->m_lock)
 //Unlocks session for other threads to use, do not forget this
 #define VDU_SESSION_UNLOCK ReleaseSRWLockExclusive(&APP->GetSession()->m_lock);
+//Block current thread until pWinThread exits, output the error code and delete the thread
+//pWinThread MUST be flagged CREATE_SUSPENDED
+#define WAIT_THREAD_EXITCODE(pWinThread, out_exitCode) ASSERT(pWinThread);pWinThread->m_bAutoDelete = FALSE; \
+DWORD resumeResult = pWinThread->ResumeThread();if (resumeResult != 0xFFFFFFFF) WaitForSingleObject(pWinThread->m_hThread, INFINITE); \
+GetExitCodeThread(pWinThread->m_hThread, &out_exitCode);delete pWinThread;
 
 class CVDUFileSystemService;
 class CVDUSession;
@@ -30,6 +35,7 @@ class CVDUSession;
 class VDUClient : public CWinApp
 {
 private:
+	BOOL m_testMode; //Is APP in test mode
 	CVDUSession* m_session; //Client session
 	CWinThread* m_srefThread; //Session refresh thread
 	CWinThread* m_svcThread; //File system thread
@@ -48,6 +54,9 @@ public:
 	//Handles the filesystem service
 	CWinThread* GetFileSystemServiceThread();
 
+	//Is APP currently in test mode
+	BOOL IsTestMode();
+
 	//Allows operations with the filesystem service
 	CVDUFileSystemService* GetFileSystemService();
 
@@ -62,6 +71,7 @@ public:
 //Thread Procedures
 	static UINT ThreadProcFilesystemService(LPVOID service);
 	static UINT ThreadProcLoginRefresh(LPVOID);
+	//static UINT ThreadProcTestMode(LPVOID);
 
 //Implementation
 	DECLARE_MESSAGE_MAP()

@@ -8,6 +8,8 @@ http://www.secfs.net/winfsp/doc/WinFsp-Tutorial/
 Python:
 https://stackoverflow.com/questions/16874598/how-do-i-calculate-the-md5-checksum-of-a-file-in-python
 https://docs.python.org/3/library/random.html
+https://docs.python.org/3/library/subprocess.html
+https://code-maven.com/slides/python/subprocess-background
 
 SSL:
 https://docs.microsoft.com/en-us/windows/win32/winhttp/ssl-in-winhttp
@@ -58,3 +60,4 @@ https://www.programmersought.com/article/99652049273/
 https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
 https://en.cppreference.com/w/cpp/language/operators
 https://docs.microsoft.com/en-us/windows/win32/secauthz/access-mask
+https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-postquitmessage

@@ -323,7 +323,7 @@ NTSTATUS CVDUFileSystem::Open(
     if (vdufile.IsValid())
     {
         if (!vdufile.m_canWrite &&
-            (GrantedAccess & GENERIC_WRITE || GrantedAccess & WRITE_DAC || GrantedAccess & WRITE_OWNER))
+            (GrantedAccess & GENERIC_WRITE || GrantedAccess & WRITE_DAC || GrantedAccess & WRITE_OWNER || GrantedAccess & FILE_APPEND_DATA || GrantedAccess & FILE_WRITE_DATA))
         {
             //You dont have rights for this access to VDU file
             return STATUS_ACCESS_DENIED;
@@ -753,7 +753,7 @@ NTSTATUS CVDUFileSystem::Rename(
 
         //Handle renaming by requesting it from the server and waiting for result
         //Yes, its blocking, hopefully for not too long..
-        INT result = APP->GetFileSystemService()->UpdateVDUFile(vdufile, newname);
+        INT result = APP->GetFileSystemService()->UpdateVDUFile(vdufile, newname, FALSE);
 
         if (result != EXIT_SUCCESS)
             return STATUS_UNSUCCESSFUL;
@@ -1121,24 +1121,21 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     CString randomFolderName = APP->GetProfileString(SECTION_SETTINGS, _T("WorkDir"), _T(""));
 
     //If not generated yet, or folder was deleted, generate a brand new one
-    //In case the folder is not empty, program must have been shut down unsuccessfully
-    //If user wants to recover unsaved files, the old folder will be there until Windows decides to remove it
-    if (randomFolderName.IsEmpty() || GetFileAttributes(CString(tempBuf) + randomFolderName) == 0xFFFFFFFF ||
-        !PathIsDirectoryEmpty(CString(tempBuf) + randomFolderName))
+    if (randomFolderName.IsEmpty() || GetFileAttributes(CString(tempBuf) + randomFolderName) == 0xFFFFFFFF)
     {
         GUID guid;
         if (CoCreateGuid(&guid) != S_OK)
         {
             fail(_T("Cannot create GUID")); //TODO: Only one fail?
             AfxMessageBox(_T("Cannot create GUID."), MB_ICONERROR);
-            WND->OnTrayExitCommand();
+            AfxPostQuitMessage(EXIT_FAILURE);
             return STATUS_UNSUCCESSFUL;
         }
 
         if (StringFromGUID2(guid, PathBuf, ARRAYSIZE(PathBuf)) <= 0)
         {
             fail(_T("Cannot create random string"));
-            WND->OnTrayExitCommand();
+            AfxPostQuitMessage(EXIT_FAILURE);
             return STATUS_UNSUCCESSFUL;
         }
 
@@ -1151,6 +1148,24 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
 
     if (CreateDirectory(PathBuf, NULL))
         SetFileAttributes(PathBuf, FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_READONLY);
+
+    //If not empty, erase contents
+    if (!PathIsDirectoryEmpty(PathBuf))
+    {
+        CString folder = CString(PathBuf);
+        CString firstFile = folder + _T("\\*");
+
+        WIN32_FIND_DATA FindData;
+        HANDLE hFile = FindFirstFile(firstFile, &FindData);
+        do
+        {
+            //Cant delete these anyway
+            if (!wcscmp(FindData.cFileName, _T(".")) || !wcscmp(FindData.cFileName, _T("..")))
+                continue;
+
+            DeleteFile(folder + _T("\\") + FindData.cFileName);
+        } while (FindNextFile(hFile, &FindData));
+    }
 
     EnableBackupRestorePrivileges();
 
@@ -1281,7 +1296,7 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
     GetTempPath(ARRAYSIZE(tempBuf), tempBuf);
 
     TCHAR tmpFilePath[MAX_PATH] = { 0 };
-    if (GetTempFileName(tempBuf, _T("vdu"), 0, tmpFilePath) < 1)
+    if (GetTempFileName(tempBuf, _T("vdu"), 0, tmpFilePath) <= 0)
         return FALSE;
 
     HANDLE hFile = CreateFile(tmpFilePath, GENERIC_ALL, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
@@ -1292,9 +1307,12 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
 
     TRY
     {
-        WND->GetProgressBar()->SetState(PBST_NORMAL);
-        WND->GetProgressBar()->SetPos(0);
-        WND->UpdateStatus();
+        if (!APP->IsTestMode())
+        {
+            WND->GetProgressBar()->SetState(PBST_NORMAL);
+            WND->GetProgressBar()->SetPos(0);
+            WND->UpdateStatus();
+        }
 
         BYTE buf[0x1000] = { 0 };
         UINT readLen, readTotal = 0;
@@ -1305,12 +1323,16 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
                 DWORD errid = GetLastError();
                 return FALSE;
             }
-            readTotal += readLen;
-            int newpos = (int) (((double)readTotal / vdufile.m_length) * 100);
-            if (newpos != WND->GetProgressBar()->GetPos())
+
+            if (!APP->IsTestMode())
             {
-                WND->GetProgressBar()->SetPos(newpos);
-                WND->UpdateStatus();
+                readTotal += readLen;
+                int newpos = (int)(((double)readTotal / vdufile.m_length) * 100);
+                if (newpos != WND->GetProgressBar()->GetPos())
+                {
+                    WND->GetProgressBar()->SetPos(newpos);
+                    WND->UpdateStatus();
+                }
             }
         }
     } CATCH(CInternetException, e)
@@ -1318,16 +1340,23 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
         e->GetErrorMessage(CVDUConnection::LastError, ARRAYSIZE(CVDUConnection::LastError));
         CloseHandle(hFile);
         DeleteFile(tmpFilePath);
-        WND->GetProgressBar()->SetState(PBST_ERROR);
-        WND->UpdateStatus();
+
+        if (!APP->IsTestMode())
+        {
+            WND->GetProgressBar()->SetState(PBST_ERROR);
+            WND->UpdateStatus();
+        }
          
         return FALSE;
     }
     END_CATCH;
 
-    WND->GetProgressBar()->SetState(PBST_PAUSED);
-    WND->GetProgressBar()->SetPos(0);
-    WND->UpdateStatus();
+    if (!APP->IsTestMode())
+    {
+        WND->GetProgressBar()->SetState(PBST_PAUSED);
+        WND->GetProgressBar()->SetPos(0);
+        WND->UpdateStatus();
+    }
 
     FILETIME lastModified;
     if (SystemTimeToFileTime(&vdufile.m_lastModified, &lastModified))
@@ -1357,13 +1386,10 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
     }
 
     m_files.push_back(vdufile);
-
-    //Put this into main thread
-    //ShutdownBlockReasonCreate(WND->GetSafeHwnd(), _T("There are still unsaved files!"));
     return TRUE;
 }
 
-INT CVDUFileSystemService::UpdateVDUFile(CVDUFile vdufile, CString newName)
+INT CVDUFileSystemService::UpdateVDUFile(CVDUFile vdufile, CString newName, BOOL async)
 {
     CString length;
     length.Format(_T("%d"), vdufile.m_length);
@@ -1375,7 +1401,7 @@ INT CVDUFileSystemService::UpdateVDUFile(CVDUFile vdufile, CString newName)
     headers += _T("Content-MD5: ") + CalcFileMD5Base64(vdufile) + _T("\r\n");
 
     //If sync, we wait for this thread to finish to get its exit code
-    if (newName.IsEmpty())
+    if (async)
     {
         AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(APP->GetSession()->GetServerURL(), VDUAPIType::POST_FILE,
             CVDUSession::CallbackUploadFile, headers, vdufile.m_token, GetWorkDirPath() + _T("\\") + vdufile.m_name));
@@ -1384,25 +1410,33 @@ INT CVDUFileSystemService::UpdateVDUFile(CVDUFile vdufile, CString newName)
     {
         CWinThread* t = AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(APP->GetSession()->GetServerURL(), VDUAPIType::POST_FILE,
             CVDUSession::CallbackUploadFile, headers, vdufile.m_token, GetWorkDirPath() + _T("\\") + vdufile.m_name), 0, CREATE_SUSPENDED);
-        t->m_bAutoDelete = FALSE;
-        DWORD resumeResult = t->ResumeThread();
 
-        if (resumeResult != 0xFFFFFFFF) //Should not happen, but dont get stuck
-            WaitForSingleObject(t->m_hThread, INFINITE);
+        DWORD exitCode;
+        WAIT_THREAD_EXITCODE(t, exitCode);
 
-        DWORD exitCode = 0;
-        GetExitCodeThread(t->m_hThread, &exitCode);
-
-        //With m_bAutoDelete we are responsibile for deleting the thread
-        delete t;
         return exitCode;
     }
 
     return EXIT_SUCCESS;
 }
 
-void CVDUFileSystemService::DeleteVDUFile(CVDUFile vdufile)
+INT CVDUFileSystemService::DeleteVDUFile(CVDUFile vdufile, BOOL async)
 {
-    AfxBeginThread(CVDUConnection::ThreadProc,
-        (LPVOID)new CVDUConnection(APP->GetSession()->GetServerURL(), VDUAPIType::DELETE_FILE, CVDUSession::CallbackInvalidateFileToken, _T(""), vdufile.m_token));
+    if (async)
+    {
+        AfxBeginThread(CVDUConnection::ThreadProc,
+            (LPVOID)new CVDUConnection(APP->GetSession()->GetServerURL(), VDUAPIType::DELETE_FILE, CVDUSession::CallbackInvalidateFileToken, _T(""), vdufile.m_token));
+    }
+    else
+    {
+        CWinThread* t = AfxBeginThread(CVDUConnection::ThreadProc,
+            (LPVOID)new CVDUConnection(APP->GetSession()->GetServerURL(), VDUAPIType::DELETE_FILE, CVDUSession::CallbackInvalidateFileToken, _T(""), vdufile.m_token), 0, CREATE_SUSPENDED);
+
+        DWORD exitCode;
+        WAIT_THREAD_EXITCODE(t, exitCode);
+
+        return exitCode;
+    }
+
+    return EXIT_SUCCESS;
 }

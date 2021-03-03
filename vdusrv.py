@@ -30,7 +30,7 @@ def dump(r):
     print(s)
 
 def Log(msg):
-    print(("[%s] " + str(msg)) % time.strftime('%H:%M:%S'))
+    print(("[%s] [SERVER] " + str(msg)) % time.strftime('%H:%M:%S'))
 
 def FileMD5(fpath):
     with open(fpath, "rb") as f:
@@ -129,6 +129,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                                 self.wfile.write(chunk)
                                 if (FILE_CHUNK_READ_DELAY):
                                     time.sleep(FILE_CHUNK_READ_DELAY)
+                            f.close()
                 
     def do_POST(self):
         global ApiKeys, Users, KEY_EXPIRATION_TIME, FAKE_RESPONSE_DELAY, FileTokens
@@ -141,7 +142,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         if (self.path == "/auth/key"):
             #Log("\n" + self.headers.as_string())
             user = self.headers.get("From")
-            Log(str(self.rfile.read(contentLen)))
+            #Log(str(self.rfile.read(contentLen)))
             if (user not in Users):
                 self.send_response_only(401)
                 self.end_headers()

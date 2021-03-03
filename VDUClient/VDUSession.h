@@ -26,17 +26,25 @@ public:
 	CString GetUser(); //Returns the current user
 	CString GetAuthToken(); //Returns current auth token
 	CTime GetAuthTokenExpires(); //Returns time when auth token expires
-	void SetUser(CString user);
-	void SetAuthData(CString authToken, CTime expires);
+	void SetUser(CString user); //Sets current user name
+	void SetAuthData(CString authToken, CTime expires); //Sets authorization data
 
 	BOOL IsLoggedIn(); //Checks if an user is logged in
 
 	//Login to server using user and ceritificate
-	void Login(CString user, CString certPath);
+	//This function is BLOCKING if async is FALSE
+	//Returns success or exit code if not async
+	INT Login(CString user, CString certPath, BOOL async = TRUE);
+
 	//Log out current user
-	void Logout();
-	//
-	void AccessFile(CString fileToken);
+	//This function is BLOCKING if async is FALSE
+	//Returns success or exit code if not async
+	INT Logout(BOOL async = TRUE);
+
+	//Attempts to download VDU file of fileToken and add it to the filesystem
+	//This function is BLOCKING if async is FALSE
+	//Returns success or exit code if not async
+	INT AccessFile(CString fileToken, BOOL async = TRUE);
 
 	//Callbacks are guaranteed to have exclusive access to session
 	static INT CallbackPing(CHttpFile* file);

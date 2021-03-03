@@ -56,6 +56,9 @@ void CVDUSession::SetUser(CString user)
 
 INT CVDUSession::CallbackPing(CHttpFile* file)
 {
+	if (!APP->IsTestMode())
+		WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
+
 	if (file)
 	{
 		DWORD statusCode;
@@ -63,11 +66,15 @@ INT CVDUSession::CallbackPing(CHttpFile* file)
 
 		if (statusCode == HTTP_STATUS_NO_CONTENT)
 		{
-			CString date;
-			file->QueryInfo(HTTP_QUERY_DATE, date);
-			WND->TrayNotify(date, _T("Ping OK."), SIID_WORLD);
-			WND->UpdateStatus();
-			//WND->MessageBoxNB(_T("Ping OK"), TITLENAME, MB_OK);
+			if (!APP->IsTestMode())
+			{
+				CString date;
+				file->QueryInfo(HTTP_QUERY_DATE, date);
+				WND->TrayNotify(date, _T("Ping OK."), SIID_WORLD);
+				WND->UpdateStatus();
+			}
+
+			return EXIT_SUCCESS;
 		}
 		else
 		{
@@ -79,9 +86,7 @@ INT CVDUSession::CallbackPing(CHttpFile* file)
 		//TODO: Dont use MessageBox in callback - they are blocking, could lead to deadlock
 		WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
-
-	WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
-	return EXIT_SUCCESS;
+	return EXIT_FAILURE;
 }
 
 INT CVDUSession::CallbackLogin(CHttpFile* file)
@@ -89,8 +94,11 @@ INT CVDUSession::CallbackLogin(CHttpFile* file)
 	CVDUSession* session = APP->GetSession();
 	ASSERT(session);
 
-	WND->GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
-	WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
+	if (!APP->IsTestMode())
+	{
+		WND->GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
+		WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
+	}
 
 	if (file)
 	{
@@ -139,33 +147,47 @@ INT CVDUSession::CallbackLogin(CHttpFile* file)
 
 			//Login successful
 			session->SetAuthData(apiKey, exp);
-			WND->GetDlgItem(IDC_BUTTON_LOGIN)->SetWindowText(_T("Logout"));
-			WND->GetDlgItem(IDC_STATIC_FILETOKEN)->EnableWindow(TRUE);
-			WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(TRUE);
-			WND->GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(TRUE);
-			WND->UpdateStatus();
+
+			if (!APP->IsTestMode())
+			{
+				WND->GetDlgItem(IDC_BUTTON_LOGIN)->SetWindowText(_T("Logout"));
+				WND->GetDlgItem(IDC_STATIC_FILETOKEN)->EnableWindow(TRUE);
+				WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(TRUE);
+				WND->GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(TRUE);
+				WND->UpdateStatus();
+			}
+
+			return EXIT_SUCCESS;
 		}
 		else
 		{
 			session->SetUser(_T(""));
-			WND->GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
-			WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
-			WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
-			WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
-			WND->MessageBoxNB(_T("Login failed! User or certificate is invalid."), TITLENAME, MB_ICONERROR);
+
+			if (!APP->IsTestMode())
+			{
+				WND->GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
+				WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
+				WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
+				WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
+				WND->MessageBoxNB(_T("Login failed! User or certificate is invalid."), TITLENAME, MB_ICONERROR);
+			}
 		}
 	}
 	else
 	{
 		session->SetUser(_T(""));
-		WND->GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
-		WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
-		WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
-		WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
-		WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
+
+		if (!APP->IsTestMode())
+		{
+			WND->GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
+			WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
+			WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
+			WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
+			WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
+		}
 	}
 
-	return EXIT_SUCCESS;
+	return EXIT_FAILURE;
 }
 
 INT CVDUSession::CallbackLoginRefresh(CHttpFile* file)
@@ -221,31 +243,31 @@ INT CVDUSession::CallbackLoginRefresh(CHttpFile* file)
 			session->SetAuthData(apiKey, exp);
 
 			WND->UpdateStatus();
+
+			return EXIT_SUCCESS;
 		}
 		else
 		{
 			session->Reset(session->GetServerURL());
 
-			WND->GetDlgItem(IDC_BUTTON_LOGIN)->SetWindowText(_T("Login"));
-			WND->GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
-			WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
-			WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
-			WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
-			WND->TrayNotify(_T("Authetification failed"), _T("Please login again to refresh your session."), SIID_SERVER);
+			if (!APP->IsTestMode())
+			{
+				WND->GetDlgItem(IDC_BUTTON_LOGIN)->SetWindowText(_T("Login"));
+				WND->GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
+				WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
+				WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
+				WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
+				WND->TrayNotify(_T("Authetification failed"), _T("Please login again to refresh your session."), SIID_SERVER);
+			}
 		}
 	}
 	else
 	{
 		//Connection failed, let refreshing thread know to sleep for a bit and try again later
-		//VDU_SESSION_UNLOCK;
-		//AfxEndThread(2, FALSE);
 		return 2;
-
-		//session->Reset(session->GetServerURL());
-		//WND->TrayNotify(_T("Authentification failed"), _T("Could not connect to server."), SIID_INTERNET);
 	}
 
-	return EXIT_SUCCESS;
+	return EXIT_FAILURE;
 }
 
 INT CVDUSession::CallbackLogout(CHttpFile* file)
@@ -253,48 +275,61 @@ INT CVDUSession::CallbackLogout(CHttpFile* file)
 	CVDUSession* session = APP->GetSession();
 	ASSERT(session);
 
+	if (!APP->IsTestMode())
+	{
+		WND->GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
+		WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
+	}
+
 	if (file)
 	{
 		DWORD statusCode;
 		file->QueryInfoStatusCode(statusCode);
 
+		session->Reset(session->GetServerURL());
+
+		if (!APP->IsTestMode())
+		{
+			WND->GetDlgItem(IDC_BUTTON_LOGIN)->SetWindowText(_T("Login"));
+			WND->GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
+			WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
+			WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
+			WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
+			WND->GetDlgItem(IDC_STATIC_FILETOKEN)->EnableWindow(FALSE);
+			WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(FALSE);
+			WND->GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(FALSE);
+			WND->UpdateStatus();
+		}
+
 		if (statusCode == HTTP_STATUS_NO_CONTENT)
 		{
-			//TODO: It was ok! Nice
+			//TODO: It was ok! Nice 
+			return EXIT_SUCCESS;
 		}
 		else
 		{
-			WND->TrayNotify(_T("Authetification failed"), _T("Server failed to log out. Session reset."), SIID_RENAME);
+			if (!APP->IsTestMode())
+				WND->TrayNotify(_T("Authetification failed"), _T("Server failed to log out. Session reset."), SIID_RENAME);
 		}
-
-		session->Reset(session->GetServerURL());
-
-		WND->GetDlgItem(IDC_BUTTON_LOGIN)->SetWindowText(_T("Login"));
-		WND->GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(TRUE);
-		WND->GetDlgItem(IDC_USERNAME)->EnableWindow(TRUE);
-		WND->GetDlgItem(IDC_STATIC_SERVERADDRESS)->EnableWindow(TRUE);
-		WND->GetDlgItem(IDC_STATIC_USERNAME)->EnableWindow(TRUE);
-		WND->GetDlgItem(IDC_STATIC_FILETOKEN)->EnableWindow(FALSE);
-		WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(FALSE);
-		WND->GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(FALSE);
-
-		WND->UpdateStatus();
 	}
 	else
 	{
 		WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
 
-	WND->GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(TRUE);
-	WND->GetDlgItem(IDC_BUTTON_PING)->EnableWindow(TRUE);
-
-	return EXIT_SUCCESS;
+	return EXIT_FAILURE;
 }
 
 INT CVDUSession::CallbackDownloadFile(CHttpFile* file)
 {
 	CVDUSession* session = APP->GetSession();
 	ASSERT(session);
+
+	if (!APP->IsTestMode())
+	{
+		WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(TRUE);
+		WND->GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(TRUE);
+	}
 
 	if (file)
 	{
@@ -355,9 +390,14 @@ INT CVDUSession::CallbackDownloadFile(CHttpFile* file)
 			//If file created successfuly, open it and notify user
 			if (APP->GetFileSystemService()->CreateVDUFile(vfile, file))
 			{
-				HINSTANCE result = ShellExecute(WND->GetSafeHwnd(), _T("open"), APP->GetFileSystemService()->GetDrivePath() + vfile.m_name, NULL, NULL, SW_SHOWNORMAL);
-				WND->TrayNotify(vfile.m_name, CString(_T("File successfuly accessed!")), result == (HINSTANCE)SE_ERR_NOASSOC ? SIID_DOCNOASSOC : SIID_DOCASSOC);
-				WND->UpdateStatus();
+				//Dont open anything in test mode
+				if (!APP->IsTestMode())
+				{
+					HINSTANCE result = ShellExecute(WND->GetSafeHwnd(), _T("open"), APP->GetFileSystemService()->GetDrivePath() + vfile.m_name, NULL, NULL, SW_SHOWNORMAL);
+					WND->TrayNotify(vfile.m_name, CString(_T("File successfuly accessed!")), result == (HINSTANCE)SE_ERR_NOASSOC ? SIID_DOCNOASSOC : SIID_DOCASSOC);
+					WND->UpdateStatus();
+				}
+				return EXIT_SUCCESS;
 			}
 			else
 			{
@@ -386,10 +426,7 @@ INT CVDUSession::CallbackDownloadFile(CHttpFile* file)
 		WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
 
-	WND->GetDlgItem(IDC_FILE_TOKEN)->EnableWindow(TRUE);
-	WND->GetDlgItem(IDC_ACCESS_FILE)->EnableWindow(TRUE);
-
-	return EXIT_SUCCESS;
+	return EXIT_FAILURE;
 }
 
 INT CVDUSession::CallbackUploadFile(CHttpFile* file)
@@ -429,6 +466,7 @@ INT CVDUSession::CallbackUploadFile(CHttpFile* file)
 				vdufile.m_md5base64 = APP->GetFileSystemService()->CalcFileMD5Base64(vdufile);
 
 				APP->GetFileSystemService()->UpdateFileInternal(vdufile);
+
 				WND->UpdateStatus();
 			}
 			else
@@ -440,12 +478,13 @@ INT CVDUSession::CallbackUploadFile(CHttpFile* file)
 		else if (statusCode == HTTP_STATUS_RESET_CONTENT)
 		{
 			APP->GetFileSystemService()->DeleteFileInternal(filetoken);
+
 			WND->UpdateStatus();
 
 			WND->MessageBoxNB(_T("Token for currently edited file has expired after last successful upload.\r\nIn order to continue work on the file, access via new token."),
 				TITLENAME, MB_ICONINFORMATION);
 
-			return 2;
+			return EXIT_SUCCESS;
 		}
 		else
 		{
@@ -499,7 +538,10 @@ INT CVDUSession::CallbackInvalidateFileToken(CHttpFile* file)
 			filetoken = filetoken.Right(filetoken.GetLength() - 6);
 
 			APP->GetFileSystemService()->DeleteFileInternal(filetoken);
+
 			WND->UpdateStatus();
+
+			return EXIT_SUCCESS;
 		}
 		else if (statusCode == HTTP_STATUS_NOT_FOUND)
 		{
@@ -519,10 +561,10 @@ INT CVDUSession::CallbackInvalidateFileToken(CHttpFile* file)
 		}
 	}
 
-	return EXIT_SUCCESS;
+	return EXIT_FAILURE;
 }
 
-void CVDUSession::Login(CString user, CString certPath)
+INT CVDUSession::Login(CString user, CString certPath, BOOL async)
 {
 	SetUser(user);
 
@@ -531,8 +573,23 @@ void CVDUSession::Login(CString user, CString certPath)
 	headers += GetUser();
 	headers += _T("\r\n");
 
-	AfxBeginThread(CVDUConnection::ThreadProc, 
-		(LPVOID)(new CVDUConnection(GetServerURL(), VDUAPIType::POST_AUTH_KEY, CVDUSession::CallbackLogin, headers, _T(""), certPath)));
+	if (async)
+	{
+		AfxBeginThread(CVDUConnection::ThreadProc,
+			(LPVOID)(new CVDUConnection(GetServerURL(), VDUAPIType::POST_AUTH_KEY, CVDUSession::CallbackLogin, headers, _T(""), certPath)));
+	}
+	else
+	{
+		CWinThread* t = AfxBeginThread(CVDUConnection::ThreadProc,
+			(LPVOID)(new CVDUConnection(GetServerURL(), VDUAPIType::POST_AUTH_KEY, CVDUSession::CallbackLogin, headers, _T(""), certPath)), 0, CREATE_SUSPENDED);
+
+		DWORD exitCode;
+		WAIT_THREAD_EXITCODE(t, exitCode);
+
+		return exitCode;
+	}
+
+	return EXIT_SUCCESS;
 }
 
 BOOL CVDUSession::IsLoggedIn()
@@ -540,19 +597,50 @@ BOOL CVDUSession::IsLoggedIn()
 	return !GetUser().IsEmpty();
 }
 
-void CVDUSession::Logout()
+INT CVDUSession::Logout(BOOL async)
 {
-	if (!IsLoggedIn())
-		return;
+	if (async)
+	{
+		if (!IsLoggedIn())
+			return EXIT_SUCCESS;
 
-	AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::DELETE_AUTH_KEY, CVDUSession::CallbackLogout));
+		AfxBeginThread(CVDUConnection::ThreadProc,
+			(LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::DELETE_AUTH_KEY, CVDUSession::CallbackLogout));
+	}
+	else
+	{
+		CWinThread* t = AfxBeginThread(CVDUConnection::ThreadProc,
+			(LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::DELETE_AUTH_KEY, CVDUSession::CallbackLogout), 0, CREATE_SUSPENDED);
+
+		DWORD exitCode;
+		WAIT_THREAD_EXITCODE(t, exitCode);
+
+		return exitCode;
+	}
+
+	return EXIT_SUCCESS;
 }
 
-void CVDUSession::AccessFile(CString fileToken)
+INT CVDUSession::AccessFile(CString fileToken, BOOL async)
 {
 	if (!IsLoggedIn())
-		return;
+		return EXIT_SUCCESS;
 
-	AfxBeginThread(CVDUConnection::ThreadProc,
-		(LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::GET_FILE, CVDUSession::CallbackDownloadFile,_T(""), fileToken));
+	if (async)
+	{
+		AfxBeginThread(CVDUConnection::ThreadProc,
+			(LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::GET_FILE, CVDUSession::CallbackDownloadFile, _T(""), fileToken));
+	}
+	else
+	{
+		CWinThread* t = AfxBeginThread(CVDUConnection::ThreadProc,
+			(LPVOID)new CVDUConnection(GetServerURL(), VDUAPIType::GET_FILE, CVDUSession::CallbackDownloadFile, _T(""), fileToken), 0, CREATE_SUSPENDED);
+
+		DWORD exitCode;
+		WAIT_THREAD_EXITCODE(t, exitCode);
+
+		return exitCode;
+	}
+
+	return EXIT_SUCCESS;
 }

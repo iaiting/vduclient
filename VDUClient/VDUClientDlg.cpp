@@ -179,6 +179,9 @@ BOOL CVDUClientDlg::OnInitDialog()
 
 void CVDUClientDlg::UpdateStatus()
 {
+	if (APP->IsTestMode())
+		return;
+
 	CString trayStatus = TITLENAME;
 	CString windowStatus;
 
@@ -485,7 +488,7 @@ void CVDUClientDlg::OnTrayExitCommand()
 		}
 	}
 
-	PostMessage(WM_QUIT, 0, 0);
+	AfxPostQuitMessage(EXIT_SUCCESS);
 }
 
 void CVDUClientDlg::OnAutorunToggleCommand()
@@ -702,6 +705,9 @@ UINT ThreadProcMsgBoxNB(LPVOID mbp0)
 
 void CVDUClientDlg::MessageBoxNB(CString text, CString title, UINT flags)
 {
+	if (APP->IsTestMode())
+		return;
+
 	MsgBoxParams* mbp = new MsgBoxParams();
 	mbp->text = CString(text);
 	mbp->title = CString(title);

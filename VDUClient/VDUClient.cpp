@@ -57,6 +57,11 @@ CWinThread* VDUClient::GetFileSystemServiceThread()
 	return m_svcThread;
 }
 
+BOOL VDUClient::IsTestMode()
+{
+	return m_testMode;
+}
+
 CVDUFileSystemService* VDUClient::GetFileSystemService()
 {
 	return m_svc;
@@ -68,6 +73,8 @@ VDUClient vduClient;
 // VDUClient initialization
 BOOL VDUClient::InitInstance()
 {
+	//Check if an instance is already running
+
 	// InitCommonControlsEx() is required on Windows XP if an application
 	// manifest specifies use of ComCtl32.dll version 6 or later to enable
 	// visual styles.  Otherwise, any window creation will fail.
@@ -108,31 +115,43 @@ BOOL VDUClient::InitInstance()
 	else
 		RegCloseKey(hkey);
 
-	BOOL silent = FALSE;
+	BOOL c_silent = FALSE;
 	//Check for startup options
 	int argc;
-	LPWSTR* argv = CommandLineToArgvW(m_lpCmdLine, &argc);
-	if (argv)
+	if (LPWSTR* argv = CommandLineToArgvW(m_lpCmdLine, &argc))
 	{
 		for (int i = 0; i < argc; i++)
 		{
 			LPWSTR arg = argv[i];
 
 			if (!wcscmp(arg, _T("-silent")))
-				silent = TRUE;
+				c_silent = TRUE;
+			else if (!wcscmp(arg, _T("-testmode")))
+			{
+				m_testMode = TRUE;
+				APP->WriteProfileInt(SECTION_SETTINGS, _T("AutoLogin"), FALSE);
+			}
 		}
+		LocalFree(argv);
 	}
-	LocalFree(argv);
+
+	CString preferredLetter = APP->GetProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), _T(""));
+	if (preferredLetter.IsEmpty())
+		APP->WriteProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), _T("V:"));
+	preferredLetter = APP->GetProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), _T(""));
 
 	//Create worker thread
 	m_srefThread = AfxBeginThread(ThreadProcLoginRefresh, (LPVOID)nullptr);
 
 	CVDUClientDlg* pDlg = new CVDUClientDlg(AfxGetMainWnd());
 	m_pMainWnd = pDlg;
-	//INT_PTR nResponse = dlg.DoModal();
 	if (pDlg->Create(IDD_VDUCLIENT_DIALOG, AfxGetMainWnd()))
 	{
-		if (silent)
+		if (IsTestMode())
+		{
+			pDlg->ShowWindow(SW_HIDE);
+		}
+		else if (c_silent)
 		{
 			pDlg->ShowWindow(SW_MINIMIZE);
 			pDlg->ShowWindow(SW_HIDE);
@@ -148,7 +167,6 @@ BOOL VDUClient::InitInstance()
 		return FALSE;
 	}
 
-	CString preferredLetter = APP->GetProfileString(SECTION_SETTINGS, _T("PreferredDriveLetter"), _T(""));
 	m_svcThread = AfxBeginThread(ThreadProcFilesystemService, (LPVOID)(m_svc = new CVDUFileSystemService(preferredLetter)));
 
 	//TODO: Use this later
@@ -164,27 +182,146 @@ BOOL VDUClient::InitInstance()
 	ControlBarCleanUp();
 #endif
 
-	// Since the dialog has been closed, return FALSE so that we exit the
-	//  application, rather than start the application's message pump.
+	//In test mode we execute input actions and quit with proper code
+	if (IsTestMode())
+	{
+		int argc;
+		if (LPWSTR* argv = CommandLineToArgvW(m_lpCmdLine, &argc))
+		{
+			for (int i = 0; i < argc; i++)
+			{
+				LPWSTR arg = argv[i];
+				INT result;
+
+				if (!wcscmp(arg, _T("-server")))
+				{
+					LPWSTR server = argv[++i];//TODO: Fix crash 
+
+					GetSession()->Reset(server);
+				}
+				else if (!wcscmp(arg, _T("-user")))
+				{
+					LPWSTR user = argv[++i];
+
+					result = GetSession()->Login(user, _T(""), FALSE);
+					if (result != EXIT_SUCCESS)
+					{
+						AfxPostQuitMessage(result);
+						return TRUE;
+					}
+				}
+				else if (!wcscmp(arg, _T("-logout")))
+				{
+					result = GetSession()->Logout(FALSE);
+					if (result != EXIT_SUCCESS)
+					{
+						AfxPostQuitMessage(result);
+						return TRUE;
+					}
+				}
+				else if (!wcscmp(arg, _T("-accessfile")))
+				{
+					LPWSTR token = argv[++i];
+
+					result = GetSession()->AccessFile(token, FALSE);
+					if (result != EXIT_SUCCESS)
+					{
+						AfxPostQuitMessage(result);
+						return TRUE;
+					}
+				}
+				else if (!wcscmp(arg, _T("-deletefile")))
+				{
+					LPWSTR token = argv[++i];
+
+					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
+
+					//Make sure file gets deleted
+					GetFileSystemService()->DeleteFileInternal(token);
+
+					result = GetFileSystemService()->DeleteVDUFile(vdufile, FALSE);
+					if (result != EXIT_SUCCESS)
+					{
+						AfxPostQuitMessage(result);
+						return TRUE;
+					}
+				}
+				else if (!wcscmp(arg, _T("-rename")))
+				{
+					LPWSTR token = argv[++i];
+					LPWSTR name = argv[++i];
+
+					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
+
+					result = GetFileSystemService()->UpdateVDUFile(vdufile, name, FALSE);
+					if (result != EXIT_SUCCESS)
+					{
+						AfxPostQuitMessage(result);
+						return TRUE;
+					}
+				}
+				else if (!wcscmp(arg, _T("-write")))
+				{
+					LPWSTR token = argv[++i];
+					LPWSTR text = argv[++i];
+
+					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
+
+					//Simulate writing to a text file
+					HANDLE hFile = CreateFile(GetFileSystemService()->GetDrivePath() + _T("\\") + vdufile.m_name,
+						GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0);
+					if (hFile != INVALID_HANDLE_VALUE)
+					{
+						if (WriteFile(hFile, text, (DWORD)wcslen(text) * sizeof(*text), NULL, NULL))
+						{
+							vdufile.m_length = GetFileSize(hFile, NULL);
+							CloseHandle(hFile);
+							result = GetFileSystemService()->UpdateVDUFile(vdufile, _T(""), FALSE);
+							if (result != EXIT_SUCCESS)
+							{
+								AfxPostQuitMessage(result);
+								return TRUE;
+							}
+							continue;
+						}
+						else
+						{
+							CloseHandle(hFile);
+						}
+					}
+
+					AfxPostQuitMessage(/*GetLastError()*/EXIT_FAILURE);
+					return TRUE;
+				}
+			}
+			LocalFree(argv);
+		}
+
+		//Implicit quit after all test actions have been done
+		AfxPostQuitMessage(EXIT_SUCCESS);
+	}
+
 	return TRUE;
 }
 
 INT VDUClient::ExitInstance()
 {
 	//TODO: Make sure to try to send all changes before natural exit?
-	ShutdownBlockReasonDestroy(WND->GetSafeHwnd());
-	if (auto* svc = GetFileSystemService())
+	//ShutdownBlockReasonDestroy(WND->GetSafeHwnd());
+	/*if (auto* svc = GetFileSystemService())
 	{
 		svc->Stop();
-	}
-	if (auto* t = GetSessionRefreshingThread())
+	}*/ //No need to shut down, FSP handles shut down on quit
+	/*if (auto* t = GetSessionRefreshingThread())
 	{
 		t->Delete();
-	}
+	}*/
 	if (auto* s = GetSession())
 		if (s->IsLoggedIn())
 			AfxBeginThread(CVDUConnection::ThreadProc,(LPVOID)new CVDUConnection(s->GetServerURL(), VDUAPIType::DELETE_AUTH_KEY));
-	WND->DestroyWindow();
+
+	if (m_pMainWnd)
+		WND->DestroyWindow();
 	return CWinApp::ExitInstance();
 }
 
@@ -212,7 +349,7 @@ UINT VDUClient::ThreadProcLoginRefresh(LPVOID)
 			continue;
 		}
 
-		//NOTE: CTime::GetCurrentTime is offset by timezone, do not use
+		//NOTE: CTime::GetCurrentTime() is offset by timezone, do not use
 		SYSTEMTIME cstime;
 		SecureZeroMemory(&cstime, sizeof(cstime));
 		GetSystemTime(&cstime);

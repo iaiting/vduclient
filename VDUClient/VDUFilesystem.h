@@ -219,10 +219,14 @@ public:
 
     //Create a new VDU file in filesystem from httpFile
     BOOL CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile);
-    //Update VDU file data
-    //This function is BLOCKING if newName is set, in order to confirm success
-    //Returns success or exit code if newName is set
-    INT UpdateVDUFile(CVDUFile vdufile, CString newName = _T(""));
+
+    //Sends update of VDU file data to the server
+    //This function is BLOCKING if async is FALSE
+    //Returns success or exit code if not async
+    INT UpdateVDUFile(CVDUFile vdufile, CString newName = _T(""), BOOL async = TRUE);
+
     //Request token invalidation for VDU file
-    void DeleteVDUFile(CVDUFile vdufile);
+    //This function is BLOCKING if async is FALSE
+    //Returns success or exit code if not async
+    INT DeleteVDUFile(CVDUFile vdufile, BOOL async = TRUE);
 };
