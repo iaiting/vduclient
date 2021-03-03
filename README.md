@@ -24,6 +24,10 @@ Requires Visual Studio 2019, Build tools v142, MFC+ATL
 
 NOTE: If winfsp.hpp wont be pre-installed, you need to manually download it from https://raw.githubusercontent.com/billziss-gh/winfsp/master/inc/winfsp/winfsp.hpp and copy into your `WinFsp\inc\winfsp` folder!
 
+## Launch options
+- `-silent`       Program window starts up hidden and minimized to tray
+- `-testmode`     Program starts in test mode, where it reads actions and executes them. For more information see `test.py`
+
 # VDU Example Dev-Server
 
 ## Requirements
@@ -34,6 +38,30 @@ Make sure to `pip install` required libraries
 
 1.) Edit server settings at the top of the file to your liking
 1.) Run `vdusrv.py` - Runs on all interfaces on port 4443 by default
+
+# Testing
+
+![VDU Tests](https://i.imgur.com/poxPXVv.png)
+
+## Requirements
+Python3
+
+## Setting up for testing
+Make sure to `pip install` required libraries
+
+1.) Edit test settings at the top of the file to your liking
+2.) Run `test.py` - Checkmarks mean passed, Crosses mean did not pass
+
+## Adding custom tests
+In order to add custom tests, get familiar with the Action list, create your test and then simply add it to the list of the tests
+#### Action list
+- `-server [ip]`              Set server ip to 'ip'
+- `-user [login]`             Log in as 'login'
+- `-accessfile [token]`       Accesses a file
+- `-deletefile [token]`       Invalidates token
+- `-rename [token] [name]`    Renames file to 'name'
+- `-logout`                   Logs out current user
+- `-write [token] [text]`     Writes text to a file
 
 # Credits
 Client developed using Microsoft Visual Studio 2019 Community with valid Free Licence, using MFC/ATL Build tools v142 and Windows 10.0 SDK, at https://visualstudio.microsoft.com/cs/vs/community/
