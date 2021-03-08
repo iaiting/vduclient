@@ -25,7 +25,7 @@ LONG WINAPI OnUnhandledException(_EXCEPTION_POINTERS* ExceptionInfo)
 }
 
 // VDUClient construction
-VDUClient::VDUClient() : m_srefThread(nullptr), m_svc(nullptr), m_svcThread(nullptr)
+VDUClient::VDUClient() : m_srefThread(nullptr), m_svc(nullptr), m_svcThread(nullptr), m_testMode(FALSE)
 {
 	oldFilter = SetUnhandledExceptionFilter(OnUnhandledException);
 
