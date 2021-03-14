@@ -124,9 +124,9 @@ BOOL VDUClient::InitInstance()
 		{
 			LPWSTR arg = argv[i];
 
-			if (!wcscmp(arg, _T("-silent")))
+			if (!_tcscmp(arg, _T("-silent")))
 				c_silent = TRUE;
-			else if (!wcscmp(arg, _T("-testmode")))
+			else if (!_tcscmp(arg, _T("-testmode")))
 			{
 				m_testMode = TRUE;
 				APP->WriteProfileInt(SECTION_SETTINGS, _T("AutoLogin"), FALSE);
@@ -193,13 +193,13 @@ BOOL VDUClient::InitInstance()
 				LPWSTR arg = argv[i];
 				INT result;
 
-				if (!wcscmp(arg, _T("-server")))
+				if (!_tcscmp(arg, _T("-server")))
 				{
 					LPWSTR server = argv[++i];//TODO: Fix crash 
 
 					GetSession()->Reset(server);
 				}
-				else if (!wcscmp(arg, _T("-user")))
+				else if (!_tcscmp(arg, _T("-user")))
 				{
 					LPWSTR user = argv[++i];
 
@@ -210,7 +210,7 @@ BOOL VDUClient::InitInstance()
 						return TRUE;
 					}
 				}
-				else if (!wcscmp(arg, _T("-logout")))
+				else if (!_tcscmp(arg, _T("-logout")))
 				{
 					result = GetSession()->Logout(FALSE);
 					if (result != EXIT_SUCCESS)
@@ -219,7 +219,7 @@ BOOL VDUClient::InitInstance()
 						return TRUE;
 					}
 				}
-				else if (!wcscmp(arg, _T("-accessfile")))
+				else if (!_tcscmp(arg, _T("-accessfile")))
 				{
 					LPWSTR token = argv[++i];
 
@@ -230,7 +230,7 @@ BOOL VDUClient::InitInstance()
 						return TRUE;
 					}
 				}
-				else if (!wcscmp(arg, _T("-deletefile")))
+				else if (!_tcscmp(arg, _T("-deletefile")))
 				{
 					LPWSTR token = argv[++i];
 
@@ -246,7 +246,7 @@ BOOL VDUClient::InitInstance()
 						return TRUE;
 					}
 				}
-				else if (!wcscmp(arg, _T("-rename")))
+				else if (!_tcscmp(arg, _T("-rename")))
 				{
 					LPWSTR token = argv[++i];
 					LPWSTR name = argv[++i];
@@ -260,7 +260,7 @@ BOOL VDUClient::InitInstance()
 						return TRUE;
 					}
 				}
-				else if (!wcscmp(arg, _T("-write")))
+				else if (!_tcscmp(arg, _T("-write")))
 				{
 					LPWSTR token = argv[++i];
 					LPWSTR text = argv[++i];
@@ -272,7 +272,7 @@ BOOL VDUClient::InitInstance()
 						GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0);
 					if (hFile != INVALID_HANDLE_VALUE)
 					{
-						if (WriteFile(hFile, text, (DWORD)wcslen(text) * sizeof(*text), NULL, NULL))
+						if (WriteFile(hFile, text, (DWORD)_tcslen(text) * sizeof(*text), NULL, NULL))
 						{
 							vdufile.m_length = GetFileSize(hFile, NULL);
 							CloseHandle(hFile);

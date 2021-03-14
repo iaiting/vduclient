@@ -153,7 +153,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 			if (!isTaken)
 			{
 				comboDriveLetter->AddString(letter);
-				if (!wcscmp(letter, preferredLetter))
+				if (!_tcscmp(letter, preferredLetter))
 				{
 					comboDriveLetter->SetCurSel(comboDriveLetter->FindString(-1, letter));
 				}
@@ -297,7 +297,7 @@ BOOL CVDUClientDlg::SetRegValueSz(CString name, CString value, CString path, ULO
 		}
 	}
 
-	LSTATUS res = RegSetValueEx(hkey, name, 0, type, (BYTE*)value.GetBuffer(), DWORD(sizeof(wchar_t) * (wcslen(value.GetBuffer()) + 1)));
+	LSTATUS res = RegSetValueEx(hkey, name, 0, type, (BYTE*)value.GetBuffer(), DWORD(sizeof(wchar_t) * (_tcslen(value.GetBuffer()) + 1)));
 
 	RegCloseKey(hkey);
 	return res == ERROR_SUCCESS;

@@ -877,7 +877,7 @@ NTSTATUS CVDUFileSystem::ReadDirectoryEntry(
     {
         if (!Pattern)
             Pattern = (PWSTR)_T("*");
-        PatternLength = (ULONG)wcslen(Pattern);
+        PatternLength = (ULONG)_tcslen(Pattern);
 
         Length = GetFinalPathNameByHandleW(Handle, FullPath, FULLPATH_SIZE - 1, 0);
         if (0 == Length)
@@ -907,14 +907,14 @@ NTSTATUS CVDUFileSystem::ReadDirectoryEntry(
     }
 
     //Check if file is in our accessible files vector
-    /*if (wcscmp(FindData.cFileName, _T(".")) && wcscmp(FindData.cFileName, _T("..")))
+    /*if (_tcscmp(FindData.cFileName, _T(".")) && _tcscmp(FindData.cFileName, _T("..")))
     {
         if (!APP->GetFileSystemService()->GetVDUFileByName(FindData.cFileName))
             return STATUS_NO_MORE_FILES;
     }*/
 
     memset(DirInfo, 0, sizeof * DirInfo);
-    Length = (ULONG)wcslen(FindData.cFileName);
+    Length = (ULONG)_tcslen(FindData.cFileName);
     DirInfo->Size = (UINT16)(FIELD_OFFSET(CVDUFileSystem::DirInfo, FileNameBuf) + Length * sizeof(WCHAR));
     DirInfo->FileInfo.FileAttributes = FindData.dwFileAttributes;
     DirInfo->FileInfo.ReparseTag = 0;
@@ -1160,7 +1160,7 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
         do
         {
             //Cant delete these anyway
-            if (!wcscmp(FindData.cFileName, _T(".")) || !wcscmp(FindData.cFileName, _T("..")))
+            if (!_tcscmp(FindData.cFileName, _T(".")) || !_tcscmp(FindData.cFileName, _T("..")))
                 continue;
 
             DeleteFile(folder + _T("\\") + FindData.cFileName);
@@ -1280,7 +1280,7 @@ CString CVDUFileSystemService::CalcFileMD5Base64(CVDUFile file)
 
 NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
 {
-    if (m_host.MountPoint() && wcslen(m_host.MountPoint()) > 0) 
+    if (m_host.MountPoint() && _tcslen(m_host.MountPoint()) > 0) 
         m_host.Unmount();
 
     StringCchCopy(m_driveLetter, ARRAYSIZE(m_driveLetter), DriveLetter);
