@@ -12,7 +12,7 @@
 #define new DEBUG_NEW
 #endif
 
-// VDUClient
+// VDUClient	
 BEGIN_MESSAGE_MAP(VDUClient, CWinApp)
 	ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
 END_MESSAGE_MAP()
