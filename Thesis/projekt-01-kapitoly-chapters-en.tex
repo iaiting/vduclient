@@ -102,11 +102,11 @@ HINTERNET hInternet; //A handle
 LPDWORD lpcbInfo; //Pointer to a count of bytes
 \end{lstlisting}
 
-Similarly, many functions expect a range of values, inputs in their calling parameters. These inputs' semantics are not always recognizable just by looking at the variable's data type. It is often generic, meaning it holds little to no information about what exactly does the function expects its input to be.
+Similarly, many functions expect a range of values, referred to as inputs, in their calling parameters. These inputs' semantics are not always recognizable just by looking at the variable's data type. It is often generic, meaning it holds little to no information about what exactly does the function expects its input to be.
 \begin{lstlisting}[caption={GetSystemMetrics prototype},label=lstGSM]
 int WINAPI GetSystemMetrics(int nIndex);
 \end{lstlisting}
-The listing \ref{lstGSM}shows an example of an unclear expected input value \lstinline{nIndex}.\cite{WinGetSM}
+The listing \ref{lstGSM} shows an example of an unclear expected input value \lstinline{nIndex}.\cite{WinGetSM}
 
 \subsection*{Character set}
 Functions, which manipulate characters are generally implemented in one of the following ways:
@@ -143,7 +143,7 @@ By this definition, a \textit{window} in Windows programming might not always re
 A window can have relationships with other windows.\cite{WinWindow}
 \begin{figure}[htbp]
 	\centering
-	%\includesvg[width=\columnwidth]{obrazky-figures/windows_example.svg}
+
 	\caption{Example of relations between windows \todo{fix}.}
 	\label{windowsExample}
 \end{figure}
@@ -180,7 +180,7 @@ For example, in Figure \ref{winRegedit}, to access a value inside the \lstinline
 For an application, the registry can save user preferences, various settings, remember selected options, or track the application's usage. It is also useful to make the application run automatically upon startup, as implemented in section \todo{autorun}.
 
 \subsection*{Thread synchronization}
-There are many ways to synchronize threads in Windows. These include, but are not limited to: Events, Semaphores, Mutexes, Interlocked API, and Slim reader/writer locks (SRW Locks). As this project makes use of SRW Locks, This subsection will explain only those in this subsection.\cite{WinSyncFuncs}
+There are many ways to synchronize threads in Windows. These include, but are not limited to: Events, Semaphores, Mutexes, Interlocked API, and Slim reader/writer locks (SRW Locks). As this project makes use of SRW Locks, This subsection will explain only those in the following.\cite{WinSyncFuncs}
 
 An SRW Lock is a simplified version of a semaphore, a synchronization object which is useful in controlling a shared resource between multiple threads. A semaphore has a set number of threads that are allowed to access the resource simultaneously. When a thread is done with using the resource, another thread is allowed to use it.\cite{WinSemaphores} An SRW Lock takes the thread's intent with the shared resource into account and is optimized for speed and performance. If a thread wants to read a resource, it can lock the resource in a \textit{shared mode}. If a thread wants to write to a resource, it can lock the resource in an \textit{exclusive mode}. If a resource is not locked, it can be locked in either mode. 
 
@@ -307,11 +307,120 @@ The \textit{FUSE Compatible API} is a high-level API, which is well understood f
 \subsection*{WinFsp}
 \cite{GitWinFsp}
 
+\section{Windows File System Proxy}
+
+The third-party filesystem API of choice of this project is Windows File System Proxy (WinFsp). The reasoning behind this choice goes as follows:
+
+\begin{itemize}
+    \item Provides a powerful native API in C++ - Other APIs support only C by default
+    \item Outperforms other filesystems/APIs - Figures \ref{winfsp_file_tests} and \ref{winfsp_rdwr_tests}
+    \item User friendly installation - Provides a Windows installer
+    \item Simple IDE\footnote{Integrated Development Environment} integration - Simply linking the library and adding includes
+\end{itemize}
+
+\begin{figure}[htb]
+	\centering
+	\includegraphics[width=\columnwidth]{obrazky-figures/file_tests.pdf}
+	\caption{File comparation tests of WinFsp and Dokany. Source:\cite{GitWinFsp}}
+	\label{winfsp_file_tests}
+\end{figure}
+
+\begin{figure}[htb]
+	\centering
+	\includegraphics[width=\columnwidth]{obrazky-figures/rdwr_tests.pdf}
+	\caption{Read and write comparation tests of WinFsp and Dokany. Source:\cite{GitWinFsp}}
+	\label{winfsp_rdwr_tests}
+\end{figure}
+
+\subsection*{Introduction}
+WinFsp i
+
 %=============================================================================================================================
 \chapter{Analysis}
 \label{ch4}
 %=============================================================================================================================
-This chapter will tackle the first step of creating an application, the analysis of received requirements. In this project, the requirements are a non-formal description of the server's REST API the client is supposed to be accessing.
+This chapter will tackle the first step of creating an application, the analysis and steps taken during an analysis of provided documentation, and will introduce required technologies to understand and handle them.
+
+\todo{Include google docs pdf of requriements?}
+
+\section{Required technologies}
+In this project, the provided documentation was received as a non-formal description of the server's REST API the client is supposed to be accessing. As this documentation is written in plain text, it requires proper analysis, understanding of the underlying technologies and formalization into a better format. This section serves as an overview of these technologies.
+
+\subsection*{Hypertext Transfer Protocol}
+The Hypertext Transfer Protocol (HTTP) 
+
+\cite{MozillaHTTP}
+
+\subsection*{Representational State Transfer API}
+The Representational State Transfer (REST) represents an architectural style for distributed multimedia systems. It's a programming style for developing RESTful web services, which allows the developer to take advantage of an existing protocol, HTTP, and conforms at the very least to the most basic REST constraints, as defined by it's creator \textit{Roy Thomas Fielding}:
+
+\begin{itemize}
+    \item \textit{Client-Server} - Separates the client's side and the server's side
+    \item \textit{Stateless} - Each request must contain all necessary information necessary to understand the request
+    \item \textit{Cache} - Requests must be labeled as cacheable or non-cacheable. Improves network efficiency if it is available
+\end{itemize}
+
+These constraints are further extended specifically to address web services:
+\begin{itemize}
+    \item \textit{Uniform Interface} - Increases scalability at the cost of effectivity, uses a single standardized form
+    \item \textit{Layered System} - Architecture composed of hierarchical layers, each component can not access other components beyond the immediate layer with which it is interacting
+    \item \textit{Code-On-Demand} - Allows client functionallity to be extended by downloading and executing code in the form of applets or scripts to improve system exstensibility
+\end{itemize}
+
+The key abstraction of information in REST is a \textit{resource}. A resource can be anything that can be named and might be a potential target of a request, e.g., a document, an image, a data file. Interactions, like manipulating a resource, happen between two parties, as noted by the first constraint, the client and server. If a client requests an operation with a resource, it sends an HTTP requests, where the HTTP method is the type of operation, and the HTTP object path is path to the resource. After processing the request, the server can inform the client about the state of the operation via the HTTP status code in the HTTP response.\cite{RestAPI}
+
+\begin{table}[hbt]
+\centering
+\caption{Examples of REST API requests}
+\label{restapiex}
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Method} & \textbf{Path} & \textbf{Description} \\ \hline
+ GET & /users & Get all users \\ \hline
+ POST & /users/john & Update an user  \\ \hline
+ DELETE & /users/john &  Delete an user \\ \hline
+ PUT & /users & Add an user \\ \hline
+\end{tabular}
+\end{table} 
+
+\subsection*{OpenAPI}
+The OpenAPI Specfication is an API description format for REST APIs. An entire API can be described with just a single file of the OpenAPI format, which supports file formats of either YAML\footnote{A recursive acronym for "YAML Ain't Markup Language"} or JSON\footnote{JavaScript Object Notation}. OpenAPI describes:
+
+\begin{itemize}
+    \item Available endpoints and operations on each endpoint
+    \item Operation parameters, and input/output for each operation
+    \item Authentication methods
+    \item Contact information, terms of use, other information
+\end{itemize}
+
+The OpenAPI format is easily readable by both machines and humans, and many third or first party services provide a way to visualize the API in a graphicall format, i.e., the Swagger Editor\footnote{\url{https://editor.swagger.io/}}.\cite{SwaggerDocs}
+
+
+\begin{lstlisting}[caption={An example of an OpenAPI file in the YAML format}, label=openapiex]
+openapi: 3.0.0 #Version 3.0
+info: #Basic information
+  version: '1.0' 
+  title: An amazing API
+  description: A formal description
+servers: #Server URL for testing
+  - url: 'https://localhost:4443'
+paths: #Endpoint descriptions
+  /ping:
+    get:
+      parameters: [] 
+      description: To test a connection.
+      responses:
+        '204':
+          description: Ping success!
+\end{lstlisting}
+
+\todo{More about openapi, like, basic structure? Probably not necessary tho..}
+
+\section{Formalization}
+The process of formalization, in the context of provided documentation, means creating an OpenAPI spefication, based on the plain text version of the documentation. A formalized specification allows for better readability, understanding, development and testing on the side of the developer. The concrete usage of the formalized specification is covered in chapter \ref{ch6}, for implementing the client and \ref{ch7} for implementing and testing a mock server.
+
+\subsection*{The process}
+
 %=============================================================================================================================
 \chapter{Design}
 \label{ch5}
