@@ -1,6 +1,6 @@
 # VDUClient
 
-![VDUClient UI](https://i.imgur.com/GTul0K3.png)
+![VDUClient UI](https://i.imgur.com/wLT9izo.png)
 
 ## Requirements
 WinFSP 1.8+
