@@ -47,8 +47,6 @@ NTSTATUS CVDUFileSystem::SetPath(PWSTR Path)
     _Path = new WCHAR[Length];
     memcpy(_Path, FullPath, Length * sizeof(WCHAR));
 
-    _CreationTime = ((PLARGE_INTEGER)&CreationTime)->QuadPart;
-
     return STATUS_SUCCESS;
 }
 
@@ -87,7 +85,7 @@ NTSTATUS CVDUFileSystem::Init(PVOID Host0)
     Host->SetPersistentAcls(TRUE);
     Host->SetPostCleanupWhenModifiedOnly(TRUE);
     Host->SetPassQueryDirectoryPattern(TRUE);
-    Host->SetVolumeCreationTime(_CreationTime);
+    Host->SetVolumeCreationTime(0);
     Host->SetVolumeSerialNumber(0x42069);
     Host->SetFlushAndPurgeOnCleanup(TRUE);
     return STATUS_SUCCESS;

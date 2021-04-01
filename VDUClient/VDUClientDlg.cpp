@@ -12,7 +12,7 @@
 #define WM_TRAY_BACKUP_UNSAVED (WM_APP + 5)
 
 // CVDUClientDlg dialog
-CVDUClientDlg::CVDUClientDlg(CWnd* pParent /*=nullptr*/) : CDialogEx(IDD_VDUCLIENT_DIALOG, pParent), m_progressBar(nullptr),
+CVDUClientDlg::CVDUClientDlg(CWnd* pParent /*=nullptr*/) : CDialogEx(IDD_VDUCLIENT_DIALOG, pParent),
 m_trayData{0}, m_trayMenu(NULL)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
@@ -54,9 +54,8 @@ BOOL CVDUClientDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
-	m_progressBar = (CProgressCtrl*)GetDlgItem(IDC_PROGRESSBAR);
-	m_progressBar->SetRange(0, 100);
-	m_progressBar->SetState(PBST_PAUSED);
+	GetProgressBar()->SetRange(0, 100);
+	GetProgressBar()->SetState(PBST_PAUSED);
 
 	//Set up tray icon
 	SecureZeroMemory(&m_trayData, sizeof(m_trayData));

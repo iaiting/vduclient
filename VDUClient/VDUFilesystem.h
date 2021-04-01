@@ -157,7 +157,6 @@ protected:
 private:
 
     PWSTR _Path;
-    UINT64 _CreationTime;
 };
 
 struct VdufsFileDesc

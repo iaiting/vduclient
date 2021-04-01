@@ -33,7 +33,6 @@ protected:
 	HICON m_hIcon;
 	CMenu* m_trayMenu;
 	NOTIFYICONDATA m_trayData;
-	CProgressCtrl* m_progressBar;
 
 	// Generated message map functions
 	virtual BOOL OnInitDialog();
