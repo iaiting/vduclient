@@ -3,11 +3,12 @@
 ![VDUClient UI](https://i.imgur.com/wLT9izo.png)
 
 ## Requirements
+Microsoft Visual C++ Redistributable 2015-2019
 WinFSP 1.8+
 
 ## Installation
 
-1.) Download and install latest WinFSP (http://www.secfs.net/winfsp/rel/)
+1.) Download and install latest WinFSP (http://www.secfs.net/winfsp/rel/) and Visual C++ (https://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0)
 
 2.) Grab a release version of VDUClient and run (Debug version requires Visual Studio debug libraries)
 
