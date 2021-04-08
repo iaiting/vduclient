@@ -244,8 +244,8 @@ NTSTATUS CVDUFileSystem::Create(
 
     //If programs are creating temporary files, hide them from user
     FileAttributes |= FILE_ATTRIBUTE_HIDDEN;
-    //Temporary flag is good because it doesnt save those temporary files on physical disk
-    FileAttributes |= FILE_ATTRIBUTE_TEMPORARY;
+    //Temporary flag is good because it doesnt save those temporary files on physical disk, it might not be always wanted though..
+    //FileAttributes |= FILE_ATTRIBUTE_TEMPORARY;
 
     FileDesc->Handle = CreateFileW(FullPath,
         GrantedAccess, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, &SecurityAttributes,
@@ -255,8 +255,8 @@ NTSTATUS CVDUFileSystem::Create(
         delete FileDesc;
         NTSTATUS result = NtStatusFromWin32(GetLastError());
 
-        //More friendly message, dont create files..
-        if (result == STATUS_OBJECT_NAME_NOT_FOUND)
+        //More friendly message, let user know to not files..
+        if (!NT_SUCCESS(result))
             return STATUS_NOT_SUPPORTED;
 
         return result;
@@ -1389,14 +1389,13 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
 
 INT CVDUFileSystemService::UpdateVDUFile(CVDUFile vdufile, CString newName, BOOL async)
 {
-    CString length;
-    length.Format(_T("%d"), vdufile.m_length);
     CString headers;
     headers += _T("Content-Encoding: ") + vdufile.m_encoding + _T("\r\n");
     headers += _T("Content-Type: ") + vdufile.m_type + _T("\r\n");
     headers += _T("Content-Location: ") + (newName.IsEmpty() ? vdufile.m_name : newName) + _T("\r\n");
-    headers += _T("Content-Length: ") + length + _T("\r\n");
     headers += _T("Content-MD5: ") + CalcFileMD5Base64(vdufile) + _T("\r\n");
+    //headers += _T("Content-Length: ") + length + _T("\r\n");
+    //Note: Content length is added automatically in CVDUConnection when writing out file
 
     //If sync, we wait for this thread to finish to get its exit code
     if (async)

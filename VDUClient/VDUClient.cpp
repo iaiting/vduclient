@@ -17,22 +17,12 @@ BEGIN_MESSAGE_MAP(VDUClient, CWinApp)
 	ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
 END_MESSAGE_MAP()
 
-LPTOP_LEVEL_EXCEPTION_FILTER oldFilter = NULL;
-LONG WINAPI OnUnhandledException(_EXCEPTION_POINTERS* ExceptionInfo)
-{
-	
-	return oldFilter(ExceptionInfo);
-}
-
 // VDUClient construction
 VDUClient::VDUClient() : m_srefThread(nullptr), m_svc(nullptr), m_svcThread(nullptr), m_testMode(FALSE)
 {
-	oldFilter = SetUnhandledExceptionFilter(OnUnhandledException);
-
 	// support Restart Manager
 	m_dwRestartManagerSupportFlags = AFX_RESTART_MANAGER_SUPPORT_RESTART;
 
-	// TODO: add construction code here,
 	// Place all significant initialization in InitInstance
 	m_session = new CVDUSession(_T(""));
 }
@@ -127,10 +117,7 @@ BOOL VDUClient::InitInstance()
 			if (!_tcscmp(arg, _T("-silent")))
 				c_silent = TRUE;
 			else if (!_tcscmp(arg, _T("-testmode")))
-			{
 				m_testMode = TRUE;
-				APP->WriteProfileInt(SECTION_SETTINGS, _T("AutoLogin"), FALSE);
-			}
 		}
 		LocalFree(argv);
 	}
@@ -143,46 +130,42 @@ BOOL VDUClient::InitInstance()
 	//Create worker thread
 	m_srefThread = AfxBeginThread(ThreadProcLoginRefresh, (LPVOID)nullptr);
 
-	CVDUClientDlg* pDlg = new CVDUClientDlg(AfxGetMainWnd());
-	m_pMainWnd = pDlg;
-	if (pDlg->Create(IDD_VDUCLIENT_DIALOG, AfxGetMainWnd()))
+	//Dont create dialog in test mode
+	if (!IsTestMode())
 	{
-		if (IsTestMode())
+		CVDUClientDlg* pDlg = new CVDUClientDlg(AfxGetMainWnd());
+		m_pMainWnd = pDlg;
+		if (pDlg->Create(IDD_VDUCLIENT_DIALOG, AfxGetMainWnd()))
 		{
-			pDlg->ShowWindow(SW_HIDE);
-		}
-		else if (c_silent)
-		{
-			pDlg->ShowWindow(SW_MINIMIZE);
-			pDlg->ShowWindow(SW_HIDE);
+			if (IsTestMode())
+			{
+				pDlg->ShowWindow(SW_HIDE);
+			}
+			else if (c_silent)
+			{
+				pDlg->ShowWindow(SW_MINIMIZE);
+				pDlg->ShowWindow(SW_HIDE);
+			}
+			else
+			{
+				pDlg->ShowWindow(SW_SHOWNORMAL);
+			}
 		}
 		else
 		{
-			pDlg->ShowWindow(SW_SHOWNORMAL);
+			//Failed to create dialog?
+			return FALSE;
 		}
-	}
-	else
-	{
-		//Failed to create dialog?
-		return FALSE;
 	}
 
 	m_svcThread = AfxBeginThread(ThreadProcFilesystemService, (LPVOID)(m_svc = new CVDUFileSystemService(preferredLetter)));
-
-	//TODO: Use this later
-	//ShutdownBlockReasonCreate(WND->GetSafeHwnd(), _T("Please exit the application"));
-
-	// Delete the shell manager created above.
-	/*if (pShellManager != nullptr)
-	{
-		delete pShellManager;
-	}*/
 
 #if !defined(_AFXDLL) && !defined(_AFX_NO_MFC_CONTROLS_IN_DIALOGS)
 	ControlBarCleanUp();
 #endif
 
 	//In test mode we execute input actions and quit with proper code
+#define TESTMODE_ASSERT_ARGC()
 	if (IsTestMode())
 	{
 		int argc;
@@ -206,7 +189,7 @@ BOOL VDUClient::InitInstance()
 					result = GetSession()->Login(user, _T(""), FALSE);
 					if (result != EXIT_SUCCESS)
 					{
-						AfxPostQuitMessage(result);
+						ExitProcess(result);
 						return TRUE;
 					}
 				}
@@ -215,7 +198,7 @@ BOOL VDUClient::InitInstance()
 					result = GetSession()->Logout(FALSE);
 					if (result != EXIT_SUCCESS)
 					{
-						AfxPostQuitMessage(result);
+						ExitProcess(result);
 						return TRUE;
 					}
 				}
@@ -226,7 +209,7 @@ BOOL VDUClient::InitInstance()
 					result = GetSession()->AccessFile(token, FALSE);
 					if (result != EXIT_SUCCESS)
 					{
-						AfxPostQuitMessage(result);
+						ExitProcess(result);
 						return TRUE;
 					}
 				}
@@ -242,7 +225,7 @@ BOOL VDUClient::InitInstance()
 					result = GetFileSystemService()->DeleteVDUFile(vdufile, FALSE);
 					if (result != EXIT_SUCCESS)
 					{
-						AfxPostQuitMessage(result);
+						ExitProcess(result);
 						return TRUE;
 					}
 				}
@@ -256,7 +239,7 @@ BOOL VDUClient::InitInstance()
 					result = GetFileSystemService()->UpdateVDUFile(vdufile, name, FALSE);
 					if (result != EXIT_SUCCESS)
 					{
-						AfxPostQuitMessage(result);
+						ExitProcess(result);
 						return TRUE;
 					}
 				}
@@ -274,12 +257,12 @@ BOOL VDUClient::InitInstance()
 					{
 						if (WriteFile(hFile, text, (DWORD)_tcslen(text) * sizeof(*text), NULL, NULL))
 						{
-							vdufile.m_length = GetFileSize(hFile, NULL);
+							//vdufile.m_length = GetFileSize(hFile, NULL);
 							CloseHandle(hFile);
 							result = GetFileSystemService()->UpdateVDUFile(vdufile, _T(""), FALSE);
 							if (result != EXIT_SUCCESS)
 							{
-								AfxPostQuitMessage(result);
+								ExitProcess(result);
 								return TRUE;
 							}
 							continue;
@@ -290,7 +273,7 @@ BOOL VDUClient::InitInstance()
 						}
 					}
 
-					AfxPostQuitMessage(/*GetLastError()*/EXIT_FAILURE);
+					ExitProcess(/*GetLastError()*/EXIT_FAILURE);
 					return TRUE;
 				}
 			}
@@ -298,7 +281,7 @@ BOOL VDUClient::InitInstance()
 		}
 
 		//Implicit quit after all test actions have been done
-		AfxPostQuitMessage(EXIT_SUCCESS);
+		ExitProcess(EXIT_SUCCESS);
 	}
 
 	return TRUE;
@@ -306,16 +289,6 @@ BOOL VDUClient::InitInstance()
 
 INT VDUClient::ExitInstance()
 {
-	//TODO: Make sure to try to send all changes before natural exit?
-	//ShutdownBlockReasonDestroy(WND->GetSafeHwnd());
-	/*if (auto* svc = GetFileSystemService())
-	{
-		svc->Stop();
-	}*/ //No need to shut down, FSP handles shut down on quit
-	/*if (auto* t = GetSessionRefreshingThread())
-	{
-		t->Delete();
-	}*/
 	if (auto* s = GetSession())
 		if (s->IsLoggedIn())
 			AfxBeginThread(CVDUConnection::ThreadProc,(LPVOID)new CVDUConnection(s->GetServerURL(), VDUAPIType::DELETE_AUTH_KEY));

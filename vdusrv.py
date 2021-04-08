@@ -1,25 +1,23 @@
 import os, ssl, http.server, time, random, hashlib, base64, mimetypes, json
 thispath = os.path.dirname(os.path.realpath(__file__))
 
-#Server fake response delay, seconds
-FAKE_RESPONSE_DELAY = 0
 #File chunk read delay, seconds
 FILE_CHUNK_READ_DELAY = 0
-#Api key expiration time, seconds
+#Api key / file token expiration time, seconds
 KEY_EXPIRATION_TIME = 120
 #Probability that file request will time out (for testing)
-TIMEOUT_PROBABILITY = 0.01
+TIMEOUT_PROBABILITY = 0
 
 #Current list of users who can generate keys, 
 Users = ["test@example.com", "john"]
 #Active file tokens for request testing
 #You can add this with a program or manually, just for testing
 FileTokens = {
-    "a" : {"Path" : thispath + "\\TestFiles\\lidl.txt", "ETag": "1", "Expires":0},
-    "b" : {"Path" : thispath + "\\TestFiles\\lidl.zip", "ETag": "1", "Expires":0},
-    "c" : {"Path" : thispath + "\\TestFiles\\obrazok.png", "ETag": "1", "Expires":0},
+    "a" : {"Path" : thispath + "\\TestFiles\\plain.txt", "ETag": "1", "Expires":0},
+    "b" : {"Path" : thispath + "\\TestFiles\\compressed.zip", "ETag": "1", "Expires":0},
+    "c" : {"Path" : thispath + "\\TestFiles\\image.png", "ETag": "1", "Expires":0},
     "d" : {"Path" : thispath + "\\TestFiles\\hugefile.bin", "ETag": "1", "Expires":0},
-    "e" : {"Path" : thispath + "\\TestFiles\\random.py", "ETag": "1", "Expires":0}, 
+    "e" : {"Path" : thispath + "\\TestFiles\\rand.py", "ETag": "1", "Expires":0}, 
     "f" : {"Path" : thispath + "\\TestFiles\\document.docx", "ETag": "1", "Expires":0}, 
     }
 #Current valid api keys, will be generated on user login
@@ -50,10 +48,7 @@ def GenerateRandomToken(duplicateCheckDict = None):
 
 class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        global ApiKeys, Users, KEY_EXPIRATION_TIME, FAKE_RESPONSE_DELAY, FileTokens
-        
-        if (FAKE_RESPONSE_DELAY > 0):
-            time.sleep(FAKE_RESPONSE_DELAY)
+        global ApiKeys, Users, KEY_EXPIRATION_TIME, FileTokens
 
         if (self.path == "/ping"):
             self.send_response_only(204)
@@ -132,10 +127,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                             f.close()
                 
     def do_POST(self):
-        global ApiKeys, Users, KEY_EXPIRATION_TIME, FAKE_RESPONSE_DELAY, FileTokens
-        
-        if (FAKE_RESPONSE_DELAY > 0):
-            time.sleep(FAKE_RESPONSE_DELAY)
+        global ApiKeys, Users, KEY_EXPIRATION_TIME, FileTokens
         
         contentLen = int(self.headers.get("Content-Length"))
 
@@ -199,27 +191,28 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                         fpath = filedirpath + "\\" + newFileName
                         finst["Path"] = fpath
 
-                    #Write new contents
-                    try:
-                        with open(fpath, "wb") as f:
-                            f.write(self.rfile.read(contentLen))
-                            f.close()
-                    except:
-                        self.send_response_only(409)
-                        self.end_headers()
-                        Log("POST %s From:%s (409)" % (self.path, ApiKeys[apiKey]["User"]))
-                        return
-
+                    #Make sure md5 hash is matching
                     calculatedMD5 = base64.b64encode(FileMD5(fpath)).decode("utf-8")
                     receivedMD5 = self.headers.get("Content-MD5")
                     if (calculatedMD5 != receivedMD5):
-                        Log("MD5 mismatch!!")
+                        #Write new contents
+                        try:
+                            with open(fpath, "wb") as f:
+                                f.write(self.rfile.read(contentLen))
+                                f.close()
+                        except:
+                            self.send_response_only(409)
+                            self.end_headers()
+                            Log("POST %s From:%s (409)" % (self.path, ApiKeys[apiKey]["User"]))
+                            return
 
+                    #Size should be matching as well
                     fstat = os.stat(fpath)
                     newSize = int(self.headers.get("Content-Length"))
                     if (newSize != fstat.st_size):
                         Log("Length mismatch!!")
 
+                    #Mime type check
                     mimeType = mimetypes.guess_type(fpath)
                     newEncoding = self.headers.get("Content-Encoding")
                     newType = self.headers.get("Content-Type")
@@ -229,6 +222,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     if (str(mimeType[0]) != newType):
                         Log("Type mismatch!!!")
 
+                    #Increase version
                     finst["ETag"] = str(int(finst["ETag"]) + 1)
 
                     #A case for sending 205 response, if send after expiration date
@@ -252,10 +246,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     return
     
     def do_DELETE(self):
-        global ApiKeys, Users, KEY_EXPIRATION_TIME, FAKE_RESPONSE_DELAY, FileTokens
-
-        if (FAKE_RESPONSE_DELAY > 0):
-            time.sleep(FAKE_RESPONSE_DELAY)
+        global ApiKeys, Users, KEY_EXPIRATION_TIME, FileTokens
         
         if (self.path == "/auth/key"):
             apiKey = self.headers.get("X-Api-Key")

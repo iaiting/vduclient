@@ -4,7 +4,7 @@ vduclient = thispath + "\\x64\\Release\\VDUClient.exe "
 
 #===============================================
 #Settings
-LOG_SERVER = False
+LOG_SERVER = False #Whether or not to log server messages in output
 #===============================================
 # Action list
 # 
@@ -17,10 +17,6 @@ LOG_SERVER = False
 # -write [token] [text]     Writes text to a file
 # 
 
-def dump(r):
-    s = json.dumps(r, indent=4, sort_keys=True)
-    print(s)
-
 def Log(msg):
     print(("[%s] " + str(msg)) % time.strftime('%H:%M:%S'))
 
@@ -29,7 +25,7 @@ EXIT_FAILURE = 1
 #Array of tests
 #Each test is the name, the instructions of test and expected exit code
 Tests = [
-    ["server_bad", "-server 0.0.0.0 -user john", EXIT_FAILURE],
+    ["server_bad", "-server 0.0.0.0:4443 -user john", EXIT_FAILURE],
     ["login_ok", "-user john", EXIT_SUCCESS], #Simple login test, can we login under this name?
     ["login_bad", "-user alex", EXIT_FAILURE], #This user does not exist
     ["logout_ok", "-user john -logout", EXIT_SUCCESS],
@@ -41,7 +37,7 @@ Tests = [
     ["thetwotime", "-user john -accessfile d -deletefile d -accessfile d -deletefile d", EXIT_SUCCESS],
     ["tworeqs", "-user john -accessfile b -accessfile b", EXIT_FAILURE], #File already exists, fails
     ["allfiles", "-user john -accessfile a -accessfile b -accessfile c -accessfile d -accessfile e -accessfile f", EXIT_SUCCESS],
-    ["rename_bf", "-user john -accessfile a -rename a test.txt -deletefile a -accessfile a -rename a lidl.txt -deletefile a", EXIT_SUCCESS],
+    ["rename_bf", "-user john -accessfile a -rename a test.txt -deletefile a -accessfile a -rename a plain.txt -deletefile a", EXIT_SUCCESS],
     ["rename_ne", "-user john -rename c test", EXIT_FAILURE], #Rename non existent file
     ["write_ok", "-user john -accessfile a -write a Testing_Writing_Works -deletefile a", EXIT_SUCCESS],
     ["write_ne", "-user john -write a Testing_Not_Working -deletefile a", EXIT_FAILURE],
@@ -54,7 +50,7 @@ else:
     pserver = subprocess.Popen(["python", thispath + "\\vdusrv.py"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
 #Add base actions to set test mode and set our local server
-vduclient += "-testmode -server 127.0.0.1 "
+vduclient += "-testmode -server 127.0.0.1:4443 "
 
 for test in Tests:
     testName = test[0]

@@ -67,15 +67,15 @@ INT CVDUConnection::Process()
 	httpObjectPath += apiPath;
 	httpObjectPath += m_parameter;
 
+	CString serverURL, httpObj;
+	DWORD service;
 	INTERNET_PORT port = INTERNET_DEFAULT_HTTPS_PORT;
-#if defined(_DEBUG) || defined(ALLOW_DEBUG_SERVER)  //If debug server
-	if (m_serverURL == _T("127.0.0.1") || m_serverURL.Left(3) == _T("172"))
-		port = 4443;
-#endif
 
-	//Empty URL causes exception
-	if (m_serverURL.IsEmpty())
-		return EXIT_FAILURE;
+	//Implicit https if only ip is input
+	if (m_serverURL.Find(_T("://")) == -1)
+		m_serverURL = _T("https://") + m_serverURL;
+
+	AfxParseURL(m_serverURL, service, serverURL, httpObj, port);
 
 	//Lock the session if this connection has a callback, it will then be responsibile for unlocking
 	if (m_callback != nullptr)
@@ -83,41 +83,42 @@ INT CVDUConnection::Process()
 		VDU_SESSION_LOCK;
 	}
 
-	CHttpConnection* con = inetsession.GetHttpConnection(m_serverURL, port, NULL, NULL);
-	CHttpFile* pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL,
-		INTERNET_FLAG_SECURE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_DONT_CACHE
-#if defined(_DEBUG) || defined(ALLOW_DEBUG_SERVER) //Ignores certificates in debug mode
-		| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
-	DWORD opt;
-	pFile->QueryOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
-	opt |= SECURITY_SET_MASK;
-	pFile->SetOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
-#else 
-		);
-#endif
-	//Enable gzip, deflate decoding
-	//pFile->SetOption(INTERNET_OPTION_HTTP_DECODING, TRUE);
-
-	//For every other API, transactions need to be done one after the other
-	//And for that reason, auth token is filled in last, in order to be sure its up to date
-	if (m_type != VDUAPIType::GET_PING && !APP->GetSession()->GetAuthToken().IsEmpty())
-	{
-		CString headers;
-		headers += APIKEY_HEADER;
-		headers += _T(": ");
-		headers += APP->GetSession()->GetAuthToken();
-		headers += _T("\r\n");
-		m_requestHeaders += headers;
-	}
-
-	if (!m_requestHeaders.IsEmpty())
-		pFile->AddRequestHeaders(m_requestHeaders);
 
 	INT result = EXIT_SUCCESS;
-	//HANDLE hFile = INVALID_HANDLE_VALUE;
-
+	CHttpConnection* con = NULL;
+	CHttpFile* pFile = NULL;
 	TRY
 	{
+		con = inetsession.GetHttpConnection(serverURL, port, NULL, NULL);
+		pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL,
+			INTERNET_FLAG_SECURE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_DONT_CACHE
+	#if defined(_DEBUG) || defined(ALLOW_DEBUG_SERVER) //Ignores certificates in debug mode
+			| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
+		DWORD opt;
+		pFile->QueryOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
+		opt |= SECURITY_SET_MASK;
+		pFile->SetOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
+	#else 
+			);
+	#endif
+		//Enable gzip, deflate decoding
+		//pFile->SetOption(INTERNET_OPTION_HTTP_DECODING, TRUE);
+
+		//For every other API, transactions need to be done one after the other
+		//And for that reason, auth token is filled in last, in order to be sure its up to date
+		if (m_type != VDUAPIType::GET_PING && !APP->GetSession()->GetAuthToken().IsEmpty())
+		{
+			CString headers;
+			headers += APIKEY_HEADER;
+			headers += _T(": ");
+			headers += APP->GetSession()->GetAuthToken();
+			headers += _T("\r\n");
+			m_requestHeaders += headers;
+		}
+
+		if (!m_requestHeaders.IsEmpty())
+			pFile->AddRequestHeaders(m_requestHeaders);
+	
 		if (m_contentFile.IsEmpty())
 		{
 			pFile->SendRequest();
@@ -131,7 +132,7 @@ INT CVDUConnection::Process()
 
 			pFile->SendRequestEx((DWORD)writeLen);
 
-			BYTE* buf[0x400];
+			BYTE buf[0x400];
 			UINT readLen;
 			while ((readLen = stdf.Read(buf, ARRAYSIZE(buf))) > 0)
 			{
