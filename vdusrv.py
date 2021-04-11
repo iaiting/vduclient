@@ -1,4 +1,4 @@
-import os, ssl, http.server, time, random, hashlib, base64, mimetypes, json
+import os, ssl, http.server, time, random, hashlib, base64, mimetypes
 thispath = os.path.dirname(os.path.realpath(__file__))
 
 #File chunk read delay, seconds
@@ -22,10 +22,6 @@ FileTokens = {
     }
 #Current valid api keys, will be generated on user login
 ApiKeys = {}
-
-def dump(r):
-    s = json.dumps(r, indent=4, sort_keys=True)
-    print(s)
 
 def Log(msg):
     print(("[%s] [SERVER] " + str(msg)) % time.strftime('%H:%M:%S'))
