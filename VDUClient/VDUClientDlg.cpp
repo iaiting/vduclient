@@ -15,7 +15,7 @@
 CVDUClientDlg::CVDUClientDlg(CWnd* pParent /*=nullptr*/) : CDialogEx(IDD_VDUCLIENT_DIALOG, pParent),
 m_trayData{0}, m_trayMenu(NULL)
 {
-	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	m_hIcon = APP->LoadIcon(IDR_MAINFRAME);
 }
 
 void CVDUClientDlg::DoDataExchange(CDataExchange* pDX)
@@ -38,7 +38,7 @@ BEGIN_MESSAGE_MAP(CVDUClientDlg, CDialogEx)
 	ON_EN_CHANGE(IDC_USERNAME, &CVDUClientDlg::OnEnChangeUsername)
 	ON_CBN_SELCHANGE(IDC_COMBO_DRIVELETTER, &CVDUClientDlg::OnCbnSelchangeComboDriveletter)
 	ON_BN_CLICKED(IDC_CHECK_CERTIFICATE, &CVDUClientDlg::OnBnClickedCheckCertificate)
-	ON_BN_CLICKED(IDC_BUTTON_PING, &CVDUClientDlg::OnBnClickedPingbutton)
+	ON_BN_CLICKED(IDC_BUTTON_PING, &CVDUClientDlg::OnBnClickedPing)
 	ON_BN_CLICKED(IDC_BUTTON_CERTSELECT, &CVDUClientDlg::OnBnClickedButtonCertselect)
 	ON_BN_CLICKED(IDC_ACCESS_FILE, &CVDUClientDlg::OnBnClickedAccessFile)
 	ON_EN_SETFOCUS(IDC_FILE_TOKEN, &CVDUClientDlg::OnEnSetfocusFileToken)
@@ -373,19 +373,14 @@ BOOL CVDUClientDlg::TrayNotify(CString szTitle, CString szText, SHSTOCKICONID si
 
 void CVDUClientDlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
-	if ((nID & 0xFFF0) == SC_MINIMIZE)
+	if ((nID & 0xFFF0) == SC_CLOSE)
 	{
-		AfxGetMainWnd()->ShowWindow(SW_MINIMIZE);
+		ShowWindow(SW_MINIMIZE);
+		ShowWindow(SW_HIDE);
+		return;
 	}
-	else if ((nID & 0xFFF0) == SC_CLOSE)
-	{
-		AfxGetMainWnd()->ShowWindow(SW_MINIMIZE);
-		AfxGetMainWnd()->ShowWindow(SW_HIDE);
-	}
-	else
-	{
-		CDialogEx::OnSysCommand(nID, lParam);
-	}
+
+	CDialogEx::OnSysCommand(nID, lParam);
 }
 
 void CVDUClientDlg::OnPaint()
@@ -453,18 +448,18 @@ LRESULT CVDUClientDlg::OnTrayEvent(WPARAM wParam, LPARAM lParam)
 		{
 			if (IsIconic())
 			{
-				AfxGetMainWnd()->ShowWindow(SW_RESTORE);
+				ShowWindow(SW_RESTORE);
 			}
-			AfxGetMainWnd()->SetForegroundWindow();
+			SetForegroundWindow();
 			break;
 		}
 		case WM_RBUTTONUP:
 		{
 			POINT curPoint;
 			GetCursorPos(&curPoint);
-			AfxGetMainWnd()->SetForegroundWindow();
+			SetForegroundWindow();
 			m_trayMenu->TrackPopupMenu(GetSystemMetrics(SM_MENUDROPALIGNMENT), curPoint.x, curPoint.y, this);
-			AfxGetMainWnd()->PostMessage(WM_NULL, 0, 0);
+			PostMessage(WM_NULL, 0, 0);
 			break;
 		}
 	}
@@ -525,7 +520,7 @@ void CVDUClientDlg::OnEnChangeServerAddress()
 
 	m_server = serverAddr;
 
-	AfxGetApp()->WriteProfileString(SECTION_SETTINGS, _T("LastServerAddress"), m_server);
+	APP->WriteProfileString(SECTION_SETTINGS, _T("LastServerAddress"), m_server);
 
 	if (!m_server.IsEmpty())
 	{
@@ -567,6 +562,9 @@ void CVDUClientDlg::OnBnClickedButtonLogin()
 
 	//VDU_SESSION_UNLOCK;
 
+
+	((CEdit*)GetDlgItem(IDC_SERVER_ADDRESS))->SetSel(-1, FALSE);
+	((CEdit*)GetDlgItem(IDC_USERNAME))->SetSel(-1, FALSE);
 	GetDlgItem(IDC_BUTTON_LOGIN)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BUTTON_PING)->EnableWindow(FALSE);
 	GetDlgItem(IDC_SERVER_ADDRESS)->EnableWindow(FALSE);
@@ -612,7 +610,7 @@ void CVDUClientDlg::OnCbnSelchangeComboDriveletter()
 		APP->GetFileSystemService()->Remount(letter);
 }
 
-void CVDUClientDlg::OnBnClickedPingbutton()
+void CVDUClientDlg::OnBnClickedPing()
 {
 	TryPing();
 	GetDlgItem(IDC_BUTTON_PING)->EnableWindow(FALSE);

@@ -70,8 +70,6 @@ BOOL VDUClient::InitInstance()
 	// visual styles.  Otherwise, any window creation will fail.
 	INITCOMMONCONTROLSEX InitCtrls;
 	InitCtrls.dwSize = sizeof(InitCtrls);
-	// Set this to include all the common control classes you want to use
-	// in your application.
 	InitCtrls.dwICC = ICC_WIN95_CLASSES;
 	InitCommonControlsEx(&InitCtrls);
 
@@ -87,12 +85,6 @@ BOOL VDUClient::InitInstance()
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
 
 	// Standard initialization
-	// If you are not using these features and wish to reduce the size
-	// of your final executable, you should remove from the following
-	// the specific initialization routines you do not need
-	// Change the registry key under which our settings are stored
-	// TODO: You should modify this string to be something appropriate
-	// such as the name of your company or organization
 	SetRegistryKey(VFSNAME);
 
 	//Check if WinFSP is installed on the system
@@ -133,7 +125,7 @@ BOOL VDUClient::InitInstance()
 	//Dont create dialog in test mode
 	if (!IsTestMode())
 	{
-		CVDUClientDlg* pDlg = new CVDUClientDlg(AfxGetMainWnd());
+		CVDUClientDlg* pDlg = new CVDUClientDlg();
 		m_pMainWnd = pDlg;
 		if (pDlg->Create(IDD_VDUCLIENT_DIALOG, AfxGetMainWnd()))
 		{
@@ -165,7 +157,6 @@ BOOL VDUClient::InitInstance()
 #endif
 
 	//In test mode we execute input actions and quit with proper code
-#define TESTMODE_ASSERT_ARGC()
 	if (IsTestMode())
 	{
 		int argc;
@@ -178,12 +169,14 @@ BOOL VDUClient::InitInstance()
 
 				if (!_tcscmp(arg, _T("-server")))
 				{
+					TESTMODE_ASSERT_ARGC(argc, i);
 					LPWSTR server = argv[++i];//TODO: Fix crash 
 
 					GetSession()->Reset(server);
 				}
 				else if (!_tcscmp(arg, _T("-user")))
 				{
+					TESTMODE_ASSERT_ARGC(argc, i);
 					LPWSTR user = argv[++i];
 
 					result = GetSession()->Login(user, _T(""), FALSE);
@@ -204,6 +197,7 @@ BOOL VDUClient::InitInstance()
 				}
 				else if (!_tcscmp(arg, _T("-accessfile")))
 				{
+					TESTMODE_ASSERT_ARGC(argc, i);
 					LPWSTR token = argv[++i];
 
 					result = GetSession()->AccessFile(token, FALSE);
@@ -215,6 +209,7 @@ BOOL VDUClient::InitInstance()
 				}
 				else if (!_tcscmp(arg, _T("-deletefile")))
 				{
+					TESTMODE_ASSERT_ARGC(argc, i);
 					LPWSTR token = argv[++i];
 
 					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
@@ -231,6 +226,7 @@ BOOL VDUClient::InitInstance()
 				}
 				else if (!_tcscmp(arg, _T("-rename")))
 				{
+					TESTMODE_ASSERT_ARGC(argc, i + 1);
 					LPWSTR token = argv[++i];
 					LPWSTR name = argv[++i];
 
@@ -245,6 +241,7 @@ BOOL VDUClient::InitInstance()
 				}
 				else if (!_tcscmp(arg, _T("-write")))
 				{
+					TESTMODE_ASSERT_ARGC(argc, i + 1);
 					LPWSTR token = argv[++i];
 					LPWSTR text = argv[++i];
 

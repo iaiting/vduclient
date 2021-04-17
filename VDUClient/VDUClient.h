@@ -26,6 +26,9 @@
 DWORD resumeResult = pWinThread->ResumeThread();if (resumeResult != 0xFFFFFFFF) WaitForSingleObject(pWinThread->m_hThread, INFINITE); \
 GetExitCodeThread(pWinThread->m_hThread, &out_exitCode);delete pWinThread;
 
+//Assert that there are enough parameters
+#define TESTMODE_ASSERT_ARGC(argc, i) if (i + 1 >= argc) {ASSERT(FALSE), ExitProcess(2);}
+
 class CVDUFileSystemService;
 class CVDUSession;
 

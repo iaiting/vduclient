@@ -1124,7 +1124,6 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
         GUID guid;
         if (CoCreateGuid(&guid) != S_OK)
         {
-            fail(_T("Cannot create GUID")); //TODO: Only one fail?
             AfxMessageBox(_T("Cannot create GUID."), MB_ICONERROR);
             AfxPostQuitMessage(EXIT_FAILURE);
             return STATUS_UNSUCCESSFUL;
@@ -1132,7 +1131,7 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
 
         if (StringFromGUID2(guid, PathBuf, ARRAYSIZE(PathBuf)) <= 0)
         {
-            fail(_T("Cannot create random string"));
+            AfxMessageBox(_T("Cannot create random string"), MB_ICONERROR);
             AfxPostQuitMessage(EXIT_FAILURE);
             return STATUS_UNSUCCESSFUL;
         }
@@ -1170,7 +1169,8 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     Result = m_fs.SetPath(PathBuf);
     if (!NT_SUCCESS(Result))
     {
-        fail(_T("cannot create file system"));
+        AfxMessageBox(_T("Cannot create file system"), MB_ICONERROR);
+        AfxPostQuitMessage(EXIT_FAILURE);
         return Result;
     }
 
@@ -1180,7 +1180,8 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     Result = m_host.Mount(m_driveLetter);
     if (!NT_SUCCESS(Result))
     {
-        fail(_T("cannot mount file system"));
+        AfxMessageBox(_T("Cannot mount file system"), MB_ICONERROR);
+        AfxPostQuitMessage(EXIT_FAILURE);
         return Result;
     }
 
@@ -1214,7 +1215,6 @@ CString CVDUFileSystemService::CalcFileMD5Base64(CVDUFile file)
 
     if (hFile == INVALID_HANDLE_VALUE)
     {
-        DWORD lastError = GetLastError();
         return finalHash;
     }
 
@@ -1351,7 +1351,7 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
 
     if (!APP->IsTestMode())
     {
-        WND->GetProgressBar()->SetState(PBST_PAUSED);
+        WND->GetProgressBar()->SetState(PBST_NORMAL);
         WND->GetProgressBar()->SetPos(0);
         WND->UpdateStatus();
     }

@@ -83,7 +83,7 @@ public:
 	afx_msg void OnEnChangeUsername();
 	afx_msg void OnBnClickedCheckCertificate();
 	afx_msg void OnCbnSelchangeComboDriveletter();
-	afx_msg void OnBnClickedPingbutton();
+	afx_msg void OnBnClickedPing();
 	afx_msg void OnBnClickedButtonCertselect();
 	afx_msg void OnBnClickedAccessFile();
 	afx_msg void OnEnSetfocusFileToken();

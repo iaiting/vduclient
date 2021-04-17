@@ -23,9 +23,6 @@
 #define PROGNAME                        "vdufs"
 #define ALLOCATION_UNIT                 4096
 #define FULLPATH_SIZE                   (MAX_PATH + FSP_FSCTL_TRANSACT_PATH_SIZEMAX / sizeof(WCHAR))
-#define info(format, ...)               Service::Log(EVENTLOG_INFORMATION_TYPE, (PWSTR)format, __VA_ARGS__)
-#define warn(format, ...)               Service::Log(EVENTLOG_WARNING_TYPE, (PWSTR)format, __VA_ARGS__)
-#define fail(format, ...)               Service::Log(EVENTLOG_ERROR_TYPE,(PWSTR)format, __VA_ARGS__)
 #define ConcatPath(FN, FP)              (0 == StringCbPrintf(FP, sizeof FP, _T("%s%s"), _Path, FN))
 #define HandleFromFileDesc(FD)          ((VdufsFileDesc *)(FD))->Handle
 
