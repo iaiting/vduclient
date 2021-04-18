@@ -15,9 +15,13 @@
 #include "VDUFile.h"
 #include "VDUClient.h"
 
+//Disable the use of Windows internals
+//#define NO_WINTERNL
+
 #ifdef _DEBUG
 #include <ctime>
-//#define DEBUG_PRINT_FILESYSTEM_CALLS //Should print fn calls of filesystem
+//Print fn calls of filesystem in a console window
+#define DEBUG_PRINT_FILESYSTEM_CALLS //Print fn calls of filesystem in a console window
 #endif
 
 #define PROGNAME                        "vdufs"

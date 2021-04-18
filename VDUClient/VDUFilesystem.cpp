@@ -116,11 +116,12 @@ NTSTATUS CVDUFileSystem::GetVolumeInfo(VolumeInfo* VolumeInfo)
     {
         do
         {
-            VolumeInfo->TotalSize += ((UINT64)FindFileData.nFileSizeHigh << 32) | (UINT64)FindFileData.nFileSizeLow;
+            VolumeInfo->FreeSize += ((UINT64)FindFileData.nFileSizeHigh << 32) | (UINT64)FindFileData.nFileSizeLow;
         } while (FindNextFile(hFind, &FindFileData));
     }
 
-    VolumeInfo->FreeSize = VolumeInfo->TotalSize * 2;
+    VolumeInfo->TotalSize = VolumeInfo->FreeSize == 0 ? 0 : max(VolumeInfo->FreeSize, 0x2000) * 3;
+    VolumeInfo->FreeSize = VolumeInfo->TotalSize - VolumeInfo->FreeSize;
 
     return STATUS_SUCCESS;
 }
@@ -240,12 +241,20 @@ NTSTATUS CVDUFileSystem::Create(
         return STATUS_NOT_SUPPORTED;
     }
     else
+    {
         FileAttributes &= ~FILE_ATTRIBUTE_DIRECTORY;
+    }
 
-    //If programs are creating temporary files, hide them from user
-    FileAttributes |= FILE_ATTRIBUTE_HIDDEN;
-    //Temporary flag is good because it doesnt save those temporary files on physical disk, it might not be always wanted though..
-    //FileAttributes |= FILE_ATTRIBUTE_TEMPORARY;
+    //If programs are creating temporary files, hide them from user; force VDU files to show
+    CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(PathFindFileName(FileName));
+    if (vdufile.IsValid())
+    {
+        FileAttributes &= ~FILE_ATTRIBUTE_HIDDEN;
+    }
+    else
+    {
+        FileAttributes |= FILE_ATTRIBUTE_HIDDEN;
+    }
 
     FileDesc->Handle = CreateFileW(FullPath,
         GrantedAccess, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, &SecurityAttributes,
@@ -309,7 +318,7 @@ NTSTATUS CVDUFileSystem::Open(
             if (newMd5b64 != vdufile.m_md5base64)
             {
                 //vdufile.m_md5base64 = newMd5b64;
-                APP->GetFileSystemService()->UpdateVDUFile(vdufile);
+                APP->GetFileSystemService()->UpdateVDUFile(vdufile, _T(""), FALSE);
             }
             APP->GetFileSystemService()->DeleteVDUFile(vdufile);
             //delete FileDesc;
@@ -321,10 +330,12 @@ NTSTATUS CVDUFileSystem::Open(
     if (vdufile.IsValid())
     {
         if (!vdufile.m_canWrite &&
-            (GrantedAccess & GENERIC_WRITE || GrantedAccess & WRITE_DAC || GrantedAccess & WRITE_OWNER || GrantedAccess & FILE_APPEND_DATA || GrantedAccess & FILE_WRITE_DATA))
+               (GrantedAccess & GENERIC_WRITE || GrantedAccess & WRITE_DAC ||
+                GrantedAccess & WRITE_OWNER || GrantedAccess & FILE_APPEND_DATA ||
+                GrantedAccess & FILE_WRITE_DATA))
         {
             //You dont have rights for this access to VDU file
-            return STATUS_ACCESS_DENIED;
+            return STATUS_MARKED_TO_DISALLOW_WRITES;
         }
     }
 
@@ -413,37 +424,6 @@ VOID CVDUFileSystem::Cleanup(
 
     HANDLE Handle = HandleFromFileDesc(FileDesc);
 
-    if (Flags & CleanupSetLastWriteTime || Flags & CleanupSetChangeTime)
-    {
-        WCHAR FullPath[FULLPATH_SIZE];
-        ULONG Length = GetFinalPathNameByHandle(HandleFromFileDesc(FileDesc), FullPath, ARRAYSIZE(FullPath) - 1, 0);
-        FullPath[Length] = '\0';
-
-        CString fname = PathFindFileName(FullPath);
-
-        CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(fname);
-        if (vdufile.IsValid())
-        {
-            //Get file size, calculate hash, and try updating
-            HANDLE hFile = CreateFile(FullPath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-            if (hFile != INVALID_HANDLE_VALUE)
-            {
-                vdufile.m_length = GetFileSize(hFile, NULL);
-                CloseHandle(hFile);
-
-                //NOTE: Ignoring first clean up, data is written after second
-                if (vdufile.m_length > 0)
-                {
-                    CString newMd5b64 = APP->GetFileSystemService()->CalcFileMD5Base64(vdufile);
-                    if (newMd5b64 != vdufile.m_md5base64)
-                    {
-                        //vdufile.m_md5base64 = newMd5b64;
-                        APP->GetFileSystemService()->UpdateVDUFile(vdufile);
-                    }
-                }
-            }
-        }
-    }
     if (Flags & CleanupDelete)
     {
         CloseHandle(Handle);
@@ -468,7 +448,79 @@ VOID CVDUFileSystem::Close(
 
     VdufsFileDesc* FileDesc = (VdufsFileDesc*)FileDesc0;
 
+    WCHAR FullPath[FULLPATH_SIZE];
+    ULONG Length = GetFinalPathNameByHandle(HandleFromFileDesc(FileDesc), FullPath, ARRAYSIZE(FullPath) - 1, 0);
+    FullPath[Length] = '\0';
+
+    CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(PathFindFileName(FullPath));
+
+    BOOL handleHasWriteRights = TRUE;
+
+#ifndef NO_WINTERNL
+    //From documentation of NtQueryobject
+    //https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryobject
+    typedef struct _PUBLIC_OBJECT_BASIC_INFORMATION {
+        ULONG Attributes;
+        ACCESS_MASK GrantedAccess;
+        ULONG HandleCount;
+        ULONG PointerCount;
+        ULONG Reserved[10];    // reserved for internal use
+    } PUBLIC_OBJECT_BASIC_INFORMATION, *PPUBLIC_OBJECT_BASIC_INFORMATION;
+
+    //Prototype of NtQueryObject
+    typedef NTSTATUS (NTAPI* NtQueryObjectFn)(HANDLE Handle, DWORD ObjectInformationClass,
+        PVOID ObjectInformation,ULONG ObjectInformationLength, PULONG ReturnLength);
+
+    static NtQueryObjectFn NtQueryObject = NULL;
+    //Find the function in ntdll.dll
+    if (!NtQueryObject)
+    {
+        HMODULE ntdll = LoadLibrary(_T("ntdll.dll"));
+        if (ntdll != NULL)
+            NtQueryObject = (NtQueryObjectFn) GetProcAddress(ntdll, "NtQueryObject");
+    }
+
+    //Query the handle basic information
+    PUBLIC_OBJECT_BASIC_INFORMATION pobi;
+    if (vdufile.IsValid() && NtQueryObject &&
+        NT_SUCCESS(NtQueryObject(FileDesc->Handle, ObjectBasicInformation, &pobi, sizeof(pobi), 0)))
+    {
+        handleHasWriteRights = FALSE;
+
+        ACCESS_MASK GrantedAccess = pobi.GrantedAccess;
+        if (GrantedAccess & GENERIC_WRITE || GrantedAccess & FILE_APPEND_DATA ||
+            GrantedAccess & FILE_WRITE_DATA)
+        {
+            handleHasWriteRights = TRUE;
+        }
+    }
+#endif
+
+    //Free the original handle
     delete FileDesc;
+
+    //Attempt to check if the file has been changed
+    if (vdufile.IsValid() && handleHasWriteRights)
+    {
+        //If the file is no longer in use by any application, we can get full access and see if it has changed
+        HANDLE hFile = CreateFile(FullPath, FILE_ALL_ACCESS, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+        if (hFile != INVALID_HANDLE_VALUE)
+        {
+            DWORD fileSizeLow = GetFileSize(hFile, NULL);
+
+            CloseHandle(hFile);
+
+            //NOTE: Some file operations set the length
+            if (fileSizeLow > 0)
+            {
+                CString newMd5b64 = APP->GetFileSystemService()->CalcFileMD5Base64(vdufile);
+                if (newMd5b64 != vdufile.m_md5base64)//If MD5 doesnt match
+                {
+                    APP->GetFileSystemService()->UpdateVDUFile(vdufile);
+                }
+            }
+        }
+    }
 }
 
 NTSTATUS CVDUFileSystem::Read(
@@ -694,8 +746,8 @@ NTSTATUS CVDUFileSystem::CanDelete(
     CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(fname);
     if (vdufile.IsValid())
     {
-        //VDU Files are not deletable
-        return STATUS_UNSUCCESSFUL;
+        //VDU Files are not deletable, prevent programs from trying to handle them like they are
+        return STATUS_OPERATION_NOT_SUPPORTED_IN_TRANSACTION;
     }
 
     HANDLE Handle = HandleFromFileDesc(FileDesc);
@@ -734,11 +786,17 @@ NTSTATUS CVDUFileSystem::Rename(
     if (!ConcatPath(NewFileName, NewFullPath))
         return STATUS_OBJECT_NAME_INVALID;
 
-    CString oldname = PathFindFileName(FileName);
-    CString newname = PathFindFileName(NewFileName);
+    CString oldname = PathFindFileName(FullPath);
+    CString newname = PathFindFileName(NewFullPath);
 
     //We handle renaming by requesting it from the server and waiting. 
     CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(oldname);
+
+    //Not allowed if cant write
+    if (vdufile.IsValid() && !vdufile.m_canWrite)
+    {
+        return STATUS_MARKED_TO_DISALLOW_WRITES; //STATUS_WMI_READ_ONLY is a good alternative
+    }
 
     //Explanation for ReplaceIfExists:
     //  Some editors save files by creating a new temporary file with saved content, and renaming the old one
@@ -755,6 +813,12 @@ NTSTATUS CVDUFileSystem::Rename(
 
         if (result != EXIT_SUCCESS)
             return STATUS_UNSUCCESSFUL;
+    }
+
+    //Force remove hidden flag for renaming operations on the VDU file
+    if (APP->GetFileSystemService()->GetVDUFileByName(newname).IsValid())
+    {
+        SetFileAttributes(FullPath, GetFileAttributes(FullPath) & ~FILE_ATTRIBUTE_HIDDEN);
     }
 
     if (!MoveFileEx(FullPath, NewFullPath, ReplaceIfExists ? MOVEFILE_REPLACE_EXISTING : 0))
@@ -903,13 +967,6 @@ NTSTATUS CVDUFileSystem::ReadDirectoryEntry(
             return STATUS_NO_MORE_FILES;
         }
     }
-
-    //Check if file is in our accessible files vector
-    /*if (_tcscmp(FindData.cFileName, _T(".")) && _tcscmp(FindData.cFileName, _T("..")))
-    {
-        if (!APP->GetFileSystemService()->GetVDUFileByName(FindData.cFileName))
-            return STATUS_NO_MORE_FILES;
-    }*/
 
     memset(DirInfo, 0, sizeof * DirInfo);
     Length = (ULONG)_tcslen(FindData.cFileName);
@@ -1098,6 +1155,16 @@ void CVDUFileSystemService::UpdateFileInternal(CVDUFile newfile)
         {
             //Now proceed to update the file internally
             f = newfile;
+
+            //Update read-only attribute to reflect current state
+            CString fpath = GetWorkDirPath() + _T("\\") + f.m_name;
+            DWORD attrs = GetFileAttributes(fpath);
+
+            if (f.m_canWrite && attrs & FILE_READ_ONLY)
+                SetFileAttributes(fpath, attrs &= ~FILE_READ_ONLY);
+            else if (!f.m_canWrite && !(attrs & FILE_READ_ONLY))
+                SetFileAttributes(fpath, attrs |= FILE_READ_ONLY);
+
             break;
         }
     }
@@ -1125,14 +1192,14 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
         if (CoCreateGuid(&guid) != S_OK)
         {
             AfxMessageBox(_T("Cannot create GUID."), MB_ICONERROR);
-            AfxPostQuitMessage(EXIT_FAILURE);
+            ExitProcess(EXIT_FAILURE);
             return STATUS_UNSUCCESSFUL;
         }
 
         if (StringFromGUID2(guid, PathBuf, ARRAYSIZE(PathBuf)) <= 0)
         {
             AfxMessageBox(_T("Cannot create random string"), MB_ICONERROR);
-            AfxPostQuitMessage(EXIT_FAILURE);
+            ExitProcess(EXIT_FAILURE);
             return STATUS_UNSUCCESSFUL;
         }
 
@@ -1156,7 +1223,7 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
         HANDLE hFile = FindFirstFile(firstFile, &FindData);
         do
         {
-            //Cant delete these anyway
+            //Cant delete these
             if (!_tcscmp(FindData.cFileName, _T(".")) || !_tcscmp(FindData.cFileName, _T("..")))
                 continue;
 
@@ -1170,7 +1237,7 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     if (!NT_SUCCESS(Result))
     {
         AfxMessageBox(_T("Cannot create file system"), MB_ICONERROR);
-        AfxPostQuitMessage(EXIT_FAILURE);
+        ExitProcess(EXIT_FAILURE);
         return Result;
     }
 
@@ -1181,7 +1248,7 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     if (!NT_SUCCESS(Result))
     {
         AfxMessageBox(_T("Cannot mount file system"), MB_ICONERROR);
-        AfxPostQuitMessage(EXIT_FAILURE);
+        ExitProcess(EXIT_FAILURE);
         return Result;
     }
 
@@ -1221,7 +1288,6 @@ CString CVDUFileSystemService::CalcFileMD5Base64(CVDUFile file)
     HCRYPTPROV hProv;
     if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
     {
-        //err?
         CloseHandle(hFile);
         return finalHash;
     }
@@ -1312,7 +1378,7 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
             WND->UpdateStatus();
         }
 
-        BYTE buf[0x1000] = { 0 };
+        BYTE buf[0x1000] = { 0 };   
         UINT readLen, readTotal = 0;
         while ((readLen = httpfile->Read(buf, ARRAYSIZE(buf))) > 0)
         {
@@ -1351,8 +1417,8 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
 
     if (!APP->IsTestMode())
     {
-        WND->GetProgressBar()->SetState(PBST_NORMAL);
         WND->GetProgressBar()->SetPos(0);
+        WND->GetProgressBar()->SetState(PBST_PAUSED);
         WND->UpdateStatus();
     }
 
@@ -1394,6 +1460,7 @@ INT CVDUFileSystemService::UpdateVDUFile(CVDUFile vdufile, CString newName, BOOL
     headers += _T("Content-Type: ") + vdufile.m_type + _T("\r\n");
     headers += _T("Content-Location: ") + (newName.IsEmpty() ? vdufile.m_name : newName) + _T("\r\n");
     headers += _T("Content-MD5: ") + CalcFileMD5Base64(vdufile) + _T("\r\n");
+
     //headers += _T("Content-Length: ") + length + _T("\r\n");
     //Note: Content length is added automatically in CVDUConnection when writing out file
 
