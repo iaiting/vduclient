@@ -9,7 +9,7 @@ WinFSP 1.8+
 
 ## Installation
 
-1.) Download and install latest WinFSP (http://www.secfs.net/winfsp/rel/) and Visual C++  Redistributable libraries (https://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0)
+1.) Download and install latest WinFSP (http://www.secfs.net/winfsp/rel/) and Visual C++ 15-19 Redistributable libraries (https://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0)
 
 2.) Grab a release version of `VDUClient.exe` and run (Debug version requires Visual Studio debug libraries)
 
