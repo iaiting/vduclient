@@ -3,9 +3,10 @@
 ![VDUClient UI](https://i.imgur.com/wLT9izo.png)
 
 ## Requirements
+
 Microsoft Visual C++ Redistributable 2015-2019
 
-WinFSP 1.8+
+WinFSP 1.8 or newer
 
 ## Installation
 
@@ -14,29 +15,32 @@ WinFSP 1.8+
 2.) Grab a release version of `VDUClient.exe` and run (Debug version requires Visual Studio debug libraries)
 
 ## Setting up developing environment
+
 Requires Visual Studio 2019, Build tools v142, MFC+ATL for build tools v142
 
-1.) Install WinFSP with Developer Option (selectable during installation)
+1.) Install WinFsP with the Developer Option selected during installation
 
 2.) Download VDUClient repository, launch `.sln` file
 
-3.) Compile as release/debug x64
+3.) Compile as Release/x64
 
 4.) Run `VDUClient.exe`
 
-NOTE: If  include file `winfsp.hpp` wont be pre-installed, you need to manually download it from https://raw.githubusercontent.com/billziss-gh/winfsp/master/inc/winfsp/winfsp.hpp and copy into your `WinFsp\inc\winfsp` installation folder!
+NOTE: If the include file `winfsp.hpp` wont be pre-installed in some cases, you need to manually download it from https://raw.githubusercontent.com/billziss-gh/winfsp/master/inc/winfsp/winfsp.hpp and copy into your `WinFsp\inc\winfsp` installation folder!
 
 ## Launch options
+
 - `-silent`       Program window starts up hidden and minimized to tray
-- `-testmode`     Program starts in test mode, where it reads actions and executes them. For more information see `test.py`
+- `-testmode`     Program starts in test mode, where it reads actions and executes them. For more information see contents of `test.py`
+- `-insecure` Disables certificate validation - for debug/test purposes
 
 # VDU Mock Server
 
 ## Requirements
-Python3
+
+Python3.
 
 ## Setting up the server
-Make sure to `pip install` required libraries
 
 1.) Edit server settings at the top of the file to your liking
 
@@ -47,18 +51,23 @@ Make sure to `pip install` required libraries
 ![VDU Tests](https://i.imgur.com/poxPXVv.png)
 
 ## Requirements
-Python3
+
+Python 3
 
 ## Setting up for testing
-Make sure to `pip install` required libraries
+
+Make sure to `pip install` required libraries if necessary
 
 1.) Edit test settings at the top of the file to your liking
 
 2.) Run `test.py` - Checkmarks mean passed, Crosses mean did not pass
 
 ## Adding custom tests
+
 In order to add custom tests, get familiar with the Action list, create your test and then simply add it to the list of the tests
+
 #### Action list
+
 - `-server [ip]`              Set server ip to 'ip'
 - `-user [login]`             Log in as 'login'
 - `-accessfile [token]`       Accesses a file
@@ -68,6 +77,7 @@ In order to add custom tests, get familiar with the Action list, create your tes
 - `-write [token] [text]`     Writes text to a file
 
 # Credits
+
 Client developed using Microsoft Visual Studio 2019 Community with valid Free Licence, using MFC/ATL Build tools v142 and Windows 10.0 SDK, at https://visualstudio.microsoft.com/cs/vs/community/
 
 Server developed using Microsoft Visual Studio Code, with Python3.9 environment, at https://code.visualstudio.com/

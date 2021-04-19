@@ -38,11 +38,12 @@ class CVDUSession;
 class VDUClient : public CWinApp
 {
 private:
-	BOOL m_testMode; //Is APP in test mode
 	CVDUSession* m_session; //Client session
 	CWinThread* m_srefThread; //Session refresh thread
 	CWinThread* m_svcThread; //File system thread
 	CVDUFileSystemService* m_svc; //File system pointer, running on m_svcThread
+	BOOL m_testMode; //Is APP in test mode
+	BOOL m_insecure; //Whether or not to validate SSL certificates
 public:
 	VDUClient();
 	~VDUClient();
@@ -59,6 +60,9 @@ public:
 
 	//Is APP currently in test mode
 	BOOL IsTestMode();
+
+	//Is APP in insecure mode
+	BOOL IsInsecure();
 
 	//Allows operations with the filesystem service
 	CVDUFileSystemService* GetFileSystemService();

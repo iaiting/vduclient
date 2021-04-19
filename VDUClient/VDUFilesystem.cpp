@@ -808,7 +808,6 @@ NTSTATUS CVDUFileSystem::Rename(
         HandleFromFileDesc(FileDesc) = INVALID_HANDLE_VALUE;
 
         //Handle renaming by requesting it from the server and waiting for result
-        //Yes, its blocking, hopefully for not too long..
         INT result = APP->GetFileSystemService()->UpdateVDUFile(vdufile, newname, FALSE);
 
         if (result != EXIT_SUCCESS)
@@ -1191,14 +1190,14 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
         GUID guid;
         if (CoCreateGuid(&guid) != S_OK)
         {
-            AfxMessageBox(_T("Cannot create GUID."), MB_ICONERROR);
+            WND->MessageBoxNB(_T("Cannot create GUID."), TITLENAME, MB_ICONERROR);
             ExitProcess(EXIT_FAILURE);
             return STATUS_UNSUCCESSFUL;
         }
 
         if (StringFromGUID2(guid, PathBuf, ARRAYSIZE(PathBuf)) <= 0)
         {
-            AfxMessageBox(_T("Cannot create random string"), MB_ICONERROR);
+            WND->MessageBoxNB(_T("Cannot create random string"), TITLENAME, MB_ICONERROR);
             ExitProcess(EXIT_FAILURE);
             return STATUS_UNSUCCESSFUL;
         }
@@ -1236,7 +1235,7 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     Result = m_fs.SetPath(PathBuf);
     if (!NT_SUCCESS(Result))
     {
-        AfxMessageBox(_T("Cannot create file system"), MB_ICONERROR);
+        WND->MessageBoxNB(_T("Cannot create file system"), TITLENAME, MB_ICONERROR);
         ExitProcess(EXIT_FAILURE);
         return Result;
     }
@@ -1244,10 +1243,10 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     m_workDirPath = PathBuf;
     m_host.SetFileSystemName(_T("VDU"));
 
-    Result = m_host.Mount(m_driveLetter);
+    Result = Remount(m_driveLetter);
     if (!NT_SUCCESS(Result))
     {
-        AfxMessageBox(_T("Cannot mount file system"), MB_ICONERROR);
+        WND->MessageBoxNB(_T("Cannot mount file system"), TITLENAME, MB_ICONERROR);
         ExitProcess(EXIT_FAILURE);
         return Result;
     }
@@ -1344,11 +1343,42 @@ CString CVDUFileSystemService::CalcFileMD5Base64(CVDUFile file)
 
 NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
 {
-    if (m_host.MountPoint() && _tcslen(m_host.MountPoint()) > 0) 
+    CRegKey key;
+    if (m_host.MountPoint() && _tcslen(m_host.MountPoint()) > 0)
+    {
         m_host.Unmount();
 
+        if (_tcslen(m_driveLetter) > 0)
+        {
+            if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Classes\\Applications\\explorer.exe\\Drives")) == ERROR_SUCCESS)
+            {
+                key.RecurseDeleteKey(CString(m_driveLetter[0]));
+                key.Close();
+            }
+        }
+    }
+
     StringCchCopy(m_driveLetter, ARRAYSIZE(m_driveLetter), DriveLetter);
-    return m_host.Mount((PWSTR)m_driveLetter);
+    NTSTATUS result = m_host.Mount((PWSTR)m_driveLetter);
+
+    //Change the drive icon and label
+    if (NT_SUCCESS(result))
+    {
+        if (key.Create(HKEY_CURRENT_USER, _T("SOFTWARE\\Classes\\Applications\\explorer.exe\\Drives\\") + CString(m_driveLetter[0]) + _T("\\DefaultIcon")) == ERROR_SUCCESS)
+        {
+            CString moduleFilePath;
+            AfxGetModuleFileName(NULL, moduleFilePath);
+            key.SetStringValue(NULL, moduleFilePath + _T(",0")); //Select the first icon
+            key.Close();
+        }
+        if (key.Create(HKEY_CURRENT_USER, _T("SOFTWARE\\Classes\\Applications\\explorer.exe\\Drives\\") + CString(m_driveLetter[0]) + _T("\\DefaultLabel")) == ERROR_SUCCESS)
+        {
+            key.SetStringValue(NULL, _T("VDU Virtual Disk"));
+            key.Close();
+        }
+    }
+
+    return result;
 }
 
 BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)

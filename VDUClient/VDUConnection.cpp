@@ -90,19 +90,23 @@ INT CVDUConnection::Process()
 	TRY
 	{
 		con = inetsession.GetHttpConnection(serverURL, port, NULL, NULL);
-		pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL,
-			INTERNET_FLAG_SECURE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_DONT_CACHE
-	#if defined(_DEBUG) || defined(ALLOW_DEBUG_SERVER) //Ignores certificates in debug mode
-			| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
-		DWORD opt;
-		pFile->QueryOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
-		opt |= SECURITY_SET_MASK;
-		pFile->SetOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
-	#else 
-			);
-	#endif
-		//Enable gzip, deflate decoding
-		//pFile->SetOption(INTERNET_OPTION_HTTP_DECODING, TRUE);
+
+		//Insecure mode does not validate certificates
+		if (APP->IsInsecure())
+		{
+			pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL,
+				INTERNET_FLAG_SECURE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_DONT_CACHE
+				| INTERNET_FLAG_IGNORE_CERT_CN_INVALID | INTERNET_FLAG_IGNORE_CERT_DATE_INVALID);
+			DWORD opt;
+			pFile->QueryOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
+			opt |= SECURITY_SET_MASK;
+			pFile->SetOption(INTERNET_OPTION_SECURITY_FLAGS, opt);
+		}
+		else
+		{
+			pFile = con->OpenRequest(httpVerb, httpObjectPath, NULL, 1, NULL, NULL,
+				INTERNET_FLAG_SECURE | INTERNET_FLAG_RELOAD | INTERNET_FLAG_DONT_CACHE);
+		}
 
 		//For every other API, transactions need to be done one after the other
 		//And for that reason, auth token is filled in last, in order to be sure its up to date

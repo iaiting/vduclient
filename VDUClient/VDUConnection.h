@@ -2,9 +2,6 @@
 
 #include <afxinet.h>
 
-//If you want to stop certificate checks and allow connections without cert check
-#define ALLOW_DEBUG_SERVER
-
 //Declares valid VDU api types
 enum class VDUAPIType
 {

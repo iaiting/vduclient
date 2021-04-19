@@ -18,7 +18,8 @@ BEGIN_MESSAGE_MAP(VDUClient, CWinApp)
 END_MESSAGE_MAP()
 
 // VDUClient construction
-VDUClient::VDUClient() : m_srefThread(nullptr), m_svc(nullptr), m_svcThread(nullptr), m_testMode(FALSE)
+VDUClient::VDUClient() : m_srefThread(nullptr), m_svc(nullptr), m_svcThread(nullptr),
+m_testMode(FALSE), m_insecure(FALSE)
 {
 	// support Restart Manager
 	m_dwRestartManagerSupportFlags = AFX_RESTART_MANAGER_SUPPORT_RESTART;
@@ -50,6 +51,11 @@ CWinThread* VDUClient::GetFileSystemServiceThread()
 BOOL VDUClient::IsTestMode()
 {
 	return m_testMode;
+}
+
+BOOL VDUClient::IsInsecure()
+{
+	return m_insecure;
 }
 
 CVDUFileSystemService* VDUClient::GetFileSystemService()
@@ -110,6 +116,8 @@ BOOL VDUClient::InitInstance()
 				c_silent = TRUE;
 			else if (!_tcscmp(arg, _T("-testmode")))
 				m_testMode = TRUE;
+			else if (!_tcscmp(arg, _T("-insecure")))
+				m_insecure = TRUE;
 		}
 		LocalFree(argv);
 	}

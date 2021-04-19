@@ -50,7 +50,7 @@ else:
     pserver = subprocess.Popen(["python", thispath + "\\vdusrv.py"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
 #Add base actions to set test mode and set our local server
-vduclient += "-testmode -server 127.0.0.1:4443 "
+vduclient += "-insecure -testmode -server 127.0.0.1:4443 "
 
 for test in Tests:
     testName = test[0]

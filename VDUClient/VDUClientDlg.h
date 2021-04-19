@@ -8,6 +8,18 @@
 
 #define VDU_REGPATH _T("SOFTWARE\\VDU Client")
 
+enum class StartupApprovedState
+{
+	ENABLED = 2,
+	DISABLED = 3,
+};
+
+typedef struct StartupApprovedEntry_s
+{
+	StartupApprovedState state;
+	FILETIME disabledTime;
+} StartupApprovedEntry;
+
 // CVDUClientDlg dialog
 class CVDUClientDlg : public CDialogEx
 {
@@ -47,16 +59,10 @@ protected:
 	afx_msg void OnClose();
 	afx_msg LRESULT OnTrayEvent(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnAutorunToggleCommand();
-	afx_msg void OnBackupFilesToggleCommand();
+	afx_msg void OnOpenDriveCommand();
 	afx_msg void OnAutologinToggleCommand();
 	DECLARE_MESSAGE_MAP()
 public:
-	/*Registry handling functions*/
-	BOOL GetRegValueI(CString name, DWORD defaultValue, PDWORD out_value, CString path = VDU_REGPATH);
-	BOOL SetRegValueI(CString name, DWORD value, CString path = VDU_REGPATH);
-	BOOL GetRegValueSz(CString name, CString defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, CString path = VDU_REGPATH, ULONG type = REG_SZ);
-	BOOL SetRegValueSz(CString name, CString value, CString path = VDU_REGPATH, ULONG type = REG_SZ);
-
 	//Creates a notification bubble
 	BOOL TrayNotify(CString szTitle, CString szText, SHSTOCKICONID siid = SIID_DRIVENET);
 	//Sets the tray hover tip

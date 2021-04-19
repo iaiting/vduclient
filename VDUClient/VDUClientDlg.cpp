@@ -9,7 +9,7 @@
 #define WM_TRAY_EXIT (WM_APP + 2)
 #define WM_TRAY_AUTORUN_TOGGLE (WM_APP + 3)
 #define WM_TRAY_AUTOLOGIN_TOGGLE (WM_APP + 4)
-#define WM_TRAY_BACKUP_UNSAVED (WM_APP + 5)
+#define WM_TRAY_OPEN_DRIVE (WM_APP + 5)
 
 // CVDUClientDlg dialog
 CVDUClientDlg::CVDUClientDlg(CWnd* pParent /*=nullptr*/) : CDialogEx(IDD_VDUCLIENT_DIALOG, pParent),
@@ -33,7 +33,7 @@ BEGIN_MESSAGE_MAP(CVDUClientDlg, CDialogEx)
 	ON_COMMAND(WM_TRAY_EXIT, &CVDUClientDlg::OnTrayExitCommand)
 	ON_COMMAND(WM_TRAY_AUTOLOGIN_TOGGLE, &CVDUClientDlg::OnAutologinToggleCommand)
 	ON_COMMAND(WM_TRAY_AUTORUN_TOGGLE, &CVDUClientDlg::OnAutorunToggleCommand)
-	ON_COMMAND(WM_TRAY_BACKUP_UNSAVED, &CVDUClientDlg::OnBackupFilesToggleCommand)
+	ON_COMMAND(WM_TRAY_OPEN_DRIVE, &CVDUClientDlg::OnOpenDriveCommand)
 	ON_BN_CLICKED(IDC_BUTTON_LOGIN, &CVDUClientDlg::OnBnClickedButtonLogin)
 	ON_EN_CHANGE(IDC_USERNAME, &CVDUClientDlg::OnEnChangeUsername)
 	ON_CBN_SELCHANGE(IDC_COMBO_DRIVELETTER, &CVDUClientDlg::OnCbnSelchangeComboDriveletter)
@@ -69,7 +69,6 @@ BOOL CVDUClientDlg::OnInitDialog()
 	m_trayData.hIcon = APP->LoadIcon(IDR_MAINFRAME);
 	m_trayData.uVersion = NOTIFYICON_VERSION_4;
 	Shell_NotifyIcon(NIM_ADD, &m_trayData);
-	//Shell_NotifyIcon(NIM_SETVERSION, &m_trayData); //- Not needed in latest version
 
 	CString moduleFilePath;
 	AfxGetModuleFileName(NULL, moduleFilePath);
@@ -77,35 +76,48 @@ BOOL CVDUClientDlg::OnInitDialog()
 	CString moduleFolderPath = moduleFilePath.Left(moduleFilePath.GetLength() - moduleFileName.GetLength() - 1);
 
 	//Create an entry on windows startup
-	SetRegValueSz(TITLENAME, moduleFilePath + _T(" -silent"), _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"));
-
-	if (TRUE) //Allows application to be searched for and opened using windows shell/search
+	CRegKey key;
+	if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run")) == ERROR_SUCCESS)
 	{
-		SetRegValueSz(NULL, moduleFilePath, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\" + moduleFileName));
-		SetRegValueSz(_T("Path"), moduleFolderPath, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\" + moduleFileName));
+		key.SetStringValue(TITLENAME, moduleFilePath + _T(" -silent"));
+		key.Close();
+	}
+
+	//Allows application to be searched for and opened using windows shell/search
+	if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\") + moduleFileName) == ERROR_SUCCESS)
+	{
+		key.SetStringValue(NULL, moduleFilePath);
+		key.SetStringValue(_T("Path"), moduleFolderPath);
+		key.Close();
 	}
 
 	//Create tray popup menu
 	if (m_trayMenu = new CMenu())
 	{
 		m_trayMenu->CreatePopupMenu();
-		//m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_AUTORUN_TOGGLE, _T("Run on startup")); //1
-		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_AUTOLOGIN_TOGGLE, _T("Auto Login")); //2
-		//m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_BACKUP_UNSAVED, _T("Backup unsaved files")); //3
-		m_trayMenu->AppendMenu(MF_SEPARATOR); //4
-		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_EXIT, _T("Exit")); //5
+		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_AUTORUN_TOGGLE, _T("Run on startup")); //0
+		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_AUTOLOGIN_TOGGLE, _T("Auto Login")); //1
+		m_trayMenu->AppendMenu(MF_SEPARATOR); //2
+		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_OPEN_DRIVE, _T("Browse files")); //3
+		m_trayMenu->AppendMenu(MF_STRING, WM_TRAY_EXIT, _T("Exit")); //4
 
 		if (APP->GetProfileInt(SECTION_SETTINGS, _T("AutoLogin"), FALSE))
-			m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
+			m_trayMenu->CheckMenuItem(1, MF_BYPOSITION | MF_CHECKED);
 
-		//TODO AUTORUN FIX
-		//DWORD autoRun = FALSE;
-		//GetRegValueI(TITLENAME, autoRun, &autoRun, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run"));
-
-		/*if (autoRun == 2)
+		if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run")) == ERROR_SUCCESS)
 		{
-			m_trayMenu->CheckMenuItem(2, MF_BYPOSITION | MF_CHECKED);
-		}*/
+			BYTE startupBuf[0x100] = { 0 };
+			ULONG startupBufLen = ARRAYSIZE(startupBuf);
+			if (key.QueryBinaryValue(TITLENAME, startupBuf, &startupBufLen) == ERROR_SUCCESS)
+			{
+				StartupApprovedEntry* entry = reinterpret_cast<StartupApprovedEntry*>(startupBuf);
+				if (entry->state == StartupApprovedState::ENABLED)
+				{
+					m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
+				}
+			}
+			key.Close();
+		}
 	}
 
 	m_server = APP->GetProfileString(SECTION_SETTINGS, _T("LastServerAddress"), _T(""));
@@ -216,90 +228,6 @@ void CVDUClientDlg::UpdateStatus()
 
 	if (oldWndText != windowStatus)
 		GetDlgItem(IDC_STATIC_STATUS)->SetWindowText(windowStatus);
-}
-
-BOOL CVDUClientDlg::GetRegValueSz(CString name, CString defaultValue, PTCHAR out_value, DWORD maxOutvalueSize, CString path, ULONG type)
-{
-	HKEY hkey;
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
-	{
-		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
-		{
-			MessageBox(_T("Failed to read registry"), _T("VDU Client"), MB_ICONASTERISK);
-			return FALSE;
-		}
-	}
-
-	LSTATUS res;
-	if ((res = RegQueryValueEx(hkey, name, 0, &type, (LPBYTE)out_value, &maxOutvalueSize)) != ERROR_SUCCESS)
-	{
-		res = RegSetValueEx(hkey, name, 0, type, (BYTE*)defaultValue.GetBuffer(), maxOutvalueSize);
-	}
-
-	RegCloseKey(hkey);
-	return res == ERROR_SUCCESS;
-}
-
-BOOL CVDUClientDlg::GetRegValueI(CString name, DWORD defaultValue, PDWORD out_value, CString path)
-{
-	ULONG type = REG_DWORD;
-	HKEY hkey;
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
-	{
-		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
-		{
-			MessageBox(_T("Failed to read registry"), _T("VDU Client"), MB_ICONASTERISK);
-			return FALSE;
-		}
-	}
-
-	DWORD maxOutvalueSize = sizeof(defaultValue);
-	LSTATUS res;
-	if ((res = RegQueryValueEx(hkey, name, 0, &type, (LPBYTE)out_value, &maxOutvalueSize)) != ERROR_SUCCESS)
-	{
-		res = RegSetValueEx(hkey, name, 0, type, (BYTE*)&defaultValue, maxOutvalueSize);
-	}
-
-	RegCloseKey(hkey);
-	return res == ERROR_SUCCESS;
-}
-
-BOOL CVDUClientDlg::SetRegValueI(CString name, DWORD value, CString path)
-{
-	ULONG type = REG_DWORD;
-	HKEY hkey;
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
-	{
-		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
-		{
-			MessageBox(_T("Failed to read registry"), _T("VDU Client"), MB_ICONASTERISK);
-			return FALSE;
-		}
-	}
-
-	DWORD maxOutvalueSize = sizeof(value);
-	LSTATUS res = RegSetValueEx(hkey, name, 0, type, (BYTE*)&value, maxOutvalueSize);
-
-	RegCloseKey(hkey);
-	return res == ERROR_SUCCESS;
-}
-
-BOOL CVDUClientDlg::SetRegValueSz(CString name, CString value, CString path, ULONG type)
-{
-	HKEY hkey;
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, path, 0, KEY_WRITE | KEY_READ, &hkey) != ERROR_SUCCESS)
-	{
-		if (RegCreateKeyEx(HKEY_CURRENT_USER, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hkey, NULL) != ERROR_SUCCESS)
-		{
-			MessageBox(_T("Failed to read registry"), _T("VDU Client"), MB_ICONASTERISK);
-			return FALSE;
-		}
-	}
-
-	LSTATUS res = RegSetValueEx(hkey, name, 0, type, (BYTE*)value.GetBuffer(), DWORD(sizeof(wchar_t) * (_tcslen(value.GetBuffer()) + 1)));
-
-	RegCloseKey(hkey);
-	return res == ERROR_SUCCESS;
 }
 
 void CVDUClientDlg::PostNcDestroy()
@@ -487,19 +415,40 @@ void CVDUClientDlg::OnTrayExitCommand()
 
 void CVDUClientDlg::OnAutorunToggleCommand()
 {
-	//TCHAR autoRun[256];
+	CRegKey key;
+	if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run")) == ERROR_SUCCESS)
+	{
+		BYTE startupBuf[0x100] = { 0 };
+		ULONG startupBufLen = ARRAYSIZE(startupBuf);
+		if (key.QueryBinaryValue(TITLENAME, startupBuf, &startupBufLen) == ERROR_SUCCESS)
+		{
+			StartupApprovedEntry* entry = reinterpret_cast<StartupApprovedEntry*>(startupBuf);
+			if (entry->state == StartupApprovedState::ENABLED) //Is enabled
+			{
+				entry->state = StartupApprovedState::DISABLED;
+				SYSTEMTIME st;
+				GetSystemTime(&st);
+				SystemTimeToFileTime(&st, &entry->disabledTime); //Save the disabled time 
 
+				key.SetBinaryValue(TITLENAME, entry, startupBufLen);
+				m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_UNCHECKED);
+			}
+			else
+			{
+				entry->state = StartupApprovedState::ENABLED;
+				SecureZeroMemory(&entry->disabledTime, sizeof(entry->disabledTime));
+
+				key.SetBinaryValue(TITLENAME, entry, startupBufLen);
+				m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
+			}
+		}
+		key.Close();
+	}
 }
 
-void CVDUClientDlg::OnBackupFilesToggleCommand()
+void CVDUClientDlg::OnOpenDriveCommand()
 {
-	INT backupFiles = APP->GetProfileInt(SECTION_SETTINGS, _T("BackupUnsavedFiles"), FALSE);
-	backupFiles = !backupFiles;
-	APP->WriteProfileInt(SECTION_SETTINGS, _T("BackupUnsavedFiles"), backupFiles);
-	if (backupFiles)
-		m_trayMenu->CheckMenuItem(2, MF_BYPOSITION | MF_CHECKED);
-	else
-		m_trayMenu->CheckMenuItem(2, MF_BYPOSITION | MF_UNCHECKED);
+	ShellExecute(WND->GetSafeHwnd(), _T("explore"), APP->GetFileSystemService()->GetDrivePath(), NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CVDUClientDlg::OnAutologinToggleCommand()
@@ -508,9 +457,9 @@ void CVDUClientDlg::OnAutologinToggleCommand()
 	autoLogin = !autoLogin;
 	APP->WriteProfileInt(SECTION_SETTINGS, _T("AutoLogin"), autoLogin);
 	if (autoLogin)
-		m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
+		m_trayMenu->CheckMenuItem(1, MF_BYPOSITION | MF_CHECKED);
 	else
-		m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_UNCHECKED);
+		m_trayMenu->CheckMenuItem(1, MF_BYPOSITION | MF_UNCHECKED);
 }
 
 void CVDUClientDlg::OnEnChangeServerAddress()
@@ -672,16 +621,10 @@ void CVDUClientDlg::OnBnClickedAccessFile()
 
 void CVDUClientDlg::OnEnSetfocusFileToken()
 {
-	//TODO: Clipboard stuff
-	/*if (OpenClipboard(NULL))
-	{
-		GetClipboardData(CF_TEXT);
-	}*/
 }
 
-//HACK ALERT
+//HACK
 //I really wanna use messageboxes from worker threads so here we are..
-
 class MsgBoxParams
 {
 public:
@@ -694,6 +637,7 @@ public:
 UINT ThreadProcMsgBoxNB(LPVOID mbp0)
 {
 	MsgBoxParams* mbp = (MsgBoxParams*)mbp0;
+	WND->ShowWindow(SW_RESTORE);
 	WND->SetForegroundWindow();
 	WND->MessageBoxW(mbp->text, mbp->title, mbp->flags);
 	delete mbp;
