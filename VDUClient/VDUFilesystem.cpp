@@ -1350,7 +1350,7 @@ NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
 
         if (_tcslen(m_driveLetter) > 0)
         {
-            if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Classes\\Applications\\explorer.exe\\Drives")) == ERROR_SUCCESS)
+            if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Classes\\Applications\\Explorer.exe\\Drives")) == ERROR_SUCCESS)
             {
                 key.RecurseDeleteKey(CString(m_driveLetter[0]));
                 key.Close();
@@ -1364,14 +1364,14 @@ NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
     //Change the drive icon and label
     if (NT_SUCCESS(result))
     {
-        if (key.Create(HKEY_CURRENT_USER, _T("SOFTWARE\\Classes\\Applications\\explorer.exe\\Drives\\") + CString(m_driveLetter[0]) + _T("\\DefaultIcon")) == ERROR_SUCCESS)
+        if (key.Create(HKEY_CURRENT_USER, _T("SOFTWARE\\Classes\\Applications\\Explorer.exe\\Drives\\") + CString(m_driveLetter[0]) + _T("\\DefaultIcon")) == ERROR_SUCCESS)
         {
             CString moduleFilePath;
             AfxGetModuleFileName(NULL, moduleFilePath);
             key.SetStringValue(NULL, moduleFilePath + _T(",0")); //Select the first icon
             key.Close();
         }
-        if (key.Create(HKEY_CURRENT_USER, _T("SOFTWARE\\Classes\\Applications\\explorer.exe\\Drives\\") + CString(m_driveLetter[0]) + _T("\\DefaultLabel")) == ERROR_SUCCESS)
+        if (key.Create(HKEY_CURRENT_USER, _T("SOFTWARE\\Classes\\Applications\\Explorer.exe\\Drives\\") + CString(m_driveLetter[0]) + _T("\\DefaultLabel")) == ERROR_SUCCESS)
         {
             key.SetStringValue(NULL, _T("VDU Virtual Disk"));
             key.Close();

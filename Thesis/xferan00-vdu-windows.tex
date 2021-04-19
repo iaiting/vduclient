@@ -1,7 +1,6 @@
 %==============================================================================
 % tento soubor pouzijte jako zaklad
 % this file should be used as a base for the thesis
-% Autoři / Authors: 2008 Michal Bidlo, 2019 Jaroslav Dytrych
 % Kontakt pro dotazy a připomínky: sablona@fit.vutbr.cz
 % Contact for questions and comments: sablona@fit.vutbr.cz
 %==============================================================================
@@ -11,16 +10,16 @@
 % zpracování / processing: make, make pdf, make clean
 %==============================================================================
 % Soubory, které je nutné upravit nebo smazat: / Files which have to be edited or deleted:
-%   projekt-20-literatura-bibliography.bib - literatura / bibliography
-%   projekt-01-kapitoly-chapters.tex - obsah práce / the thesis content
-%   projekt-01-kapitoly-chapters-en.tex - obsah práce v angličtině / the thesis content in English
-%   projekt-30-prilohy-appendices.tex - přílohy / appendices
-%   projekt-30-prilohy-appendices-en.tex - přílohy v angličtině / appendices in English
+%   xferan00-vdu-windows-20-literatura-bibliography.bib - literatura / bibliography
+%   xferan00-vdu-windows-01-kapitoly-chapters.tex - obsah práce / the thesis content
+%   xferan00-vdu-windows-01-kapitoly-chapters-en.tex - obsah práce v angličtině / the thesis content in English
+%   xferan00-vdu-windows-30-prilohy-appendices.tex - přílohy / appendices
+%   xferan00-vdu-windows-30-prilohy-appendices-en.tex - přílohy v angličtině / appendices in English
 %==============================================================================
-\documentclass[english]{fitthesis} % bez zadání - pro začátek práce, aby nebyl problém s překladem
+%\documentclass[english]{fitthesis} % bez zadání - pro začátek práce, aby nebyl problém s překladem
 %\documentclass[english]{fitthesis} % without assignment - for the work start to avoid compilation problem
 %\documentclass[zadani]{fitthesis} % odevzdani do wisu a/nebo tisk s barevnými odkazy - odkazy jsou barevné
-%\documentclass[english,zadani]{fitthesis} % for submission to the IS FIT and/or print with color links - links are color
+\documentclass[english,zadani]{fitthesis} % for submission to the IS FIT and/or print with color links - links are color
 %\documentclass[zadani,print]{fitthesis} % pro černobílý tisk - odkazy jsou černé
 %\documentclass[english,zadani,print]{fitthesis} % for the black and white print - links are black
 %\documentclass[zadani,cprint]{fitthesis} % pro barevný tisk - odkazy jsou černé, znak VUT barevný
@@ -194,6 +193,7 @@
 
   {\setcounter{tocdepth}{1}\hypersetup{hidelinks}\tableofcontents}
   
+  
   % Seznam obrazku a tabulek (pokud prace obsahuje velke mnozstvi obrazku, tak se to hodi)
   % List of figures and list of tables (if the thesis contains a lot of pictures, it is good)
   \ifczech
@@ -227,16 +227,16 @@
   % Text prace / Thesis text
   % ----------------------------------------------
   \ifenglish
-    \input{projekt-01-kapitoly-chapters-en}
+    \input{xferan00-vdu-windows-01-kapitoly-chapters-en}
   \else
-    \input{projekt-01-kapitoly-chapters}
+    \input{xferan00-vdu-windows-01-kapitoly-chapters}
   \fi
   
   % Kompilace po částech (viz výše, nutno odkomentovat)
   % Compilation piecewise (see above, it is necessary to uncomment it)
-  %\subfile{projekt-01-uvod-introduction}
+  %\subfile{xferan00-vdu-windows-01-uvod-introduction}
   % ...
-  %\subfile{chapters/projekt-05-conclusion}
+  %\subfile{chapters/xferan00-vdu-windows-05-conclusion}
 
 
   % Pouzita literatura / Bibliography
@@ -261,7 +261,7 @@
   \fi
 \fi
   \begin{flushleft}
-  \bibliography{projekt-20-literatura-bibliography}
+  \bibliography{xferan00-vdu-windows-20-literatura-bibliography}
   \end{flushleft}
 
   % vynechani stranky v oboustrannem rezimu
@@ -321,13 +321,13 @@
   
   % Přílohy / Appendices
   \ifenglish
-    \input{projekt-30-prilohy-appendices-en}
+    \input{xferan00-vdu-windows-30-prilohy-appendices-en}
   \else
-    \input{projekt-30-prilohy-appendices}
+    \input{xferan00-vdu-windows-30-prilohy-appendices}
   \fi
   
   % Kompilace po částech (viz výše, nutno odkomentovat)
   % Compilation piecewise (see above, it is necessary to uncomment it)
-  %\subfile{projekt-30-prilohy-appendices}
+  %\subfile{xferan00-vdu-windows-30-prilohy-appendices}
   
 \end{document}
