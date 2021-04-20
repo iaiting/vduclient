@@ -1,10 +1,10 @@
-import os, sys, time, json, subprocess
+import os, time, json, subprocess
 thispath = os.path.dirname(os.path.realpath(__file__))
-vduclient = thispath + "\\x64\\Release\\VDUClient.exe " 
 
 #===============================================
 #Settings
 LOG_SERVER = False #Whether or not to log server messages in output
+VDUCLIENT = thispath + "\\x64\\Release\\VDUClient.exe" 
 #===============================================
 # Action list
 # 
@@ -50,19 +50,23 @@ else:
     pserver = subprocess.Popen(["python", thispath + "\\vdusrv.py"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
 #Add base actions to set test mode and set our local server
-vduclient += "-insecure -testmode -server 127.0.0.1:4443 "
+VDUCLIENT += " -insecure -testmode -server 127.0.0.1:4443 "
 
+successfulTestCount = 0
 for test in Tests:
     testName = test[0]
     testInstructions = test[1]
     expectedCode = test[2]
 
-    p = subprocess.Popen(vduclient + testInstructions)
+    p = subprocess.Popen(VDUCLIENT + testInstructions)
     p.wait()
     
     if (p.returncode == expectedCode):
         Log("✔️  [%s] %d" % (testName, p.returncode))
+        successfulTestCount = successfulTestCount + 1
     else:
         Log("❌ [%s] %d (expected %d)" % (testName, p.returncode, expectedCode))
+
+Log("Passed %d/%d tests" % (successfulTestCount, len(Tests)))
 
 pserver.terminate()

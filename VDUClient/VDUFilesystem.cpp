@@ -454,6 +454,7 @@ VOID CVDUFileSystem::Close(
 
     CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(PathFindFileName(FullPath));
 
+    //Assume the handle has writing rights
     BOOL handleHasWriteRights = TRUE;
 
 #ifndef NO_WINTERNL
@@ -468,7 +469,7 @@ VOID CVDUFileSystem::Close(
     } PUBLIC_OBJECT_BASIC_INFORMATION, *PPUBLIC_OBJECT_BASIC_INFORMATION;
 
     //Prototype of NtQueryObject
-    typedef NTSTATUS (NTAPI* NtQueryObjectFn)(HANDLE Handle, DWORD ObjectInformationClass,
+    typedef NTSTATUS (NTAPI* NtQueryObjectFn)(HANDLE Handle, OBJECT_INFORMATION_CLASS ObjectInformationClass,
         PVOID ObjectInformation,ULONG ObjectInformationLength, PULONG ReturnLength);
 
     static NtQueryObjectFn NtQueryObject = NULL;
@@ -485,9 +486,10 @@ VOID CVDUFileSystem::Close(
     if (vdufile.IsValid() && NtQueryObject &&
         NT_SUCCESS(NtQueryObject(FileDesc->Handle, ObjectBasicInformation, &pobi, sizeof(pobi), 0)))
     {
-        handleHasWriteRights = FALSE;
-
         ACCESS_MASK GrantedAccess = pobi.GrantedAccess;
+
+        //Check handle's access for write flags
+        handleHasWriteRights = FALSE;
         if (GrantedAccess & GENERIC_WRITE || GrantedAccess & FILE_APPEND_DATA ||
             GrantedAccess & FILE_WRITE_DATA)
         {

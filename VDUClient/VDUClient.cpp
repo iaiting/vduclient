@@ -255,9 +255,13 @@ BOOL VDUClient::InitInstance()
 
 					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
 
+					//Give the file system a bit of time before writing
+					//Without this, some tests are bound to fail on slower drivers
+					Sleep(100);
+
 					//Simulate writing to a text file
 					HANDLE hFile = CreateFile(GetFileSystemService()->GetDrivePath() + _T("\\") + vdufile.m_name,
-						GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0);
+						GENERIC_WRITE, FILE_SHARE_WRITE, 0, OPEN_EXISTING, 0, 0);
 					if (hFile != INVALID_HANDLE_VALUE)
 					{
 						if (WriteFile(hFile, text, (DWORD)_tcslen(text) * sizeof(*text), NULL, NULL))
