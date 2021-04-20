@@ -253,6 +253,19 @@ NTSTATUS CVDUFileSystem::Create(
         FileAttributes &= ~FILE_ATTRIBUTE_DIRECTORY;
     }
 
+
+    CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(PathFindFileName(FileName));
+    if (vdufile.IsValid())
+    {
+        if (!vdufile.m_canWrite &&
+            (GrantedAccess & GENERIC_WRITE || GrantedAccess & FILE_APPEND_DATA ||
+             GrantedAccess & FILE_WRITE_DATA))
+        {
+            //You dont have rights for this access to VDU file
+            return STATUS_MARKED_TO_DISALLOW_WRITES;
+        }
+    }
+
     FileDesc->Handle = CreateFileW(FullPath,
         GrantedAccess, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, &SecurityAttributes,
         OPEN_ALWAYS, CreateFlags | FileAttributes, 0);
@@ -331,8 +344,7 @@ NTSTATUS CVDUFileSystem::Open(
     if (vdufile.IsValid())
     {
         if (!vdufile.m_canWrite &&
-               (GrantedAccess & GENERIC_WRITE || GrantedAccess & WRITE_DAC ||
-                GrantedAccess & WRITE_OWNER || GrantedAccess & FILE_APPEND_DATA ||
+               (GrantedAccess & GENERIC_WRITE || GrantedAccess & FILE_APPEND_DATA ||
                 GrantedAccess & FILE_WRITE_DATA))
         {
             //You dont have rights for this access to VDU file
