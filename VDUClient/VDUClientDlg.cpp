@@ -565,11 +565,13 @@ void CVDUClientDlg::OnBnClickedPing()
 	GetDlgItem(IDC_BUTTON_PING)->EnableWindow(FALSE);
 }
 
-
 void CVDUClientDlg::OnBnClickedButtonCertselect()
 {
+	ShowWindow(SW_MINIMIZE);
+
 	CString filter = _T("CRT Files (*.crt)|*.crt|All Files (*.*)|*.*||");
-	CFileDialog fd(FALSE, _T("crt"), NULL, OFN_FILEMUSTEXIST | OFN_HIDEREADONLY, filter, this);
+	CFileDialog fd(TRUE, _T("crt"), NULL, OFN_FILEMUSTEXIST | OFN_HIDEREADONLY, filter, NULL);
+	fd.GetOFN().lpstrTitle = _T("Select client secret file");
 	if (fd.DoModal() == IDOK)
 	{
 		m_certPath = fd.GetPathName();
@@ -588,8 +590,15 @@ void CVDUClientDlg::OnBnClickedButtonCertselect()
 	else
 	{
 		//Failed to spawn file dialog?
-
 	}
+
+	//Modal dialogs for modeless dialogs result in a loss of focus
+	//Need to manually restore focus to the main dialog window
+	ShowWindow(SW_HIDE);
+	ShowWindow(SW_RESTORE);
+	ShowWindow(SW_SHOWNORMAL);
+	SetFocus();
+	SetForegroundWindow();
 }
 
 void CVDUClientDlg::OnBnClickedAccessFile()

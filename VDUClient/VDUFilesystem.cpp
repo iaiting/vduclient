@@ -116,6 +116,10 @@ NTSTATUS CVDUFileSystem::GetVolumeInfo(VolumeInfo* VolumeInfo)
     {
         do
         {
+            //Dont count non VDU files, temporary files
+            if (APP->GetFileSystemService()->GetVDUFileByName(FindFileData.cFileName) == CVDUFile::InvalidFile)
+                continue;
+
             VolumeInfo->FreeSize += ((UINT64)FindFileData.nFileSizeHigh << 32) | (UINT64)FindFileData.nFileSizeLow;
         } while (FindNextFile(hFind, &FindFileData));
     }
@@ -214,6 +218,10 @@ NTSTATUS CVDUFileSystem::Create(
     fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
 #endif
 
+    //Dont allow any new files if no VDU files are present
+    if (APP->GetFileSystemService()->GetVDUFileCount() < 1)
+        return STATUS_PNP_DEVICE_CONFIGURATION_PENDING;
+
     WCHAR FullPath[FULLPATH_SIZE];
     SECURITY_ATTRIBUTES SecurityAttributes;
     ULONG CreateFlags;
@@ -243,17 +251,6 @@ NTSTATUS CVDUFileSystem::Create(
     else
     {
         FileAttributes &= ~FILE_ATTRIBUTE_DIRECTORY;
-    }
-
-    //If programs are creating temporary files, hide them from user; force VDU files to show
-    CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(PathFindFileName(FileName));
-    if (vdufile.IsValid())
-    {
-        FileAttributes &= ~FILE_ATTRIBUTE_HIDDEN;
-    }
-    else
-    {
-        FileAttributes |= FILE_ATTRIBUTE_HIDDEN;
     }
 
     FileDesc->Handle = CreateFileW(FullPath,
@@ -324,6 +321,10 @@ NTSTATUS CVDUFileSystem::Open(
             //delete FileDesc;
             *PFileDesc = FileDesc;
             return STATUS_SUCCESS;
+        }
+        else //Allow non VDU files to be deleted normally
+        {
+            CreateFlags |= FILE_FLAG_DELETE_ON_CLOSE;
         }
     }
 
@@ -816,12 +817,6 @@ NTSTATUS CVDUFileSystem::Rename(
             return STATUS_UNSUCCESSFUL;
     }
 
-    //Force remove hidden flag for renaming operations on the VDU file
-    if (APP->GetFileSystemService()->GetVDUFileByName(newname).IsValid())
-    {
-        SetFileAttributes(FullPath, GetFileAttributes(FullPath) & ~FILE_ATTRIBUTE_HIDDEN);
-    }
-
     if (!MoveFileEx(FullPath, NewFullPath, ReplaceIfExists ? MOVEFILE_REPLACE_EXISTING : 0))
         return NtStatusFromWin32(GetLastError());
 
@@ -969,10 +964,21 @@ NTSTATUS CVDUFileSystem::ReadDirectoryEntry(
         }
     }
 
-    memset(DirInfo, 0, sizeof * DirInfo);
+    SecureZeroMemory(DirInfo, sizeof * DirInfo);
     Length = (ULONG)_tcslen(FindData.cFileName);
     DirInfo->Size = (UINT16)(FIELD_OFFSET(CVDUFileSystem::DirInfo, FileNameBuf) + Length * sizeof(WCHAR));
     DirInfo->FileInfo.FileAttributes = FindData.dwFileAttributes;
+
+    //Force non VDU files to be hidden for user, they will still be accessibile by applications
+    if (APP->GetFileSystemService()->GetVDUFileByName(FindData.cFileName).IsValid())
+    {
+        DirInfo->FileInfo.FileAttributes &= ~FILE_ATTRIBUTE_HIDDEN;
+    }
+    else
+    {
+        DirInfo->FileInfo.FileAttributes |= FILE_ATTRIBUTE_HIDDEN;
+    }
+
     DirInfo->FileInfo.ReparseTag = 0;
     DirInfo->FileInfo.FileSize =
         ((UINT64)FindData.nFileSizeHigh << 32) | (UINT64)FindData.nFileSizeLow;
@@ -1243,7 +1249,7 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     }
 
     m_workDirPath = PathBuf;
-    m_host.SetFileSystemName(_T("VDU"));
+    m_host.SetFileSystemName(_T("VDUVFS"));
 
     Result = Remount(m_driveLetter);
     if (!NT_SUCCESS(Result))
