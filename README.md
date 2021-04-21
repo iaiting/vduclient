@@ -86,6 +86,6 @@ WinFSP API usage in courtesy of `billziss-gh`, GitHub page at https://github.com
 
 WinFSP FileSystem usage based on passthrough-cpp by `billziss-gh` at https://github.com/billziss-gh/winfsp/tree/master/tst/passthrough-cpp
 
-Cloud Storage icon by https://icons8.com at https://icons8.com/icons/set/cloud-storage
+Cloud Storage icon by https://icons8.com at https://icons8.com/icon/r8kHwiV6nVEd/cloud-storage
 
 Function descriptions and help in various areas of Desktop Development using C++, Windows API and MFC/ATL API at https://docs.microsoft.com/
