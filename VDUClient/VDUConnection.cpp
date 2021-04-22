@@ -170,7 +170,8 @@ INT CVDUConnection::Process()
 
 		inetsession.Close();
 	}
-	END_CATCH;
+	END_CATCH
+
 	//Call our callback
 	if (m_callback != nullptr)
 	{

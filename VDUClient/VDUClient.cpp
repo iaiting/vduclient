@@ -97,7 +97,7 @@ BOOL VDUClient::InitInstance()
 	HKEY hkey;
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("SYSTEM\\CurrentControlSet\\Services\\WinFsp"), 0, KEY_READ, &hkey) != ERROR_SUCCESS)
 	{
-		MessageBox(NULL, _T("WinFSP is not insalled on the system!"), TITLENAME, MB_ICONERROR);
+		MessageBox(NULL, _T("WinFsP is not insalled on the system!\r\nPlease download it from http://www.secfs.net/winfsp/rel/"), TITLENAME, MB_ICONERROR);
 		return FALSE;
 	}
 	else
@@ -167,31 +167,39 @@ BOOL VDUClient::InitInstance()
 	//In test mode we execute input actions and quit with proper code
 	if (IsTestMode())
 	{
+		//Make sure the file system service is started
+		ULONGLONG startTicks = GetTickCount64();
+		while (!PathFileExists(GetFileSystemService()->GetDrivePath()))
+		{
+			ULONGLONG timeWaited = GetTickCount64() - startTicks;
+			if (timeWaited > 10 * 1000)
+				ExitProcess(-3);
+		}
+
 		int argc;
-		if (LPWSTR* argv = CommandLineToArgvW(m_lpCmdLine, &argc))
+		if (TCHAR** argv = CommandLineToArgvW(m_lpCmdLine, &argc))
 		{
 			for (int i = 0; i < argc; i++)
 			{
-				LPWSTR arg = argv[i];
+				TCHAR* arg = argv[i];
 				INT result;
 
 				if (!_tcscmp(arg, _T("-server")))
 				{
 					TESTMODE_ASSERT_ARGC(argc, i);
-					LPWSTR server = argv[++i];//TODO: Fix crash 
+					TCHAR* server = argv[++i];
 
 					GetSession()->Reset(server);
 				}
 				else if (!_tcscmp(arg, _T("-user")))
 				{
 					TESTMODE_ASSERT_ARGC(argc, i);
-					LPWSTR user = argv[++i];
+					TCHAR* user = argv[++i];
 
 					result = GetSession()->Login(user, _T(""), FALSE);
 					if (result != EXIT_SUCCESS)
 					{
 						ExitProcess(result);
-						return TRUE;
 					}
 				}
 				else if (!_tcscmp(arg, _T("-logout")))
@@ -200,25 +208,23 @@ BOOL VDUClient::InitInstance()
 					if (result != EXIT_SUCCESS)
 					{
 						ExitProcess(result);
-						return TRUE;
 					}
 				}
 				else if (!_tcscmp(arg, _T("-accessfile")))
 				{
 					TESTMODE_ASSERT_ARGC(argc, i);
-					LPWSTR token = argv[++i];
+					TCHAR* token = argv[++i];
 
 					result = GetSession()->AccessFile(token, FALSE);
 					if (result != EXIT_SUCCESS)
 					{
 						ExitProcess(result);
-						return TRUE;
 					}
 				}
 				else if (!_tcscmp(arg, _T("-deletefile")))
 				{
 					TESTMODE_ASSERT_ARGC(argc, i);
-					LPWSTR token = argv[++i];
+					TCHAR* token = argv[++i];
 
 					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
 
@@ -229,14 +235,13 @@ BOOL VDUClient::InitInstance()
 					if (result != EXIT_SUCCESS)
 					{
 						ExitProcess(result);
-						return TRUE;
 					}
 				}
 				else if (!_tcscmp(arg, _T("-rename")))
 				{
 					TESTMODE_ASSERT_ARGC(argc, i + 1);
-					LPWSTR token = argv[++i];
-					LPWSTR name = argv[++i];
+					TCHAR* token = argv[++i];
+					TCHAR* name = argv[++i];
 
 					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
 
@@ -244,46 +249,68 @@ BOOL VDUClient::InitInstance()
 					if (result != EXIT_SUCCESS)
 					{
 						ExitProcess(result);
-						return TRUE;
 					}
 				}
 				else if (!_tcscmp(arg, _T("-write")))
 				{
 					TESTMODE_ASSERT_ARGC(argc, i + 1);
-					LPWSTR token = argv[++i];
-					LPWSTR text = argv[++i];
+					TCHAR* token = argv[++i];
+					TCHAR* text = argv[++i];
 
 					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
 
-					//Give the file system a bit of time before writing
-					//Without this, some tests are bound to fail on slower drivers
-					Sleep(100);
-
-					//Simulate writing to a text file
-					HANDLE hFile = CreateFile(GetFileSystemService()->GetDrivePath() + _T("\\") + vdufile.m_name,
-						GENERIC_WRITE, FILE_SHARE_WRITE, 0, OPEN_EXISTING, 0, 0);
-					if (hFile != INVALID_HANDLE_VALUE)
+					TRY 
 					{
-						if (WriteFile(hFile, text, (DWORD)_tcslen(text) * sizeof(*text), NULL, NULL))
+						//Writing unicode text to a file
+						CStdioFile stdf(GetFileSystemService()->GetDrivePath() + _T("\\") + vdufile.m_name,
+							CFile::modeWrite | CFile::typeText | CFile::shareDenyNone);
+
+						stdf.WriteString(text);
+						stdf.Flush();
+						stdf.Close();
+
+						result = GetFileSystemService()->UpdateVDUFile(vdufile, _T(""), FALSE);
+						if (result != EXIT_SUCCESS)
 						{
-							//vdufile.m_length = GetFileSize(hFile, NULL);
-							CloseHandle(hFile);
-							result = GetFileSystemService()->UpdateVDUFile(vdufile, _T(""), FALSE);
-							if (result != EXIT_SUCCESS)
-							{
-								ExitProcess(result);
-								return TRUE;
-							}
-							continue;
-						}
-						else
-						{
-							CloseHandle(hFile);
+							ExitProcess(result);
 						}
 					}
+					CATCH(CException, e)
+					{
+						ExitProcess(EXIT_FAILURE);
+					}
+					END_CATCH
+				}
+				else if (!_tcscmp(arg, _T("-read")))
+				{
+					TESTMODE_ASSERT_ARGC(argc, i + 1);
+					TCHAR* token = argv[++i];
+					TCHAR* text = argv[++i];
 
-					ExitProcess(/*GetLastError()*/EXIT_FAILURE);
-					return TRUE;
+					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
+
+					TRY
+					{
+						CStdioFile stdf(GetFileSystemService()->GetDrivePath() + _T("\\") + vdufile.m_name,
+						CFile::modeRead | CFile::typeText | CFile::shareDenyNone);
+
+						//Reading unicode text from a file and compare it to input
+						CString fileContent;
+						stdf.ReadString(fileContent);
+						stdf.Close();
+
+						//Compare only the exact amount of characters
+						fileContent = fileContent.Left((INT)_tcslen(text));
+						if (text != fileContent)
+						{
+							ExitProcess(EXIT_FAILURE);
+						}
+					}
+					CATCH(CException, e)
+					{
+						ExitProcess(EXIT_FAILURE);
+					}
+					END_CATCH
 				}
 			}
 			LocalFree(argv);

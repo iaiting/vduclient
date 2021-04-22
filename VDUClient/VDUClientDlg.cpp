@@ -634,23 +634,23 @@ void CVDUClientDlg::OnEnSetfocusFileToken()
 
 //HACK
 //I really wanna use messageboxes from worker threads so here we are..
-class MsgBoxParams
+typedef struct MsgBoxParams_t
 {
 public:
 	CString text;
 	CString title;
 	UINT flags;
-};
+} MsgBoxParams_s;
 
 //Doesnt block the main thread! WOW!
 UINT ThreadProcMsgBoxNB(LPVOID mbp0)
 {
-	MsgBoxParams* mbp = (MsgBoxParams*)mbp0;
+	MsgBoxParams_s* mbp = (MsgBoxParams_s*)mbp0;
 	WND->ShowWindow(SW_RESTORE);
 	WND->SetForegroundWindow();
 	WND->MessageBoxW(mbp->text, mbp->title, mbp->flags);
 	delete mbp;
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 void CVDUClientDlg::MessageBoxNB(CString text, CString title, UINT flags)
@@ -658,7 +658,7 @@ void CVDUClientDlg::MessageBoxNB(CString text, CString title, UINT flags)
 	if (APP->IsTestMode())
 		return;
 
-	MsgBoxParams* mbp = new MsgBoxParams();
+	MsgBoxParams_s* mbp = new MsgBoxParams_s;
 	mbp->text = CString(text);
 	mbp->title = CString(title);
 	mbp->flags = flags;

@@ -31,7 +31,7 @@ NOTE: If the include file `winfsp.hpp` wont be pre-installed in some cases, you 
 ## Launch options
 
 - `-silent`       Program window starts up hidden and minimized to tray
-- `-testmode`     Program starts in test mode, where it reads actions and executes them. For more information see contents of `test.py`
+- `-testmode`     Program starts in test mode, where it reads actions and executes them. For more information see contents of 'test.py'
 - `-insecure` Disables certificate validation - for debug/test purposes
 
 # VDU Mock Server
@@ -52,15 +52,13 @@ Python3.
 
 ## Requirements
 
-Python 3
+Python 3.9.4
 
 ## Setting up for testing
 
-Make sure to `pip install` required libraries if necessary
+1.) Run `test.py`
 
-1.) Edit test settings at the top of the file to your liking
-
-2.) Run `test.py` - Checkmarks mean passed, Crosses mean did not pass
+To add new tests or edit the settings of the testing suite, modify the file
 
 ## Adding custom tests
 
@@ -74,17 +72,17 @@ In order to add custom tests, get familiar with the Action list, create your tes
 - `-deletefile [token]`       Invalidates token
 - `-rename [token] [name]`    Renames file to 'name'
 - `-logout`                   Logs out current user
-- `-write [token] [text]`     Writes text to a file
-
+- `-write [token] [text]`     Writes text at the beginning of a file
+- `-read [token] [cmpText]`   Reads text of the length of 'cmpText' from the beginning of a file and compares them 
 # Credits
 
 Client developed using Microsoft Visual Studio 2019 Community with valid Free Licence, using MFC/ATL Build tools v142 and Windows 10.0 SDK, at https://visualstudio.microsoft.com/cs/vs/community/
 
-Server developed using Microsoft Visual Studio Code, with Python3.9 environment, at https://code.visualstudio.com/
+Server developed using Microsoft Visual Studio Code, with Python 3.9.4 environment, at https://code.visualstudio.com/
 
-WinFSP API usage in courtesy of `billziss-gh`, GitHub page at https://github.com/billziss-gh/winfsp, Website at www.secfs.net/winfsp/
+WinFsP API usage in courtesy of `billziss-gh`, GitHub page at https://github.com/billziss-gh/winfsp, Website at www.secfs.net/winfsp/
 
-WinFSP FileSystem usage based on passthrough-cpp by `billziss-gh` at https://github.com/billziss-gh/winfsp/tree/master/tst/passthrough-cpp
+WinFSP Virtual File System usage based on passthrough-cpp by `billziss-gh` at https://github.com/billziss-gh/winfsp/tree/master/tst/passthrough-cpp
 
 Cloud Storage icon by https://icons8.com at https://icons8.com/icon/r8kHwiV6nVEd/cloud-storage
 

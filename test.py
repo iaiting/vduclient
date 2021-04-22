@@ -1,10 +1,10 @@
-import os, time, json, subprocess
+import os, time, subprocess
 thispath = os.path.dirname(os.path.realpath(__file__))
 
 #===============================================
 #Settings
-LOG_SERVER = False #Whether or not to log server messages in output
 VDUCLIENT = thispath + "\\x64\\Release\\VDUClient.exe" 
+LOCAL_SERVER_ADDRESS = "127.0.0.1:4443"
 #===============================================
 # Action list
 # 
@@ -14,8 +14,8 @@ VDUCLIENT = thispath + "\\x64\\Release\\VDUClient.exe"
 # -deletefile [token]       Invalidates token
 # -rename [token] [name]    Renames file to 'name'
 # -logout                   Logs out current user
-# -write [token] [text]     Writes text to a file
-# 
+# -write [token] [text]     Writes `text` at the beginning of a file
+# -read [token] [cmpText]   Reads text of the length of `cmpText` from the beginning of a file and compares them
 
 def Log(msg):
     print(("[%s] " + str(msg)) % time.strftime('%H:%M:%S'))
@@ -32,41 +32,40 @@ Tests = [
     ["logout_bad", "-logout", EXIT_FAILURE],
     ["nologin", "-user \"\"", EXIT_FAILURE],
     ["del_ne", "-deletefile x", EXIT_FAILURE], #Not logged in,
-    ["file", "-user john -accessfile a -deletefile a", EXIT_SUCCESS],#Access and delele file a 
+    ["file", "-user john -accessfile a -deletefile a -logout", EXIT_SUCCESS],#Access and delele file a 
     ["nofile", "-user john -accessfile 012a -deletefile 012a", EXIT_FAILURE], #File doesnt exist, last action skipped
-    ["thetwotime", "-user john -accessfile d -deletefile d -accessfile d -deletefile d", EXIT_SUCCESS],
+    ["thetwotime", "-user john -accessfile d -deletefile d -accessfile d -deletefile d -logout", EXIT_SUCCESS],
     ["tworeqs", "-user john -accessfile b -accessfile b", EXIT_FAILURE], #File already exists, fails
-    ["allfiles", "-user john -accessfile a -accessfile b -accessfile c -accessfile d -accessfile e -accessfile f", EXIT_SUCCESS],
-    ["rename_bf", "-user john -accessfile a -rename a test.txt -deletefile a -accessfile a -rename a plain.txt -deletefile a", EXIT_SUCCESS],
+    ["allfiles", "-user john -accessfile a -accessfile b -accessfile c -accessfile d -accessfile e -accessfile f -logout", EXIT_SUCCESS],
+    ["rename_bf", "-user john -accessfile a -rename a test.txt -deletefile a -accessfile a -rename a plain.txt -deletefile a -logout", EXIT_SUCCESS],
     ["rename_ne", "-user john -rename c test", EXIT_FAILURE], #Rename non existent file
-    ["write_ok", "-user john -accessfile a -write a Testing_Writing_Works -deletefile a", EXIT_SUCCESS],
+    ["write_ok", "-user john -accessfile a -write a Testing_Writing_Works -deletefile a -logout", EXIT_SUCCESS],
     ["write_ne", "-user john -write a Testing_Not_Working -deletefile a", EXIT_FAILURE],
-    ["write_multi", "-user john -accessfile a -write a Testing_Writing_Works -deletefile a -accessfile a -write a Another_One -deletefile a", EXIT_SUCCESS]
+    ["write_multi", "-user john -accessfile a -write a Testing_Writing_Works -deletefile a -accessfile a -write a Another_One -deletefile a -logout", EXIT_SUCCESS],
+    ["read_ok", "-user john -accessfile a -write a Apple -deletefile a -accessfile a -read a Apple -deletefile a -logout", EXIT_SUCCESS],
+    ["read_bad", "-user john -accessfile a -write a Pear -deletefile a -accessfile a -read a Citron -deletefile a", EXIT_FAILURE],
+    ["read_two", "-user john -accessfile a -write a Citron_is_healthy -deletefile a -accessfile a -read a Citron -write a Banana -deletefile a -accessfile a -read a Banana_is_healthy -logout", EXIT_SUCCESS],
 ]
-pserver = None
-if (LOG_SERVER):
-    pserver = subprocess.Popen(["python", thispath + "\\vdusrv.py"])
-else:
-    pserver = subprocess.Popen(["python", thispath + "\\vdusrv.py"], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
 #Add base actions to set test mode and set our local server
-VDUCLIENT += " -insecure -testmode -server 127.0.0.1:4443 "
+VDUCLIENT += " -insecure -testmode -server %s " % (LOCAL_SERVER_ADDRESS)
 
-successfulTestCount = 0
-for test in Tests:
-    testName = test[0]
-    testInstructions = test[1]
-    expectedCode = test[2]
+while True:
+    successfulTestCount = 0
+    for test in Tests:
+            testName = test[0]
+            testInstructions = test[1]
+            expectedCode = test[2]
 
-    p = subprocess.Popen(VDUCLIENT + testInstructions)
-    p.wait()
-    
-    if (p.returncode == expectedCode):
-        Log("✔️  [%s] %d" % (testName, p.returncode))
-        successfulTestCount = successfulTestCount + 1
-    else:
-        Log("❌ [%s] %d (expected %d)" % (testName, p.returncode, expectedCode))
+            p = subprocess.Popen(VDUCLIENT + testInstructions)
+            p.wait()
+            
+            if (p.returncode == expectedCode):
+                Log("[Test]  OK  [%s] %d" % (testName, p.returncode))
+                successfulTestCount = successfulTestCount + 1
+            else:
+                Log("[Test] FAIL [%s] %d (expected %d)" % (testName, p.returncode, expectedCode))
+    break
 
-Log("Passed %d/%d tests" % (successfulTestCount, len(Tests)))
-
-pserver.terminate()
+Log("[Test] Passed %d/%d tests" % (successfulTestCount, len(Tests)))
+input("Press any key to exit.")
