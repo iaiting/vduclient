@@ -50,22 +50,21 @@ Tests = [
 #Add base actions to set test mode and set our local server
 VDUCLIENT += " -insecure -testmode -server %s " % (LOCAL_SERVER_ADDRESS)
 
-while True:
-    successfulTestCount = 0
-    for test in Tests:
-            testName = test[0]
-            testInstructions = test[1]
-            expectedCode = test[2]
 
-            p = subprocess.Popen(VDUCLIENT + testInstructions)
-            p.wait()
+successfulTestCount = 0
+for test in Tests:
+    testName = test[0]
+    testInstructions = test[1]
+    expectedCode = test[2]
+
+    p = subprocess.Popen(VDUCLIENT + testInstructions)
+    p.wait()
             
-            if (p.returncode == expectedCode):
-                Log("[Test]  OK  [%s] %d" % (testName, p.returncode))
-                successfulTestCount = successfulTestCount + 1
-            else:
-                Log("[Test] FAIL [%s] %d (expected %d)" % (testName, p.returncode, expectedCode))
-    break
+    if (p.returncode == expectedCode):
+        Log("[Test]  OK  [%s] %d" % (testName, p.returncode))
+        successfulTestCount = successfulTestCount + 1
+    else:
+        Log("[Test] FAIL [%s] %d (expected %d)" % (testName, p.returncode, expectedCode))
 
 Log("[Test] Passed %d/%d tests" % (successfulTestCount, len(Tests)))
 input("Press any key to exit.")

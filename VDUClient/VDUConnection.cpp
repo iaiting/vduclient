@@ -165,9 +165,6 @@ INT CVDUConnection::Process()
 		}
 		con = nullptr;
 
-		//if (hFile != INVALID_HANDLE_VALUE)
-		//	CloseHandle(hFile);
-
 		inetsession.Close();
 	}
 	END_CATCH

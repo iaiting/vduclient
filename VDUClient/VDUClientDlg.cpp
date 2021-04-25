@@ -83,14 +83,6 @@ BOOL CVDUClientDlg::OnInitDialog()
 		key.Close();
 	}
 
-	//Allows application to be searched for and opened using windows shell/search
-	if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\") + moduleFileName) == ERROR_SUCCESS)
-	{
-		key.SetStringValue(NULL, moduleFilePath);
-		key.SetStringValue(_T("Path"), moduleFolderPath);
-		key.Close();
-	}
-
 	//Create tray popup menu
 	if (m_trayMenu = new CMenu())
 	{
@@ -642,7 +634,7 @@ public:
 	UINT flags;
 } MsgBoxParams_s;
 
-//Doesnt block the main thread! WOW!
+//Doesnt block the main thread
 UINT ThreadProcMsgBoxNB(LPVOID mbp0)
 {
 	MsgBoxParams_s* mbp = (MsgBoxParams_s*)mbp0;

@@ -94,14 +94,13 @@ BOOL VDUClient::InitInstance()
 	SetRegistryKey(VFSNAME);
 
 	//Check if WinFSP is installed on the system
-	HKEY hkey;
-	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("SYSTEM\\CurrentControlSet\\Services\\WinFsp"), 0, KEY_READ, &hkey) != ERROR_SUCCESS)
+	CRegKey key;
+	if (key.Open(HKEY_LOCAL_MACHINE, _T("SYSTEM\\CurrentControlSet\\Services\\WinFsp"), KEY_READ) != ERROR_SUCCESS)
 	{
-		MessageBox(NULL, _T("WinFsP is not insalled on the system!\r\nPlease download it from http://www.secfs.net/winfsp/rel/"), TITLENAME, MB_ICONERROR);
+		MessageBox(NULL, _T("WinFsp is not intsalled on the system!\r\nPlease install it from http://www.secfs.net/winfsp/rel/"), TITLENAME, MB_ICONERROR);
 		return FALSE;
 	}
-	else
-		RegCloseKey(hkey);
+	key.Close();
 
 	BOOL c_silent = FALSE;
 	//Check for startup options
@@ -262,8 +261,8 @@ BOOL VDUClient::InitInstance()
 					TRY 
 					{
 						//Writing unicode text to a file
-						CStdioFile stdf(GetFileSystemService()->GetDrivePath() + _T("\\") + vdufile.m_name,
-							CFile::modeWrite | CFile::typeText | CFile::shareDenyNone);
+						CStdioFile stdf(GetFileSystemService()->GetDrivePath() + vdufile.m_name,
+							CFile::modeWrite | CFile::typeUnicode | CFile::shareDenyNone);
 
 						stdf.WriteString(text);
 						stdf.Flush();
@@ -291,8 +290,8 @@ BOOL VDUClient::InitInstance()
 
 					TRY
 					{
-						CStdioFile stdf(GetFileSystemService()->GetDrivePath() + _T("\\") + vdufile.m_name,
-						CFile::modeRead | CFile::typeText | CFile::shareDenyNone);
+						CStdioFile stdf(GetFileSystemService()->GetDrivePath() + vdufile.m_name,
+						CFile::modeRead | CFile::typeUnicode | CFile::shareDenyNone);
 
 						//Reading unicode text from a file and compare it to input
 						CString fileContent;
@@ -395,7 +394,7 @@ UINT VDUClient::ThreadProcLoginRefresh(LPVOID)
 		else //Sleep until its time to check again
 		{
 			VDU_SESSION_UNLOCK;
-			Sleep(1000); //TODO: delta timespan ?
+			Sleep(1000);
 			continue;
 		}
 	}
