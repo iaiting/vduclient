@@ -1287,6 +1287,15 @@ NTSTATUS CVDUFileSystemService::OnStop()
 #if defined(_DEBUG) && defined(DEBUG_PRINT_FILESYSTEM_CALLS)
     FreeConsole();
 #endif
+    if (_tcslen(m_driveLetter) > 0)
+    {
+        CRegKey key;
+        if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Classes\\Applications\\Explorer.exe\\Drives")) == ERROR_SUCCESS)
+        {
+            key.RecurseDeleteKey(CString(m_driveLetter[0]));
+            key.Close();
+        }
+    }
     m_host.Unmount();
     return STATUS_SUCCESS;
 }

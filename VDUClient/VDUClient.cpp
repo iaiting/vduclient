@@ -326,7 +326,9 @@ INT VDUClient::ExitInstance()
 {
 	if (auto* s = GetSession())
 		if (s->IsLoggedIn())
-			AfxBeginThread(CVDUConnection::ThreadProc,(LPVOID)new CVDUConnection(s->GetServerURL(), VDUAPIType::DELETE_AUTH_KEY));
+			AfxBeginThread(CVDUConnection::ThreadProc, (LPVOID)new CVDUConnection(s->GetServerURL(), VDUAPIType::DELETE_AUTH_KEY));
+
+	GetFileSystemService()->Stop();
 
 	if (m_pMainWnd)
 		WND->DestroyWindow();

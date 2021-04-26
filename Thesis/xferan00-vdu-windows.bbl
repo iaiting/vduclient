@@ -1,0 +1,335 @@
+\makeatletter
+\makeatother
+\begin{thebibliography}{10}
+
+\bibitem{CleanCodeBook}
+{\sc\bgroup}Martin{\egroup}, R.~C.
+\newblock {\em Clean Code: A Handbook of Agile Software Craftsmanship}.
+\newblock 1st ed.
+\newblock Upper Saddle River, NJ: Prentice Hall, 2009.
+\newblock 138-140~p.
+\newblock ISBN 0-13-235088-2.
+
+\bibitem{DesktopOSStats}
+{\em Desktop Operating System Market Share Worldwide} [online].
+\newblock Statcounter GlobalStats, march 2021 {\small [cit. 2020-03-09]}.
+\newblock Available at:
+  ~{\small\url{https://gs.statcounter.com/os-market-share}}.
+
+\bibitem{DokanDevIo}
+{\em Dokan - User mode file system library for windows with FUSE Wrapper}
+  [online].
+\newblock Dokany, 2021 {\small [cit. 2020-03-31]}.
+\newblock Available at: ~{\small\url{https://dokan-dev.github.io/}}.
+
+\bibitem{FileHandles}
+{\sc\bgroup}Sharkey{\egroup}, K., {\sc\bgroup}Coulter{\egroup}, D.,
+  {\sc\bgroup}Jacobs{\egroup}, M. et~al.
+\newblock {\em File Handles - Win32 apps | Microsoft Docs} [online].
+\newblock 2018 {\small [cit. 2020-03-10]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/fileio/file-handles}}.
+
+\bibitem{FilesAndClusters}
+{\sc\bgroup}Jacobs{\egroup}, M., {\sc\bgroup}Sharkey{\egroup}, K.,
+  {\sc\bgroup}Coulter{\egroup}, D. et~al.
+\newblock {\em Files and Clusters - Win32 apps | Microsoft Docs} [online].
+\newblock 2018 {\small [cit. 2020-03-10]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/fileio/files-and-clusters}}.
+
+\bibitem{FUSE}
+{\em FUSE — The Linux Kernel documentation} [online].
+\newblock The kernel development community, 2021 {\small [cit. 2020-03-09]}.
+\newblock Available at:
+  ~{\small\url{https://www.kernel.org/doc/html/latest/filesystems/fuse.html}}.
+
+\bibitem{GitDokany}
+{\em Dokan-dev/dokany: User mode file system library for windows with FUSE
+  Wrapper} [online].
+\newblock GitHub, 2021 {\small [cit. 2020-03-20]}.
+\newblock Available at: ~{\small\url{https://github.com/dokan-dev/dokany}}.
+
+\bibitem{GitVfsForGit}
+{\em Microsoft/VFSForGit: Virtual File System for Git: Enable Git at Enterprise
+  Scale} [online].
+\newblock GitHub, 2021 {\small [cit. 2020-03-20]}.
+\newblock Available at: ~{\small\url{https://github.com/Microsoft/VFSForGit}}.
+
+\bibitem{GitWinFsp}
+{\em Billziss-gh/winfsp: Windows File System Proxy - FUSE for Windows}
+  [online].
+\newblock GitHub, 2021 {\small [cit. 2020-04-20]}.
+\newblock Available at: ~{\small\url{https://github.com/billziss-gh/winfsp}}.
+
+\bibitem{HandlesAndObjects}
+{\sc\bgroup}Schofield{\egroup}, M., {\sc\bgroup}Sharkey{\egroup}, K.
+  and~{\sc\bgroup}Satran{\egroup}, M.
+\newblock {\em Handles and Objects - Win32 apps | Microsoft Docs} [online].
+\newblock 2018 {\small [cit. 2020-03-10]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/sysinfo/handles-and-objects}}.
+
+\bibitem{Icons8Cloud}
+{\em Cloud Storage Icon – Free Download, PNG and Vector} [online].
+\newblock Icons8, 2021 {\small [cit. 2020-04-20]}.
+\newblock Available at:
+  ~{\small\url{https://icons8.com/icon/r8kHwiV6nVEd/cloud-storage}}.
+
+\bibitem{LocalFileSystems}
+{\em Local File Systems (Windows) | Microsoft Docs} [online].
+\newblock ©Microsoft, march 2018 {\small [cit. 2020-03-10]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa364407(v=vs.85)}}.
+
+\bibitem{MFCDesktop}
+{\sc\bgroup}Whitney{\egroup}, T., {\sc\bgroup}Sharkey{\egroup}, K.,
+  {\sc\bgroup}Schonning{\egroup}, N. et~al.
+\newblock {\em MFC Desktop Applications} [online].
+\newblock 2021 {\small [cit. 2020-03-09]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/cpp/mfc/mfc-desktop-applications}}.
+
+\bibitem{MozillaHTTP}
+{\em An overview of HTTP - HTTP | MDN} [online].
+\newblock Mozilla, february 2021 {\small [cit. 2020-03-26]}.
+\newblock Available at:
+  ~{\small\url{https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview}}.
+
+\bibitem{MsVc}
+{\sc\bgroup}Robertson{\egroup}, C., {\sc\bgroup}Schonning{\egroup}, N.,
+  {\sc\bgroup}Tahan{\egroup}, M.~A. et~al.
+\newblock {\em C/C++ projects and build systems in Visual Studio} [online].
+\newblock 2019 {\small [cit. 2020-03-09]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/cpp/build/projects-and-build-systems-cpp}}.
+
+\bibitem{OsVersion}
+{\sc\bgroup}Schofield{\egroup}, M., {\sc\bgroup}Walker{\egroup}, J.,
+  {\sc\bgroup}Coulter{\egroup}, D. et~al.
+\newblock {\em Operating System Version} [online].
+\newblock 2020 {\small [cit. 2020-03-09]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/sysinfo/operating-system-version}}.
+
+\bibitem{PythonWhatis}
+{\em What is Python? Executive Summary | Python.org} [online].
+\newblock Python Software Foundation, 2021 {\small [cit. 2020-04-10]}.
+\newblock Available at:
+  ~{\small\url{https://www.python.org/doc/essays/blurb/}}.
+
+\bibitem{RestAPI}
+{\sc\bgroup}Fielding{\egroup}, R.~T.
+\newblock {\em Fielding Dissertation: CHAPTER 5: Representational State
+  Transfer (REST)} [online].
+\newblock 2000 {\small [cit. 2020-03-26]}.
+\newblock Available at:
+  ~{\small\url{https://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm}}.
+
+\bibitem{SSLCertTut}
+{\sc\bgroup}Morrissette{\egroup}, M.
+\newblock {\em TUTORIAL: How to Generate Secure Self-Signed Server and Client
+  Certificates with OpenSSL - The Devolutions Blog} [online].
+\newblock 2020 {\small [cit. 2020-04-10]}.
+\newblock Available at:
+  ~{\small\url{https://blog.devolutions.net/2020/07/tutorial-how-to-generate-secure-self-signed-server-and-client-certificates-with-openssl}}.
+
+\bibitem{SwaggerDocs}
+{\em About Swagger Specification | Documentation | Swagger} [online].
+\newblock SmartBear Software, 2021 {\small [cit. 2020-03-26]}.
+\newblock Available at:
+  ~{\small\url{https://swagger.io/docs/specification/about/}}.
+
+\bibitem{VfsForGitMS}
+{\em VFS for Git: Git at Enterprise Scale} [online].
+\newblock ©Microsoft, 2021 {\small [cit. 2020-03-31]}.
+\newblock Available at: ~{\small\url{https://vfsforgit.org/}}.
+
+\bibitem{VS19TOS}
+{\em MICROSOFT SOFTWARE LICENSE TERMS} [online].
+\newblock ©Microsoft, 2019 {\small [cit. 2020-03-10]}.
+\newblock Available at:
+  ~{\small\url{https://visualstudio.microsoft.com/license-terms/mlt031819/}}.
+
+\bibitem{VStudio}
+{\sc\bgroup}Lee{\egroup}, T.~G., {\sc\bgroup}Hogenson{\egroup}, G.,
+  {\sc\bgroup}Parente{\egroup}, J. et~al.
+\newblock {\em Overview of Visual Studio | Microsoft Docs} [online].
+\newblock 2019 {\small [cit. 2020-04-09]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/visualstudio/get-started/visual-studio-ide}}.
+
+\bibitem{Win10SDK}
+{\em Windows 10 SDK - Windows app development} [online].
+\newblock ©Microsoft, 2021 {\small [cit. 2020-03-09]}.
+\newblock Available at:
+  ~{\small\url{https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk/}}.
+
+\bibitem{WinConventions}
+{\sc\bgroup}Radich{\egroup}, Q., {\sc\bgroup}Coulter{\egroup}, D.,
+  {\sc\bgroup}Jacobs{\egroup}, M. and~{\sc\bgroup}Satran{\egroup}, M.
+\newblock {\em Windows Coding Conventions - Win32 apps | Microsoft Docs}
+  [online].
+\newblock 2018 {\small [cit. 2020-03-11]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/learnwin32/windows-coding-conventions}}.
+
+\bibitem{WinDirectoryMgmt}
+{\sc\bgroup}Sharkey{\egroup}, K., {\sc\bgroup}Satran{\egroup}, M. et~al.
+\newblock {\em Directory Management - Win32 apps | Microsoft Docs} [online].
+\newblock 2018 {\small [cit. 2020-03-20]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/fileio/directory-management}}.
+
+\bibitem{WinDriveIcon}
+{\sc\bgroup}Schofield{\egroup}, M., {\sc\bgroup}Sharkey{\egroup}, K.
+  and~{\sc\bgroup}Satran{\egroup}, M.
+\newblock {\em Assign a Custom Icon and Label to a Drive Letter - Win32 apps |
+  Microsoft Docs} [online].
+\newblock 2018 {\small [cit. 2020-04-19]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/shell/how-to-assign-a-custom-icon-and-label-to-a-drive-letter}}.
+
+\bibitem{WinFsp}
+{\em WinFsp} [online].
+\newblock secfs, 2021 {\small [cit. 2020-04-20]}.
+\newblock Available at: ~{\small\url{http://www.secfs.net/winfsp/}}.
+
+\bibitem{WinFspTutorial}
+{\em WinFsp Tutorial · WinFsp} [online].
+\newblock secfs, 2021 {\small [cit. 2020-04-20]}.
+\newblock Available at:
+  ~{\small\url{http://www.secfs.net/winfsp/doc/WinFsp-Tutorial/}}.
+
+\bibitem{WinFspVSFUSE}
+{\em Native API vs FUSE · WinFsp} [online].
+\newblock secfs, 2021 {\small [cit. 2020-04-20]}.
+\newblock Available at:
+  ~{\small\url{http://www.secfs.net/winfsp/doc/Native-API-vs-FUSE/}}.
+
+\bibitem{WinHandleLimits}
+{\sc\bgroup}Schofield{\egroup}, M., {\sc\bgroup}Sharkey{\egroup}, K.
+  and~{\sc\bgroup}Satran{\egroup}, M.
+\newblock {\em Handle Limitations - Win32 apps | Microsoft Docs} [online].
+\newblock 2018 {\small [cit. 2020-03-11]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/sysinfo/handle-limitations}}.
+
+\bibitem{WinHKCRKey}
+{\sc\bgroup}Schofield{\egroup}, M., {\sc\bgroup}Sharkey{\egroup}, K.
+  and~{\sc\bgroup}Coulter{\egroup}, D.
+\newblock {\em HKEY\_CLASSES\_ROOT Key - Win32 apps | Microsoft Docs} [online].
+\newblock 2018 {\small [cit. 2020-04-19]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/sysinfo/hkey-classes-root-key}}.
+
+\bibitem{WinHKLMCCS}
+{\sc\bgroup}Hudek{\egroup}, T., {\sc\bgroup}Coulter{\egroup}, D.,
+  {\sc\bgroup}Knichel{\egroup}, J. et~al.
+\newblock {\em
+  HKLM\textbackslash{}SYSTEM\textbackslash{}CurrentControlSet\textbackslash{}Services
+  Registry Tree - Windows drivers | Microsoft Docss} [online].
+\newblock 2017 {\small [cit. 2020-04-24]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows-hardware/drivers/install/hklm-system-currentcontrolset-services-registry-tree}}.
+
+\bibitem{WinKernelFS}
+{\sc\bgroup}Hollasch{\egroup}, L.~W., {\sc\bgroup}Coulter{\egroup}, D.,
+  {\sc\bgroup}Kim{\egroup}, A. et~al.
+\newblock {\em File systems driver design guide - Windows drivers | Microsoft
+  Docs} [online].
+\newblock 2020 {\small [cit. 2020-03-09]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows-hardware/drivers/ifs/}}.
+
+\bibitem{WinNtQuery}
+{\em NtQueryObject function (winternl.h) - Win32 apps | Microsoft Docs}
+  [online].
+\newblock ©Microsoft, december 2018 {\small [cit. 2020-04-19]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryobject}}.
+
+\bibitem{WinProcModes}
+{\sc\bgroup}Viviano{\egroup}, A. and~{\sc\bgroup}Bazan{\egroup}, N.
+\newblock {\em User mode and kernel mode - Windows drivers | Microsoft Docs}
+  [online].
+\newblock 2017 {\small [cit. 2020-04-22]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows-hardware/drivers/gettingstarted/user-mode-and-kernel-mode}}.
+
+\bibitem{WinRegPreKeys}
+{\sc\bgroup}Schofield{\egroup}, M., {\sc\bgroup}Sharkey{\egroup}, K.,
+  {\sc\bgroup}Coulter{\egroup}, D. et~al.
+\newblock {\em Predefined Keys - Win32 apps | Microsoft Docs} [online].
+\newblock 2018 {\small [cit. 2020-04-22]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/sysinfo/predefined-keys}}.
+
+\bibitem{WinRegStruct}
+{\sc\bgroup}Schofield{\egroup}, M., {\sc\bgroup}Sharkey{\egroup}, K.
+  and~{\sc\bgroup}Coulter{\egroup}, D.
+\newblock {\em Structure of the Registry - Win32 apps | Microsoft Docs}
+  [online].
+\newblock 2018 {\small [cit. 2020-03-16]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/sysinfo/structure-of-the-registry}}.
+
+\bibitem{WinSemaphores}
+{\sc\bgroup}Schofield{\egroup}, M., {\sc\bgroup}Sharkey{\egroup}, K.,
+  {\sc\bgroup}Coulter{\egroup}, D. et~al.
+\newblock {\em Semaphore Objects - Win32 apps | Microsoft Docs} [online].
+\newblock 2018 {\small [cit. 2020-03-18]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/sync/semaphore-objects}}.
+
+\bibitem{WinSRW}
+{\sc\bgroup}Schofield{\egroup}, M., {\sc\bgroup}Hillberg{\egroup}, M.,
+  {\sc\bgroup}Guzak{\egroup}, C. et~al.
+\newblock {\em Slim Reader/Writer (SRW) Locks - Win32 apps | Microsoft Docs}
+  [online].
+\newblock 2018 {\small [cit. 2020-03-18]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/sync/slim-reader-writer--srw--locks}}.
+
+\bibitem{WinSyncFuncs}
+{\sc\bgroup}Schofield{\egroup}, M., {\sc\bgroup}Sharkey{\egroup}, K.,
+  {\sc\bgroup}Coulter{\egroup}, D. et~al.
+\newblock {\em Synchronization Functions - Win32 apps | Microsoft Docs}
+  [online].
+\newblock 2018 {\small [cit. 2020-03-18]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/sync/synchronization-functions}}.
+
+\bibitem{WinUnicode}
+{\sc\bgroup}Bridge{\egroup}, K., {\sc\bgroup}Sharkey{\egroup}, K.
+  and~{\sc\bgroup}Satran{\egroup}, M.
+\newblock {\em Unicode in the Windows API - Win32 apps | Microsoft Docs}
+  [online].
+\newblock 2018 {\small [cit. 2020-03-11]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/intl/unicode-in-the-windows-api}}.
+
+\bibitem{WinUnicodeSummary}
+{\sc\bgroup}Whitney{\egroup}, T., {\sc\bgroup}Sharkey{\egroup}, K.,
+  {\sc\bgroup}Coulter{\egroup}, D. et~al.
+\newblock {\em Unicode Programming Summary | Microsoft Docs} [online].
+\newblock 2016 {\small [cit. 2020-03-12]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/cpp/text/unicode-programming-summary}}.
+
+\bibitem{WinVolumeMgmt}
+{\sc\bgroup}Sharkey{\egroup}, K., {\sc\bgroup}Satran{\egroup}, M. et~al.
+\newblock {\em Volume Management - Win32 apps | Microsoft Docs} [online].
+\newblock 2018 {\small [cit. 2020-03-20]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/fileio/volume-management}}.
+
+\bibitem{WinWindow}
+{\sc\bgroup}Radich{\egroup}, Q., {\sc\bgroup}Coulter{\egroup}, D.,
+  {\sc\bgroup}Jacobs{\egroup}, M. and~{\sc\bgroup}Satran{\egroup}, M.
+\newblock {\em What Is a Window - Win32 apps | Microsoft Docs} [online].
+\newblock 2018 {\small [cit. 2020-03-15]}.
+\newblock Available at:
+  ~{\small\url{https://docs.microsoft.com/en-us/windows/win32/learnwin32/what-is-a-window-}}.
+
+\end{thebibliography}
