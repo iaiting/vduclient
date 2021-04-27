@@ -393,8 +393,8 @@ INT CVDUSession::CallbackDownloadFile(CHttpFile* file)
 				//Dont open anything in test mode
 				if (!APP->IsTestMode())
 				{
-					HINSTANCE result = ShellExecute(WND->GetSafeHwnd(), _T("open"), APP->GetFileSystemService()->GetDrivePath() + vfile.m_name, NULL, NULL, SW_SHOWNORMAL);
-					WND->TrayNotify(vfile.m_name, CString(_T("File successfuly accessed!")), result == (HINSTANCE)SE_ERR_NOASSOC ? SIID_DOCNOASSOC : SIID_DOCASSOC);
+					ShellExecute(WND->GetSafeHwnd(), _T("open"), APP->GetFileSystemService()->GetDrivePath() + vfile.m_name, NULL, NULL, SW_SHOWNORMAL);
+					WND->TrayNotify(vfile.m_name, CString(_T("File successfuly accessed!")), SIID_DOCASSOC);
 					WND->UpdateStatus();
 				}
 				return EXIT_SUCCESS;

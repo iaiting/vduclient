@@ -29,7 +29,10 @@ def Log(msg):
 def FileMD5(fpath):
     with open(fpath, "rb") as f:
         file_hash = hashlib.md5()
-        while chunk := f.read(8192):
+        while True:
+            chunk = f.read(8192)
+            if not chunk:
+                break
             file_hash.update(chunk)
         f.close()
     return file_hash.digest()
@@ -116,7 +119,10 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                         self.end_headers()
                         Log("GET %s From:%s File:%s (200)" % (self.path, ApiKeys[apiKey]["User"], fpath))
                         with open(fpath, "rb") as f:
-                            while chunk := f.read(8192 * 2):
+                            while True:
+                                chunk = f.read(8192)
+                                if not chunk:
+                                    break
                                 self.wfile.write(chunk)
                                 if (FILE_CHUNK_READ_DELAY):
                                     time.sleep(FILE_CHUNK_READ_DELAY)
@@ -280,8 +286,6 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 httpd = http.server.HTTPServer(("0.0.0.0", 4443), VDUHTTPRequestHandler)
-httpd.socket = ssl.wrap_socket(httpd.socket, server_side=True, 
-certfile=thispath + "\\server.crt",
-keyfile=thispath + "\\server.key",
-ca_certs=thispath + "\\ca.crt", cert_reqs=ssl.CERT_NONE)
+httpd.socket = ssl.wrap_socket(httpd.socket, server_side=True,
+certfile=thispath + "\\server_.pem", cert_reqs=ssl.CERT_NONE)
 httpd.serve_forever()

@@ -8,15 +8,19 @@ Microsoft Visual C++ Redistributable 2015-2019
 
 WinFSP 1.8 or newer
 
+Windows 7 SP1 and newer
+
 ## Installation
 
 1.) Download and install latest WinFSP (http://www.secfs.net/winfsp/rel/) and Visual C++ 15-19 Redistributable libraries (https://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0)
+
+1a.) For Windows 7 SP1, download and install https://www.microsoft.com/en-us/download/details.aspx?id=46148
 
 2.) Grab a release version of `VDUClient.exe` and run (Debug version requires Visual Studio debug libraries)
 
 ## Setting up developing environment
 
-Requires Visual Studio 2019, Build tools v142, MFC+ATL for build tools v142
+Requires Visual Studio 2019, Windows 10 SDK, Build tools v142, MFC+ATL for build tools v142
 
 1.) Install WinFsP with the Developer Option selected during installation
 
@@ -52,12 +56,15 @@ Python3.
 
 ## Requirements
 
-Python 3.9.4
+Python 3.6.3 or newer
 
 ## Setting up for testing
 
-1.) Run `test.py`
+1.) Make sure to not have any instance of VDU Client or VDU server running, before running the test.
 
+2.) Run `test.py` in the root directory
+
+Test is set up to be ran from that directory. To change path to client executable and server script, you can edit the top of the file.
 To add new tests or edit the settings of the testing suite, modify the file
 
 ## Adding custom tests

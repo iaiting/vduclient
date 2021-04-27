@@ -246,7 +246,7 @@ NTSTATUS CVDUFileSystem::Create(
     {
         //Attempting to create directory.. not supported by our simple file system
         delete FileDesc;
-        return STATUS_NOT_SUPPORTED;
+        return STATUS_UNSUCCESSFUL;
     }
     else
     {
@@ -262,7 +262,7 @@ NTSTATUS CVDUFileSystem::Create(
              GrantedAccess & FILE_WRITE_DATA))
         {
             //You dont have rights for this access to VDU file
-            return STATUS_MARKED_TO_DISALLOW_WRITES;
+            return IsWindows8OrGreater() ? STATUS_MARKED_TO_DISALLOW_WRITES : STATUS_UNSUCCESSFUL;
         }
     }
 
@@ -276,7 +276,7 @@ NTSTATUS CVDUFileSystem::Create(
 
         //More friendly message, let user know to not files..
         if (!NT_SUCCESS(result))
-            return STATUS_NOT_SUPPORTED;
+            return STATUS_UNSUCCESSFUL;
 
         return result;
     }
@@ -300,24 +300,26 @@ NTSTATUS CVDUFileSystem::Open(
     char buf[80];
     tstruct = *localtime(&now);
     strftime(buf, sizeof(buf), "%X", &tstruct);
-    fprintf(stderr, "[%s] %s(%ws)\n", buf, __FUNCTION__, FileName);
+    fprintf(stderr, "[%s] %s(%ws)(0x%x)\n", buf, __FUNCTION__, FileName, CreateOptions);
 #endif
 
     WCHAR FullPath[FULLPATH_SIZE];
-    ULONG CreateFlags;
-    VdufsFileDesc* FileDesc;
 
     if (!ConcatPath(FileName, FullPath))
         return STATUS_OBJECT_NAME_INVALID;
 
-    FileDesc = new VdufsFileDesc();
-
-    CreateFlags = FILE_FLAG_BACKUP_SEMANTICS;
+    ULONG CreateFlags = FILE_FLAG_BACKUP_SEMANTICS;
 
     CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(PathFindFileName(FileName));
 
-    //File is about to be deleted, (i.e. from explorer)
-    if (CreateOptions & FILE_DELETE_ON_CLOSE)
+
+    //Win8+ -> File is about to be deleted, (i.e. from explorer) FILE_DELETE_ON_CLOSE
+    //Win7 -> Three flags (from testing)
+    if (CreateOptions & FILE_DELETE_ON_CLOSE ||
+        (!IsWindows8OrGreater() &&
+            CreateOptions & FILE_FLAG_POSIX_SEMANTICS &&
+            CreateOptions & FILE_FLAG_OPEN_REPARSE_POINT &&
+            CreateOptions & FILE_NON_DIRECTORY_FILE))
     {
         //Send delete request and pretend file was deleted
         //If it wasnt, the file will reappear on explorer window refresh
@@ -330,15 +332,14 @@ NTSTATUS CVDUFileSystem::Open(
                 //vdufile.m_md5base64 = newMd5b64;
                 APP->GetFileSystemService()->UpdateVDUFile(vdufile, _T(""), FALSE);
             }
-            APP->GetFileSystemService()->DeleteVDUFile(vdufile);
-            //delete FileDesc;
-            *PFileDesc = FileDesc;
-            return STATUS_SUCCESS;
+
+            INT result = APP->GetFileSystemService()->DeleteVDUFile(vdufile, FALSE);
+            if (result != EXIT_SUCCESS)
+                return STATUS_UNSUCCESSFUL;
         }
-        else //Allow non VDU files to be deleted normally
-        {
-            CreateFlags |= FILE_FLAG_DELETE_ON_CLOSE;
-        }
+        
+        //Allow files to be deleted normally using the delete on close flag
+        CreateFlags |= FILE_FLAG_DELETE_ON_CLOSE;
     }
 
     if (vdufile.IsValid())
@@ -351,6 +352,9 @@ NTSTATUS CVDUFileSystem::Open(
             return STATUS_MARKED_TO_DISALLOW_WRITES;
         }
     }
+
+    VdufsFileDesc* FileDesc = new VdufsFileDesc();
+    *PFileDesc = FileDesc;
 
     FileDesc->Handle = CreateFileW(FullPath,
         GrantedAccess, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0,
@@ -752,17 +756,21 @@ NTSTATUS CVDUFileSystem::CanDelete(
     fprintf(stderr, "[%s] %s", buf, __FUNCTION__"\n");
 #endif
 
-    WCHAR FullPath[FULLPATH_SIZE];
-    ULONG Length = GetFinalPathNameByHandle(HandleFromFileDesc(FileDesc), FullPath, ARRAYSIZE(FullPath) - 1, 0);
-    FullPath[Length] = '\0';
-
-    CString fname = PathFindFileName(FullPath);
-
-    CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(fname);
-    if (vdufile.IsValid())
+    //Windows 10 doesnt need this functionality
+    if (IsWindows10OrGreater())
     {
-        //VDU Files are not deletable, prevent programs from trying to handle them like they are
-        return STATUS_OPERATION_NOT_SUPPORTED_IN_TRANSACTION;
+        WCHAR FullPath[FULLPATH_SIZE];
+        ULONG Length = GetFinalPathNameByHandle(HandleFromFileDesc(FileDesc), FullPath, ARRAYSIZE(FullPath) - 1, 0);
+        FullPath[Length] = '\0';
+
+        CString fname = PathFindFileName(FullPath);
+
+        CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(fname);
+        if (vdufile.IsValid())
+        {
+            //VDU Files are not deletable, prevent programs from trying to handle them like they are
+            return STATUS_OPERATION_NOT_SUPPORTED_IN_TRANSACTION;
+        }
     }
 
     HANDLE Handle = HandleFromFileDesc(FileDesc);
@@ -1133,28 +1141,16 @@ void CVDUFileSystemService::DeleteFileInternal(CString token)
     CVDUFile vdufile = pFile ? *pFile : CVDUFile::InvalidFile;
     if (vdufile.IsValid()) //Already deleted?
     {
-        //Delete the file on disk
-        if (DeleteFile(GetWorkDirPath() + _T("\\") + vdufile.m_name))
+        //Delete the file in the internal vector
+        for (auto it = m_files.begin(); it != m_files.end(); it++)
         {
-            BOOL deletedFile = FALSE;
-            for (auto it = m_files.begin(); it != m_files.end(); it++)
+            CVDUFile f = (*it);
+
+            if (f == vdufile)
             {
-                CVDUFile f = (*it);
-
-                if (f == vdufile)
-                {
-                    m_files.erase(it);
-                    deletedFile = TRUE;
-                    break;
-                }
+                m_files.erase(it);
+                break;
             }
-
-            if (!deletedFile)
-                WND->MessageBoxNB(_T("Failed to find file to delete!"), TITLENAME, MB_ICONWARNING);
-        }
-        else
-        {
-            WND->MessageBoxNB(_T("Failed to delete file!"), TITLENAME, MB_ICONWARNING);
         }
     }
 
@@ -1271,7 +1267,7 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
         return Result;
     }
 
-#if defined(_DEBUG) && defined(DEBUG_PRINT_FILESYSTEM_CALLS)
+#if defined(DEBUG_PRINT_FILESYSTEM_CALLS)
     if (AllocConsole())
     {
         freopen("CONOUT$", "w", stdout);
@@ -1441,7 +1437,8 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
         UINT readLen, readTotal = 0;
         while ((readLen = httpfile->Read(buf, ARRAYSIZE(buf))) > 0)
         {
-            if (!WriteFile(hFile, buf, readLen, NULL, NULL))
+            DWORD writeLen;
+            if (!WriteFile(hFile, buf, readLen, &writeLen, NULL))
             {
                 DWORD errid = GetLastError();
                 return FALSE;
@@ -1498,7 +1495,6 @@ BOOL CVDUFileSystemService::CreateVDUFile(CVDUFile vdufile, CHttpFile* httpfile)
         DeleteFile(tmpFilePath);
         return FALSE;
     }
-
 
     //Make sure MD5 hash matches
     if (CalcFileMD5Base64(vdufile) != vdufile.m_md5base64)

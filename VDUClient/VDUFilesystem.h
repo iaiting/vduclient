@@ -14,6 +14,7 @@
 #include "VDUClientDlg.h"
 #include "VDUFile.h"
 #include "VDUClient.h"
+#include <VersionHelpers.h>
 
 //Disable the use of Windows internals
 //#define NO_WINTERNL

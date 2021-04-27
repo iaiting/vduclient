@@ -17,6 +17,7 @@ BEGIN_MESSAGE_MAP(VDUClient, CWinApp)
 	ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
 END_MESSAGE_MAP()
 
+
 // VDUClient construction
 VDUClient::VDUClient() : m_srefThread(nullptr), m_svc(nullptr), m_svcThread(nullptr),
 m_testMode(FALSE), m_insecure(FALSE)
@@ -262,7 +263,7 @@ BOOL VDUClient::InitInstance()
 					{
 						//Writing unicode text to a file
 						CStdioFile stdf(GetFileSystemService()->GetDrivePath() + vdufile.m_name,
-							CFile::modeWrite | CFile::typeUnicode | CFile::shareDenyNone);
+							CFile::modeWrite | CFile::typeText | CFile::shareDenyNone);
 
 						stdf.WriteString(text);
 						stdf.Flush();
@@ -291,7 +292,7 @@ BOOL VDUClient::InitInstance()
 					TRY
 					{
 						CStdioFile stdf(GetFileSystemService()->GetDrivePath() + vdufile.m_name,
-						CFile::modeRead | CFile::typeUnicode | CFile::shareDenyNone);
+						CFile::modeRead | CFile::typeText | CFile::shareDenyNone);
 
 						//Reading unicode text from a file and compare it to input
 						CString fileContent;

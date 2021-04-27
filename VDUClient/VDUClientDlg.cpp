@@ -77,7 +77,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 
 	//Create an entry on windows startup
 	CRegKey key;
-	if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run")) == ERROR_SUCCESS)
+	if (IsWindows8OrGreater() && key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run")) == ERROR_SUCCESS)
 	{
 		key.SetStringValue(TITLENAME, moduleFilePath + _T(" -silent"));
 		key.Close();
@@ -109,6 +109,10 @@ BOOL CVDUClientDlg::OnInitDialog()
 				}
 			}
 			key.Close();
+		}
+		else //Disable functionality on unsupported systems
+		{
+			m_trayMenu->EnableMenuItem(0, FALSE);
 		}
 	}
 
@@ -265,9 +269,9 @@ BOOL CVDUClientDlg::SetTrayTip(CString szTip)
 
 BOOL CVDUClientDlg::TrayNotify(CString szTitle, CString szText, SHSTOCKICONID siid)
 {
-	m_trayData.uFlags = NIF_INFO | NIF_MESSAGE;
+	m_trayData.uFlags = NIF_INFO | NIF_MESSAGE | NIF_ICON;
 	m_trayData.uTimeout = 1000;
-	m_trayData.dwInfoFlags |= NIIF_INFO | NIIF_USER | NIIF_LARGE_ICON;
+	m_trayData.dwInfoFlags |= NIIF_INFO | NIIF_USER | NIIF_LARGE_ICON | NIIF_RESPECT_QUIET_TIME;
 
 	SHSTOCKICONINFO shii;
 	SecureZeroMemory(&shii, sizeof(shii));

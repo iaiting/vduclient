@@ -4,6 +4,7 @@ thispath = os.path.dirname(os.path.realpath(__file__))
 #===============================================
 #Settings
 VDUCLIENT = thispath + "\\x64\\Release\\VDUClient.exe" 
+VDUSERVER = thispath + "\\vdusrv.py"
 LOCAL_SERVER_ADDRESS = "127.0.0.1:4443"
 #===============================================
 # Action list
@@ -49,7 +50,7 @@ Tests = [
 
 #Add base actions to set test mode and set our local server
 VDUCLIENT += " -insecure -testmode -server %s " % (LOCAL_SERVER_ADDRESS)
-
+VDUSERVER = "python " + VDUSERVER
 
 successfulTestCount = 0
 for test in Tests:
@@ -57,14 +58,20 @@ for test in Tests:
     testInstructions = test[1]
     expectedCode = test[2]
 
+    pserver = subprocess.Popen(VDUSERVER)
+
     p = subprocess.Popen(VDUCLIENT + testInstructions)
     p.wait()
-            
+
+    pserver.terminate()
+    while pserver.poll() == None:
+        None
+                
     if (p.returncode == expectedCode):
         Log("[Test]  OK  [%s] %d" % (testName, p.returncode))
         successfulTestCount = successfulTestCount + 1
     else:
         Log("[Test] FAIL [%s] %d (expected %d)" % (testName, p.returncode, expectedCode))
-
+        exit()
 Log("[Test] Passed %d/%d tests" % (successfulTestCount, len(Tests)))
 input("Press any key to exit.")
