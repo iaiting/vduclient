@@ -317,9 +317,7 @@ NTSTATUS CVDUFileSystem::Open(
     //Win7 -> Three flags (from testing)
     if (CreateOptions & FILE_DELETE_ON_CLOSE ||
         (!IsWindows8OrGreater() &&
-            CreateOptions & FILE_FLAG_POSIX_SEMANTICS &&
-            CreateOptions & FILE_FLAG_OPEN_REPARSE_POINT &&
-            CreateOptions & FILE_NON_DIRECTORY_FILE))
+            CreateOptions == (FILE_FLAG_POSIX_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT | FILE_NON_DIRECTORY_FILE)))
     {
         //Send delete request and pretend file was deleted
         //If it wasnt, the file will reappear on explorer window refresh
@@ -818,7 +816,7 @@ NTSTATUS CVDUFileSystem::Rename(
     //Not allowed if cant write
     if (vdufile.IsValid() && !vdufile.m_canWrite)
     {
-        return STATUS_MARKED_TO_DISALLOW_WRITES; //STATUS_WMI_READ_ONLY is a good alternative
+        return STATUS_MARKED_TO_DISALLOW_WRITES;
     }
 
     //Explanation for ReplaceIfExists:
@@ -837,7 +835,7 @@ NTSTATUS CVDUFileSystem::Rename(
             return STATUS_UNSUCCESSFUL;
     }
 
-    if (!MoveFileEx(FullPath, NewFullPath, ReplaceIfExists ? MOVEFILE_REPLACE_EXISTING : 0))
+    if (!MoveFileEx(FullPath, NewFullPath, ReplaceIfExists ? MOVEFILE_REPLACE_EXISTING : MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED))
         return NtStatusFromWin32(GetLastError());
 
     //After successful move, update file internally
@@ -1170,16 +1168,6 @@ void CVDUFileSystemService::UpdateFileInternal(CVDUFile newfile)
         {
             //Now proceed to update the file internally
             f = newfile;
-
-            //Update read-only attribute to reflect current state
-            CString fpath = GetWorkDirPath() + _T("\\") + f.m_name;
-            DWORD attrs = GetFileAttributes(fpath);
-
-            if (f.m_canWrite && attrs & FILE_READ_ONLY)
-                SetFileAttributes(fpath, attrs &= ~FILE_READ_ONLY);
-            else if (!f.m_canWrite && !(attrs & FILE_READ_ONLY))
-                SetFileAttributes(fpath, attrs |= FILE_READ_ONLY);
-
             break;
         }
     }

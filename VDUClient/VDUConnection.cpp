@@ -201,8 +201,7 @@ CVDUConnection::CVDUConnection(CString serverURL, VDUAPIType type, VDU_CONNECTIO
 UINT CVDUConnection::ThreadProc(LPVOID pCon)
 {
 	//NOTE: For destructor to be called, connection has to be properly casted
-	CVDUConnection* con = (CVDUConnection*)pCon;
-	if (con)
+	if (CVDUConnection* con = (CVDUConnection*)pCon)
 	{
 		INT returnCode = con->Process();
 		delete con;

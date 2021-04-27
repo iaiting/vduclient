@@ -516,7 +516,7 @@ INT CVDUSession::CallbackUploadFile(CHttpFile* file)
 	}
 	else
 	{
-		//WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
+		WND->MessageBoxNB(CVDUConnection::LastError, TITLENAME, MB_ICONERROR);
 	}
 
 	return EXIT_FAILURE;

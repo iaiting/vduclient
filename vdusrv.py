@@ -207,6 +207,9 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                             self.end_headers()
                             Log("POST %s From:%s (409)" % (self.path, ApiKeys[apiKey]["User"]))
                             return
+                    else:
+                        #Not reading rfile with content can cause abnormal termination of connection
+                        self.rfile.read(contentLen)
 
                     #Size should be matching as well
                     fstat = os.stat(fpath)
@@ -244,7 +247,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     self.send_header("Expires", finst["Expires"])
                     self.send_header("ETag", finst["ETag"])
                     self.end_headers()
-                    Log("POST %s From:%s File:%s (204)" % (self.path, ApiKeys[apiKey]["User"], fpath))
+                    Log("POST %s From:%s File:%s (201)" % (self.path, ApiKeys[apiKey]["User"], fpath))
                     return
     
     def do_DELETE(self):
@@ -286,6 +289,5 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 httpd = http.server.HTTPServer(("0.0.0.0", 4443), VDUHTTPRequestHandler)
-httpd.socket = ssl.wrap_socket(httpd.socket, server_side=True,
-certfile=thispath + "\\server_.pem", cert_reqs=ssl.CERT_NONE)
+httpd.socket = ssl.wrap_socket(httpd.socket, server_side=True, certfile=thispath + "\\server_.pem")
 httpd.serve_forever()

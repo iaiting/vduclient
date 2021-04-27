@@ -72,6 +72,5 @@ for test in Tests:
         successfulTestCount = successfulTestCount + 1
     else:
         Log("[Test] FAIL [%s] %d (expected %d)" % (testName, p.returncode, expectedCode))
-        exit()
 Log("[Test] Passed %d/%d tests" % (successfulTestCount, len(Tests)))
 input("Press any key to exit.")
