@@ -7,9 +7,10 @@
 
 #include "resource.h"		// main symbols
 
-#define VFSNAME _T("VDU")
+#define PROJNAME _T("VDU")
 #define SECTION_SETTINGS _T("Settings")
 #define TITLENAME _T("VDU Client")
+#define S_MAILSLOT _T("\\\\.\\mailslot\\VDUClientMailSlot")
 
 //VDUClient CWinApp 
 #define APP ((VDUClient*)AfxGetApp())
@@ -27,7 +28,7 @@ DWORD resumeResult = pWinThread->ResumeThread();if (resumeResult != 0xFFFFFFFF) 
 GetExitCodeThread(pWinThread->m_hThread, &out_exitCode);delete pWinThread;
 
 //Assert that there are enough parameters
-#define TESTMODE_ASSERT_ARGC(argc, i) if (i + 1 >= argc) {ASSERT(FALSE), ExitProcess(2);}
+#define CMDLINE_ASSERT_ARGC(argc, i) if (i + 1 >= argc) {ASSERT(FALSE); if (APP->IsTestMode()) ExitProcess(2);}
 
 class CVDUFileSystemService;
 class CVDUSession;
@@ -67,6 +68,8 @@ public:
 	//Allows operations with the filesystem service
 	CVDUFileSystemService* GetFileSystemService();
 
+	void HandleCommands(LPCWSTR cmdline, BOOL async);
+
 //Overrides
 
 	//For initializing core of the program
@@ -76,9 +79,14 @@ public:
 	virtual INT ExitInstance();
 
 //Thread Procedures
+
+	//Runs the file system service and the underlying file system
 	static UINT ThreadProcFilesystemService(LPVOID service);
+	//Refreshes user session
 	static UINT ThreadProcLoginRefresh(LPVOID);
-	//static UINT ThreadProcTestMode(LPVOID);
+
+	//Reads commands from mail slot, and executes them
+	static UINT ThreadProcMailslot(LPVOID slothandle);
 
 //Implementation
 	DECLARE_MESSAGE_MAP()

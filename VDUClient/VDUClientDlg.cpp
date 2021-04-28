@@ -79,7 +79,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 	CRegKey key;
 	if (IsWindows8OrGreater() && key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run")) == ERROR_SUCCESS)
 	{
-		key.SetStringValue(TITLENAME, moduleFilePath + _T(" -silent"));
+		key.SetStringValue(TITLENAME, _T("\"") + moduleFilePath + _T("\" -silent"));
 		key.Close();
 	}
 
@@ -98,12 +98,11 @@ BOOL CVDUClientDlg::OnInitDialog()
 
 		if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run")) == ERROR_SUCCESS)
 		{
-			BYTE startupBuf[0x100] = { 0 };
-			ULONG startupBufLen = ARRAYSIZE(startupBuf);
-			if (key.QueryBinaryValue(TITLENAME, startupBuf, &startupBufLen) == ERROR_SUCCESS)
+			StartupApprovedEntry sae;
+			ULONG startupBufLen = sizeof(sae);
+			if (key.QueryBinaryValue(TITLENAME, &sae, &startupBufLen) == ERROR_SUCCESS)
 			{
-				StartupApprovedEntry* entry = reinterpret_cast<StartupApprovedEntry*>(startupBuf);
-				if (entry->state == StartupApprovedState::ENABLED)
+				if (sae.state == StartupApprovedState::ENABLED)
 				{
 					m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
 				}
@@ -112,7 +111,7 @@ BOOL CVDUClientDlg::OnInitDialog()
 		}
 		else //Disable functionality on unsupported systems
 		{
-			m_trayMenu->EnableMenuItem(0, FALSE);
+			m_trayMenu->EnableMenuItem(0, MF_GRAYED);
 		}
 	}
 
@@ -205,15 +204,20 @@ void CVDUClientDlg::UpdateStatus()
 
 		trayStatus += _T("\r\n" + fileCntStr + _T(" files"));
 		windowStatus += _T("| Files: ") + fileCntStr; 
-	}
 
-	if (GetProgressBar()->GetState() != PBST_PAUSED)
+		if (GetProgressBar()->GetState() != PBST_PAUSED)
+		{
+			BOOL failed = GetProgressBar()->GetState() == PBST_ERROR;
+			CString percentage;
+			percentage.Format(_T("%d%%"), GetProgressBar()->GetPos());
+			trayStatus += failed ? _T("\r\nDownload failed ") : _T("\r\nDownloading ") + percentage;
+			windowStatus += failed ? _T(" | Download failed ") : _T(" | Downloading.. ") + percentage;
+		}
+	}
+	else
 	{
-		BOOL failed = GetProgressBar()->GetState() == PBST_ERROR;
-		CString percentage;
-		percentage.Format(_T("%d%%"), GetProgressBar()->GetPos());
-		trayStatus += failed ? _T("\r\nDownload failed ") : _T("\r\nDownloading ") + percentage;
-		windowStatus += failed ? _T(" | Download failed ") : _T(" | Downloading.. ") + percentage;
+		windowStatus = _T("Not connected to the server");
+		trayStatus = _T("Not connected");
 	}
 
 	if (trayStatus != m_trayData.szTip)
@@ -414,27 +418,26 @@ void CVDUClientDlg::OnAutorunToggleCommand()
 	CRegKey key;
 	if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run")) == ERROR_SUCCESS)
 	{
-		BYTE startupBuf[0x100] = { 0 };
-		ULONG startupBufLen = ARRAYSIZE(startupBuf);
-		if (key.QueryBinaryValue(TITLENAME, startupBuf, &startupBufLen) == ERROR_SUCCESS)
+		StartupApprovedEntry sae;
+		ULONG startupBufLen = sizeof(sae);
+		if (key.QueryBinaryValue(TITLENAME, &sae, &startupBufLen) == ERROR_SUCCESS)
 		{
-			StartupApprovedEntry* entry = reinterpret_cast<StartupApprovedEntry*>(startupBuf);
-			if (entry->state == StartupApprovedState::ENABLED) //Is enabled
+			if (sae.state == StartupApprovedState::ENABLED) //Is enabled
 			{
-				entry->state = StartupApprovedState::DISABLED;
+				sae.state = StartupApprovedState::DISABLED;
 				SYSTEMTIME st;
 				GetSystemTime(&st);
-				SystemTimeToFileTime(&st, &entry->disabledTime); //Save the disabled time 
+				SystemTimeToFileTime(&st, &sae.disabledTime); //Save the disabled time 
 
-				key.SetBinaryValue(TITLENAME, entry, startupBufLen);
+				key.SetBinaryValue(TITLENAME, &sae, startupBufLen);
 				m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_UNCHECKED);
 			}
 			else
 			{
-				entry->state = StartupApprovedState::ENABLED;
-				SecureZeroMemory(&entry->disabledTime, sizeof(entry->disabledTime));
+				sae.state = StartupApprovedState::ENABLED;
+				SecureZeroMemory(&sae.disabledTime, sizeof(sae.disabledTime));
 
-				key.SetBinaryValue(TITLENAME, entry, startupBufLen);
+				key.SetBinaryValue(TITLENAME, &sae, startupBufLen);
 				m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
 			}
 		}

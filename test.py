@@ -6,6 +6,7 @@ thispath = os.path.dirname(os.path.realpath(__file__))
 VDUCLIENT = thispath + "\\x64\\Release\\VDUClient.exe" 
 VDUSERVER = thispath + "\\vdusrv.py"
 LOCAL_SERVER_ADDRESS = "127.0.0.1:4443"
+PADDING = (20 * "=")
 #===============================================
 # Action list
 # 
@@ -58,7 +59,7 @@ for test in Tests:
     testInstructions = test[1]
     expectedCode = test[2]
 
-    pserver = subprocess.Popen(VDUSERVER)
+    pserver = subprocess.Popen(VDUSERVER, stdout=subprocess.PIPE)
 
     p = subprocess.Popen(VDUCLIENT + testInstructions)
     p.wait()
@@ -71,6 +72,10 @@ for test in Tests:
         Log("[Test]  OK  [%s] %d" % (testName, p.returncode))
         successfulTestCount = successfulTestCount + 1
     else:
-        Log("[Test] FAIL [%s] %d (expected %d)" % (testName, p.returncode, expectedCode))
+        Log("[Test] FAIL [%s] %d (expected %d)" + PADDING % (testName, p.returncode, expectedCode))
+        exit()
+    
+
+Log(PADDING)
 Log("[Test] Passed %d/%d tests" % (successfulTestCount, len(Tests)))
 input("Press any key to exit.")

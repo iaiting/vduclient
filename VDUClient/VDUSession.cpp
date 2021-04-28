@@ -623,8 +623,8 @@ INT CVDUSession::Logout(BOOL async)
 
 INT CVDUSession::AccessFile(CString fileToken, BOOL async)
 {
-	if (!IsLoggedIn())
-		return EXIT_SUCCESS;
+	if (!IsLoggedIn() || APP->GetFileSystemService()->GetVDUFileByToken(fileToken).IsValid())
+		return EXIT_FAILURE;
 
 	if (async)
 	{

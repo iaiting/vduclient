@@ -24,7 +24,7 @@ m_testMode(FALSE), m_insecure(FALSE)
 {
 	// support Restart Manager
 	m_dwRestartManagerSupportFlags = AFX_RESTART_MANAGER_SUPPORT_RESTART;
-
+	
 	// Place all significant initialization in InitInstance
 	m_session = new CVDUSession(_T(""));
 }
@@ -70,8 +70,6 @@ VDUClient vduClient;
 // VDUClient initialization
 BOOL VDUClient::InitInstance()
 {
-	//Check if an instance is already running
-
 	// InitCommonControlsEx() is required on Windows XP if an application
 	// manifest specifies use of ComCtl32.dll version 6 or later to enable
 	// visual styles.  Otherwise, any window creation will fail.
@@ -86,22 +84,62 @@ BOOL VDUClient::InitInstance()
 
 	// Create the shell manager, in case the dialog contains
 	// any shell tree view or shell list view controls.
-	CShellManager *pShellManager = new CShellManager;
+	CShellManager* pShellManager = new CShellManager;
 
 	// Activate "Windows Native" visual manager for enabling themes in MFC controls
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
 
 	// Standard initialization
-	SetRegistryKey(VFSNAME);
+	SetRegistryKey(PROJNAME);
 
 	//Check if WinFSP is installed on the system
 	CRegKey key;
 	if (key.Open(HKEY_LOCAL_MACHINE, _T("SYSTEM\\CurrentControlSet\\Services\\WinFsp"), KEY_READ) != ERROR_SUCCESS)
 	{
 		MessageBox(NULL, _T("WinFsp is not intsalled on the system!\r\nPlease install it from http://www.secfs.net/winfsp/rel/"), TITLENAME, MB_ICONERROR);
-		return FALSE;
+		ExitProcess(EXIT_SUCCESS);
 	}
 	key.Close();
+
+	//Check if an instance is already running
+	//Create mailslot for messages
+	HANDLE hMailslot = CreateMailslot(S_MAILSLOT, 0, MAILSLOT_WAIT_FOREVER, NULL);
+	if (hMailslot == INVALID_HANDLE_VALUE)
+	{
+		//This is second instance of the process
+		//Write the command into the mailslot, the first instance will run it
+		hMailslot = CreateFile(S_MAILSLOT, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hMailslot != INVALID_HANDLE_VALUE)
+		{
+			DWORD writeLen;
+			WriteFile(hMailslot, m_lpCmdLine, (DWORD)_tcslen(m_lpCmdLine) * sizeof(*m_lpCmdLine) + sizeof(*m_lpCmdLine), &writeLen, NULL);
+			CloseHandle(hMailslot);
+		}
+
+		ExitProcess(EXIT_SUCCESS);
+	}
+
+	APP->WriteProfileString(_T("Capabilities"), _T("ApplicationDescription"), TITLENAME);
+	APP->WriteProfileString(_T("Capabilities"), _T("ApplicationName"), TITLENAME);
+
+	if (key.Create(HKEY_CURRENT_USER, _T("Software\\") PROJNAME _T("\\VDUClient\\Capabilities\\UrlAssociations")) == ERROR_SUCCESS)
+	{
+		key.SetStringValue(_T("vdu"), _T("vdu"));
+		key.Close();
+	}
+	if (key.Create(HKEY_CURRENT_USER, _T("Software\\Classes\\vdu")) == ERROR_SUCCESS)
+	{
+		key.SetStringValue(NULL, _T("URL: VDU Client - Access a file"));
+		key.SetStringValue(_T("URL Protocol"), _T(""));
+		key.Close();
+	}
+	if (key.Create(HKEY_CURRENT_USER, _T("Software\\Classes\\vdu\\shell\\open\\command")) == ERROR_SUCCESS)
+	{
+		CString moduleFilePath;
+		AfxGetModuleFileName(NULL, moduleFilePath);
+		key.SetStringValue(NULL, _T("\"") + moduleFilePath + _T("\" -accessnetfile %1"));
+		key.Close();
+	}
 
 	BOOL c_silent = FALSE;
 	//Check for startup options
@@ -164,160 +202,33 @@ BOOL VDUClient::InitInstance()
 	ControlBarCleanUp();
 #endif
 
+	//Make sure the file system service is started
+	ULONGLONG startTicks = GetTickCount64();
+	while (!PathFileExists(GetFileSystemService()->GetDrivePath()))
+	{
+		ULONGLONG timeWaited = GetTickCount64() - startTicks;
+		if (timeWaited > 10 * 1000)
+			ExitProcess(-3);
+	}
+
 	//In test mode we execute input actions and quit with proper code
 	if (IsTestMode())
 	{
-		//Make sure the file system service is started
-		ULONGLONG startTicks = GetTickCount64();
-		while (!PathFileExists(GetFileSystemService()->GetDrivePath()))
-		{
-			ULONGLONG timeWaited = GetTickCount64() - startTicks;
-			if (timeWaited > 10 * 1000)
-				ExitProcess(-3);
-		}
-
-		int argc;
-		if (TCHAR** argv = CommandLineToArgvW(m_lpCmdLine, &argc))
-		{
-			for (int i = 0; i < argc; i++)
-			{
-				TCHAR* arg = argv[i];
-				INT result;
-
-				if (!_tcscmp(arg, _T("-server")))
-				{
-					TESTMODE_ASSERT_ARGC(argc, i);
-					TCHAR* server = argv[++i];
-
-					GetSession()->Reset(server);
-				}
-				else if (!_tcscmp(arg, _T("-user")))
-				{
-					TESTMODE_ASSERT_ARGC(argc, i);
-					TCHAR* user = argv[++i];
-
-					result = GetSession()->Login(user, _T(""), FALSE);
-					if (result != EXIT_SUCCESS)
-					{
-						ExitProcess(result);
-					}
-				}
-				else if (!_tcscmp(arg, _T("-logout")))
-				{
-					result = GetSession()->Logout(FALSE);
-					if (result != EXIT_SUCCESS)
-					{
-						ExitProcess(result);
-					}
-				}
-				else if (!_tcscmp(arg, _T("-accessfile")))
-				{
-					TESTMODE_ASSERT_ARGC(argc, i);
-					TCHAR* token = argv[++i];
-
-					result = GetSession()->AccessFile(token, FALSE);
-					if (result != EXIT_SUCCESS)
-					{
-						ExitProcess(result);
-					}
-				}
-				else if (!_tcscmp(arg, _T("-deletefile")))
-				{
-					TESTMODE_ASSERT_ARGC(argc, i);
-					TCHAR* token = argv[++i];
-
-					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
-
-					//Make sure file gets deleted
-					GetFileSystemService()->DeleteFileInternal(token);
-
-					result = GetFileSystemService()->DeleteVDUFile(vdufile, FALSE);
-					if (result != EXIT_SUCCESS)
-					{
-						ExitProcess(result);
-					}
-				}
-				else if (!_tcscmp(arg, _T("-rename")))
-				{
-					TESTMODE_ASSERT_ARGC(argc, i + 1);
-					TCHAR* token = argv[++i];
-					TCHAR* name = argv[++i];
-
-					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
-
-					result = GetFileSystemService()->UpdateVDUFile(vdufile, name, FALSE);
-					if (result != EXIT_SUCCESS)
-					{
-						ExitProcess(result);
-					}
-				}
-				else if (!_tcscmp(arg, _T("-write")))
-				{
-					TESTMODE_ASSERT_ARGC(argc, i + 1);
-					TCHAR* token = argv[++i];
-					TCHAR* text = argv[++i];
-
-					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
-
-					TRY 
-					{
-						//Writing unicode text to a file
-						CStdioFile stdf(GetFileSystemService()->GetDrivePath() + vdufile.m_name,
-							CFile::modeWrite | CFile::typeText | CFile::shareDenyNone);
-
-						stdf.WriteString(text);
-						stdf.Flush();
-						stdf.Close();
-
-						result = GetFileSystemService()->UpdateVDUFile(vdufile, _T(""), FALSE);
-						if (result != EXIT_SUCCESS)
-						{
-							ExitProcess(result);
-						}
-					}
-					CATCH(CException, e)
-					{
-						ExitProcess(EXIT_FAILURE);
-					}
-					END_CATCH
-				}
-				else if (!_tcscmp(arg, _T("-read")))
-				{
-					TESTMODE_ASSERT_ARGC(argc, i + 1);
-					TCHAR* token = argv[++i];
-					TCHAR* text = argv[++i];
-
-					CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
-
-					TRY
-					{
-						CStdioFile stdf(GetFileSystemService()->GetDrivePath() + vdufile.m_name,
-						CFile::modeRead | CFile::typeText | CFile::shareDenyNone);
-
-						//Reading unicode text from a file and compare it to input
-						CString fileContent;
-						stdf.ReadString(fileContent);
-						stdf.Close();
-
-						//Compare only the exact amount of characters
-						fileContent = fileContent.Left((INT)_tcslen(text));
-						if (text != fileContent)
-						{
-							ExitProcess(EXIT_FAILURE);
-						}
-					}
-					CATCH(CException, e)
-					{
-						ExitProcess(EXIT_FAILURE);
-					}
-					END_CATCH
-				}
-			}
-			LocalFree(argv);
-		}
-
+		HandleCommands(m_lpCmdLine, FALSE);
+		
 		//Implicit quit after all test actions have been done
 		ExitProcess(EXIT_SUCCESS);
+	}
+
+	AfxBeginThread(ThreadProcMailslot, (LPVOID)hMailslot);
+
+	//Write current command line
+	hMailslot = CreateFile(S_MAILSLOT, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hMailslot != INVALID_HANDLE_VALUE)
+	{
+		DWORD writeLen;
+		WriteFile(hMailslot, m_lpCmdLine, (DWORD)_tcslen(m_lpCmdLine) * sizeof(*m_lpCmdLine) + sizeof(*m_lpCmdLine), &writeLen, NULL);
+		CloseHandle(hMailslot);
 	}
 
 	return TRUE;
@@ -334,6 +245,204 @@ INT VDUClient::ExitInstance()
 	if (m_pMainWnd)
 		WND->DestroyWindow();
 	return CWinApp::ExitInstance();
+}
+
+void VDUClient::HandleCommands(LPCWSTR cmdline, BOOL async)
+{
+	int argc;
+	if (TCHAR** argv = CommandLineToArgvW(cmdline, &argc))
+	{
+		for (int i = 0; i < argc; i++)
+		{
+			TCHAR* arg = argv[i];
+			INT result;
+
+			if (!_tcscmp(arg, _T("-server")))
+			{
+				CMDLINE_ASSERT_ARGC(argc, i);
+				TCHAR* server = argv[++i];
+
+				GetSession()->Reset(server);
+			}
+			else if (!_tcscmp(arg, _T("-user")))
+			{
+				CMDLINE_ASSERT_ARGC(argc, i);
+				TCHAR* user = argv[++i];
+
+				result = GetSession()->Login(user, _T(""), async);
+				if (result != EXIT_SUCCESS && APP->IsTestMode())
+				{
+					ExitProcess(result);
+				}
+			}
+			else if (!_tcscmp(arg, _T("-logout")))
+			{
+				result = GetSession()->Logout(async);
+				if (result != EXIT_SUCCESS && APP->IsTestMode())
+				{
+					ExitProcess(result);
+				}
+			}
+			else if (!_tcscmp(arg, _T("-accessfile")))
+			{
+				CMDLINE_ASSERT_ARGC(argc, i);
+				TCHAR* token = argv[++i];
+
+				result = GetSession()->AccessFile(token, async);
+				if (result != EXIT_SUCCESS && APP->IsTestMode())
+				{
+					ExitProcess(result);
+				}
+			}
+			else if (!_tcscmp(arg, _T("-accessnetfile")))
+			{
+				CMDLINE_ASSERT_ARGC(argc, i);
+				TCHAR* token = argv[++i];
+
+				CString parsedToken = token;
+				parsedToken = parsedToken.Right(parsedToken.GetLength() - 4);
+
+				//Parse url backslashes
+				while (parsedToken.GetLength() > 0 && parsedToken.GetAt(0) == '/')
+					parsedToken = parsedToken.Right(parsedToken.GetLength() - 1);
+
+				while (parsedToken.GetLength() > 0 && parsedToken.GetAt(parsedToken.GetLength() - 1) == '/')
+					parsedToken = parsedToken.Left(parsedToken.GetLength() - 1);
+
+				if (parsedToken.IsEmpty())
+					continue;
+
+				result = GetSession()->AccessFile(parsedToken, async);
+				if (result != EXIT_SUCCESS && APP->IsTestMode())
+				{
+					ExitProcess(result);
+				}
+			}
+			else if (!_tcscmp(arg, _T("-deletefile")))
+			{
+				CMDLINE_ASSERT_ARGC(argc, i);
+				TCHAR* token = argv[++i];
+
+				CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
+
+
+				result = GetFileSystemService()->DeleteVDUFile(vdufile, async);
+				if (result != EXIT_SUCCESS && APP->IsTestMode())
+				{
+					ExitProcess(result);
+				}
+
+				//Make sure file gets deleted
+				GetFileSystemService()->DeleteFileInternal(token);
+			}
+			else if (!_tcscmp(arg, _T("-rename")))
+			{
+				CMDLINE_ASSERT_ARGC(argc, i + 1);
+				TCHAR* token = argv[++i];
+				TCHAR* name = argv[++i];
+
+				CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
+
+				result = GetFileSystemService()->UpdateVDUFile(vdufile, name, async);
+				if (result != EXIT_SUCCESS && APP->IsTestMode())
+				{
+					ExitProcess(result);
+				}
+			}
+			else if (!_tcscmp(arg, _T("-write")))
+			{
+				CMDLINE_ASSERT_ARGC(argc, i + 1);
+				TCHAR* token = argv[++i];
+				TCHAR* text = argv[++i];
+
+				CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
+
+				TRY
+				{
+					//Writing unicode text to a file
+					CStdioFile stdf(GetFileSystemService()->GetDrivePath() + vdufile.m_name,
+						CFile::modeWrite | CFile::typeText | CFile::shareDenyNone);
+
+					stdf.WriteString(text);
+					stdf.Flush();
+					stdf.Close();
+
+					result = GetFileSystemService()->UpdateVDUFile(vdufile, _T(""), async);
+					if (result != EXIT_SUCCESS && APP->IsTestMode())
+					{
+						ExitProcess(result);
+					}
+				}
+				CATCH(CException, e)
+				{
+					if (!async && APP->IsTestMode())
+						ExitProcess(EXIT_FAILURE);
+				}
+				END_CATCH
+			}
+			else if (!_tcscmp(arg, _T("-read")))
+			{
+				CMDLINE_ASSERT_ARGC(argc, i + 1);
+				TCHAR* token = argv[++i];
+				TCHAR* text = argv[++i];
+
+				CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
+
+				TRY
+				{
+					CStdioFile stdf(GetFileSystemService()->GetDrivePath() + vdufile.m_name,
+					CFile::modeRead | CFile::typeText | CFile::shareDenyNone);
+
+					//Reading unicode text from a file and compare it to input
+					CString fileContent;
+					stdf.ReadString(fileContent);
+					stdf.Close();
+
+					//Compare only the exact amount of characters
+					fileContent = fileContent.Left((INT)_tcslen(text));
+					if (!async && text != fileContent && APP->IsTestMode())
+					{
+						ExitProcess(EXIT_FAILURE);
+					}
+				}
+				CATCH(CException, e)
+				{
+					if (!async && APP->IsTestMode())
+						ExitProcess(EXIT_FAILURE);
+				}
+				END_CATCH
+			}
+		}
+		LocalFree(argv);
+	}
+
+}
+
+UINT VDUClient::ThreadProcMailslot(LPVOID slothandle)
+{
+	HANDLE hSlot = (HANDLE)slothandle;
+	TCHAR msgBuf[250] = { 0 };
+
+	while (TRUE)
+	{
+		Sleep(500);
+
+		DWORD nextSize;
+		DWORD msgCount;
+		if (!GetMailslotInfo(hSlot, 0, &nextSize, &msgCount, NULL))
+			continue; //Failed?
+
+		if (nextSize == MAILSLOT_NO_MESSAGE)
+			continue;
+
+		DWORD readBytes;
+		if (!ReadFile(hSlot, msgBuf, nextSize, &readBytes, NULL))
+			continue;
+
+		//Read all the launch options from message
+		APP->HandleCommands(msgBuf, FALSE);
+		SecureZeroMemory(msgBuf, sizeof(msgBuf));
+	}
 }
 
 UINT VDUClient::ThreadProcFilesystemService(LPVOID service)
