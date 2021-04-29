@@ -119,30 +119,28 @@ BOOL VDUClient::InitInstance()
 		ExitProcess(EXIT_SUCCESS);
 	}
 
-	APP->WriteProfileString(_T("Capabilities"), _T("ApplicationDescription"), TITLENAME);
-	APP->WriteProfileString(_T("Capabilities"), _T("ApplicationName"), TITLENAME);
+	CString moduleFilePath;
+	AfxGetModuleFileName(NULL, moduleFilePath);
 
-	if (key.Create(HKEY_CURRENT_USER, _T("Software\\") PROJNAME _T("\\VDUClient\\Capabilities\\UrlAssociations")) == ERROR_SUCCESS)
-	{
-		key.SetStringValue(_T("vdu"), _T("vdu"));
-		key.Close();
-	}
-	if (key.Create(HKEY_CURRENT_USER, _T("Software\\Classes\\vdu")) == ERROR_SUCCESS)
+	if (key.Create(HKEY_CURRENT_USER, _T("Software\\Classes\\") URL_PROTOCOL) == ERROR_SUCCESS)
 	{
 		key.SetStringValue(NULL, _T("URL: VDU Client - Access a file"));
-		key.SetStringValue(_T("URL Protocol"), _T(""));
+		key.SetStringValue(_T("URL Protocol"), _T(""));	
 		key.Close();
 	}
-	if (key.Create(HKEY_CURRENT_USER, _T("Software\\Classes\\vdu\\shell\\open\\command")) == ERROR_SUCCESS)
+	if (key.Create(HKEY_CURRENT_USER, _T("Software\\Classes\\" URL_PROTOCOL "\\shell\\open\\command")) == ERROR_SUCCESS)
 	{
-		CString moduleFilePath;
-		AfxGetModuleFileName(NULL, moduleFilePath);
-		key.SetStringValue(NULL, _T("\"") + moduleFilePath + _T("\" -accessnetfile %1"));
+		key.SetStringValue(NULL, _T("\"") + moduleFilePath + _T("\" -accessnetfile \"%1\""));
+		key.Close();
+	}
+	if (key.Create(HKEY_CURRENT_USER, _T("Software\\Classes\\") URL_PROTOCOL "\\DefaultIcon") == ERROR_SUCCESS)
+	{
+		key.SetStringValue(NULL, _T("\"") + moduleFilePath + _T(",0\""));
 		key.Close();
 	}
 
-	BOOL c_silent = FALSE;
 	//Check for startup options
+	BOOL c_silent = FALSE;
 	int argc;
 	if (LPWSTR* argv = CommandLineToArgvW(m_lpCmdLine, &argc))
 	{
@@ -196,11 +194,12 @@ BOOL VDUClient::InitInstance()
 		}
 	}
 
-	m_svcThread = AfxBeginThread(ThreadProcFilesystemService, (LPVOID)(m_svc = new CVDUFileSystemService(preferredLetter)));
-
 #if !defined(_AFXDLL) && !defined(_AFX_NO_MFC_CONTROLS_IN_DIALOGS)
 	ControlBarCleanUp();
 #endif
+
+	//Start the file system service
+	m_svcThread = AfxBeginThread(ThreadProcFilesystemService, (LPVOID)(m_svc = new CVDUFileSystemService(preferredLetter)));
 
 	//Make sure the file system service is started
 	ULONGLONG startTicks = GetTickCount64();
@@ -220,9 +219,10 @@ BOOL VDUClient::InitInstance()
 		ExitProcess(EXIT_SUCCESS);
 	}
 
+	//Start reading mailslot messages
 	AfxBeginThread(ThreadProcMailslot, (LPVOID)hMailslot);
 
-	//Write current command line
+	//Write current command line for execution
 	hMailslot = CreateFile(S_MAILSLOT, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hMailslot != INVALID_HANDLE_VALUE)
 	{

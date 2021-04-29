@@ -1381,7 +1381,7 @@ NTSTATUS CVDUFileSystemService::Remount(CString DriveLetter)
         {
             CString moduleFilePath;
             AfxGetModuleFileName(NULL, moduleFilePath);
-            key.SetStringValue(NULL, moduleFilePath + _T(",0")); //Select the first icon
+            key.SetStringValue(NULL, _T("\"") + moduleFilePath + _T(",0\"")); //Select the first icon
             key.Close();
         }
         if (key.Create(HKEY_CURRENT_USER, _T("SOFTWARE\\Classes\\Applications\\Explorer.exe\\Drives\\") + CString(m_driveLetter[0]) + _T("\\DefaultLabel")) == ERROR_SUCCESS)

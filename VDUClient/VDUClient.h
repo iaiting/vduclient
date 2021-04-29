@@ -8,6 +8,7 @@
 #include "resource.h"		// main symbols
 
 #define PROJNAME _T("VDU")
+#define URL_PROTOCOL _T("vdu")
 #define SECTION_SETTINGS _T("Settings")
 #define TITLENAME _T("VDU Client")
 #define S_MAILSLOT _T("\\\\.\\mailslot\\VDUClientMailSlot")
@@ -84,7 +85,6 @@ public:
 	static UINT ThreadProcFilesystemService(LPVOID service);
 	//Refreshes user session
 	static UINT ThreadProcLoginRefresh(LPVOID);
-
 	//Reads commands from mail slot, and executes them
 	static UINT ThreadProcMailslot(LPVOID slothandle);
 

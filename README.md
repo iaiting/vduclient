@@ -76,11 +76,14 @@ In order to add custom tests, get familiar with the Action list, create your tes
 - `-server [ip]`              Set server ip to 'ip'
 - `-user [login]`             Log in as 'login'
 - `-accessfile [token]`       Accesses a file
+- `-accessnetfile` `[urlToken]` Accesses a file in the URL format
 - `-deletefile [token]`       Invalidates token
 - `-rename [token] [name]`    Renames file to 'name'
 - `-logout`                   Logs out current user
 - `-write [token] [text]`     Writes text at the beginning of a file
 - `-read [token] [cmpText]`   Reads text of the length of 'cmpText' from the beginning of a file and compares them 
+
+All of the mentioned actions can be issued to a running instance of the VDU Client.
 # Credits
 
 Client developed using Microsoft Visual Studio 2019 Community with valid Free Licence, using MFC/ATL Build tools v142 and Windows 10.0 SDK, at https://visualstudio.microsoft.com/cs/vs/community/
