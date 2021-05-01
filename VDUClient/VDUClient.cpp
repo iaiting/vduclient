@@ -135,7 +135,7 @@ BOOL VDUClient::InitInstance()
 	}
 	if (key.Create(HKEY_CURRENT_USER, _T("Software\\Classes\\") URL_PROTOCOL "\\DefaultIcon") == ERROR_SUCCESS)
 	{
-		key.SetStringValue(NULL, _T("\"") + moduleFilePath + _T(",0\""));
+		key.SetStringValue(NULL, _T("\"") + moduleFilePath + _T("\",0"));
 		key.Close();
 	}
 

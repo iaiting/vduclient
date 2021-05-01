@@ -99,19 +99,19 @@ BOOL CVDUClientDlg::OnInitDialog()
 		if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run")) == ERROR_SUCCESS)
 		{
 			StartupApprovedEntry sae;
+			SecureZeroMemory(&sae, sizeof(sae));
+
 			ULONG startupBufLen = sizeof(sae);
-			if (key.QueryBinaryValue(TITLENAME, &sae, &startupBufLen) == ERROR_SUCCESS)
-			{
-				if (sae.state == StartupApprovedState::ENABLED)
-				{
-					m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
-				}
-			}
+			key.QueryBinaryValue(TITLENAME, &sae, &startupBufLen);
+			
+			if (!(sae.flags & StartupApprovedEntry::DISABLED))
+				m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
+
 			key.Close();
 		}
-		else //Disable functionality on unsupported systems
+		else if (!IsWindows8OrGreater())//Disable functionality on unsupported systems
 		{
-			m_trayMenu->EnableMenuItem(0, MF_GRAYED);
+			m_trayMenu->EnableMenuItem(0, MF_GRAYED | MF_DISABLED);
 		}
 	}
 
@@ -416,31 +416,35 @@ void CVDUClientDlg::OnTrayExitCommand()
 void CVDUClientDlg::OnAutorunToggleCommand()
 {
 	CRegKey key;
-	if (key.Open(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run")) == ERROR_SUCCESS)
+	if (key.Create(HKEY_CURRENT_USER, _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run")) == ERROR_SUCCESS)
 	{
 		StartupApprovedEntry sae;
-		ULONG startupBufLen = sizeof(sae);
-		if (key.QueryBinaryValue(TITLENAME, &sae, &startupBufLen) == ERROR_SUCCESS)
+		SecureZeroMemory(&sae, sizeof(sae));
+
+		ULONG saeBufLen = sizeof(sae);
+		key.QueryBinaryValue(TITLENAME, &sae, &saeBufLen);
+		
+		if (sae.flags & StartupApprovedEntry::DISABLED) //If disabled, enable
 		{
-			if (sae.state == StartupApprovedState::ENABLED) //Is enabled
-			{
-				sae.state = StartupApprovedState::DISABLED;
-				SYSTEMTIME st;
-				GetSystemTime(&st);
-				SystemTimeToFileTime(&st, &sae.disabledTime); //Save the disabled time 
+			sae.flags &= ~StartupApprovedEntry::DISABLED;
 
-				key.SetBinaryValue(TITLENAME, &sae, startupBufLen);
-				m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_UNCHECKED);
-			}
-			else
-			{
-				sae.state = StartupApprovedState::ENABLED;
-				SecureZeroMemory(&sae.disabledTime, sizeof(sae.disabledTime));
+			SecureZeroMemory(&sae.disabledTime, sizeof(sae.disabledTime));
 
-				key.SetBinaryValue(TITLENAME, &sae, startupBufLen);
-				m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
-			}
+			key.SetBinaryValue(TITLENAME, &sae, saeBufLen);
+			m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
 		}
+		else //If enabled, disable it
+		{
+			sae.flags |= StartupApprovedEntry::DISABLED;
+
+			SYSTEMTIME st;
+			GetSystemTime(&st);
+			SystemTimeToFileTime(&st, &sae.disabledTime); //Save the disabled time 
+
+			key.SetBinaryValue(TITLENAME, &sae, saeBufLen);
+			m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_UNCHECKED);
+		}
+
 		key.Close();
 	}
 }

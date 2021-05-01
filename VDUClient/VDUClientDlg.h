@@ -8,16 +8,16 @@
 
 #define VDU_REGPATH _T("SOFTWARE\\VDU Client")
 
-enum class StartupApprovedState
+typedef struct StartupApprovedEntry_t
 {
-	ENABLED = 2,
-	DISABLED = 3,
-};
+	enum FlagBits
+	{
+		DISABLED = (1 << 0), //The application will not start
+		TASKMGR_VIEWED = (1 << 1), //The entry was viewed in the Task Manager
+	};
 
-typedef struct StartupApprovedEntry_s
-{
-	StartupApprovedState state;
-	FILETIME disabledTime;
+	DWORD flags; //Contains flag bits
+	FILETIME disabledTime; //Time when the entry was disabled
 } StartupApprovedEntry;
 
 // CVDUClientDlg dialog
