@@ -103,11 +103,10 @@ BOOL CVDUClientDlg::OnInitDialog()
 
 			ULONG startupBufLen = sizeof(sae);
 			key.QueryBinaryValue(TITLENAME, &sae, &startupBufLen);
+			key.Close();
 			
 			if (!(sae.flags & StartupApprovedEntry::DISABLED))
 				m_trayMenu->CheckMenuItem(0, MF_BYPOSITION | MF_CHECKED);
-
-			key.Close();
 		}
 		else if (!IsWindows8OrGreater())//Disable functionality on unsupported systems
 		{

@@ -312,7 +312,6 @@ NTSTATUS CVDUFileSystem::Open(
 
     CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(PathFindFileName(FileName));
 
-
     //Win8+ -> File is about to be deleted, (i.e. from explorer) FILE_DELETE_ON_CLOSE
     //Win7 -> Three flags (from testing)
     if (CreateOptions & FILE_DELETE_ON_CLOSE ||
@@ -491,8 +490,7 @@ VOID CVDUFileSystem::Close(
     //Find the function in ntdll.dll
     if (!NtQueryObject)
     {
-        HMODULE ntdll = LoadLibrary(_T("ntdll.dll"));
-        if (ntdll != NULL)
+        if (HMODULE ntdll = LoadLibrary(_T("ntdll.dll")))
             NtQueryObject = (NtQueryObjectFn) GetProcAddress(ntdll, "NtQueryObject");
     }
 

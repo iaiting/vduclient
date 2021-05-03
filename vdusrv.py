@@ -40,7 +40,8 @@ def FileMD5(fpath):
 def GenerateRandomToken(duplicateCheckDict = None):
     token = ""
     while True:
-        token = token.join(random.choice("abcdefghijklmnopqrstuvwxyz0123456789") for i in range(64))
+        for i in range(64):
+         token = token + random.choice("abcdefghijklmnopqrstuvwxyz0123456789")
         if (duplicateCheckDict == None or token not in duplicateCheckDict):
             break
     return token

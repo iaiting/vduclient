@@ -325,7 +325,6 @@ void VDUClient::HandleCommands(LPCWSTR cmdline, BOOL async)
 
 				CVDUFile vdufile = GetFileSystemService()->GetVDUFileByToken(token);
 
-
 				result = GetFileSystemService()->DeleteVDUFile(vdufile, async);
 				if (result != EXIT_SUCCESS && APP->IsTestMode())
 				{
