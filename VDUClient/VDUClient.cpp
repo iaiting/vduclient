@@ -119,15 +119,18 @@ BOOL VDUClient::InitInstance()
 		ExitProcess(EXIT_SUCCESS);
 	}
 
+	//Acquire the executable path
 	CString moduleFilePath;
 	AfxGetModuleFileName(NULL, moduleFilePath);
 
+	//Create a new class for the VDU URL protocol
 	if (key.Create(HKEY_CURRENT_USER, _T("Software\\Classes\\") URL_PROTOCOL) == ERROR_SUCCESS)
 	{
 		key.SetStringValue(NULL, _T("URL: VDU Client - Access a file"));
 		key.SetStringValue(_T("URL Protocol"), _T(""));	
 		key.Close();
 	}
+	//Set the command to use the `-accessnetfile` instruction
 	if (key.Create(HKEY_CURRENT_USER, _T("Software\\Classes\\" URL_PROTOCOL "\\shell\\open\\command")) == ERROR_SUCCESS)
 	{
 		key.SetStringValue(NULL, _T("\"") + moduleFilePath + _T("\" -accessnetfile \"%1\""));

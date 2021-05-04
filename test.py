@@ -78,4 +78,4 @@ for test in Tests:
 
 Log(PADDING)
 Log("[Test] Passed %d/%d tests" % (successfulTestCount, len(Tests)))
-input("Press any key to exit.")
+os.system("pause")

@@ -1243,6 +1243,8 @@ NTSTATUS CVDUFileSystemService::OnStart(ULONG argc, PWSTR* argv)
     }
 
     m_workDirPath = PathBuf;
+    //Keep the workDirPath handle until the process exits
+    //CreateFile(m_workDirPath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0);
     m_host.SetFileSystemName(_T("VDUVFS"));
 
     Result = Remount(m_driveLetter);
