@@ -634,8 +634,7 @@ void CVDUClientDlg::OnEnSetfocusFileToken()
 {
 }
 
-//HACK
-//I really wanna use messageboxes from worker threads so here we are..
+//To handle message boxes in worker threads
 typedef struct MsgBoxParams_t
 {
 public:

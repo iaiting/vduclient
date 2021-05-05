@@ -203,7 +203,7 @@ public:
     //Returns accessible VDU file by access token
     CVDUFile GetVDUFileByToken(CString token);
     //Ammount of accesisibile files
-    size_t GetVDUFileCount();
+    ULONGLONG GetVDUFileCount();
     //Deletes a VDU file internally, from disk, from memory
     void DeleteFileInternal(CString token);
     //Updates a VDU file internally

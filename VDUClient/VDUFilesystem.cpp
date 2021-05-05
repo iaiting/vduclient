@@ -1109,12 +1109,12 @@ CVDUFile CVDUFileSystemService::GetVDUFileByToken(CString token)
     return pFile;
 }
 
-size_t CVDUFileSystemService::GetVDUFileCount()
+ULONGLONG CVDUFileSystemService::GetVDUFileCount()
 {
     AcquireSRWLockExclusive(&m_filesLock);
     size_t size = m_files.size();
     ReleaseSRWLockExclusive(&m_filesLock);
-    return size;
+    return (ULONGLONG)size;
 }
 
 void CVDUFileSystemService::DeleteFileInternal(CString token)
