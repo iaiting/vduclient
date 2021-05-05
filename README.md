@@ -52,7 +52,7 @@ Python3.
 
 # Testing
 
-![VDU Tests](https://i.imgur.com/poxPXVv.png)
+![VDU Tests](https://i.imgur.com/UOp5ogZ.png)
 
 ## Requirements
 
