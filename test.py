@@ -3,7 +3,7 @@ thispath = os.path.dirname(os.path.realpath(__file__))
 
 #===============================================
 #Settings
-VDUCLIENT = thispath + "\\x64\\Release\\VDUClient.exe" 
+VDUCLIENT = thispath + "\\Release\\x64\\VDUClient.exe" 
 VDUSERVER = thispath + "\\vdusrv.py"
 LOCAL_SERVER_ADDRESS = "127.0.0.1:4443"
 PADDING = (20 * "=")
