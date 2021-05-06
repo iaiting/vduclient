@@ -1,1 +1,1 @@
-Banana_is_healthyorksents, this is a simple plain text file.
+This is a simple plain text file.

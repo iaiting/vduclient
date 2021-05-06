@@ -8,25 +8,25 @@ Microsoft Visual C++ Redistributable 2015-2019
 
 WinFSP 1.8 or newer
 
-Windows 7 SP1 and newer
+Windows 7 SP1 or newer
 
 ## Installation
 
 1.) Download and install latest WinFSP (http://www.secfs.net/winfsp/rel/) and Visual C++ 15-19 Redistributable libraries (https://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0)
 
-1a.) For Windows 7 SP1, download and install https://www.microsoft.com/en-us/download/details.aspx?id=46148
+1a.) For Windows 7 SP1 it might be required download and install https://www.microsoft.com/en-us/download/details.aspx?id=46148
 
-2.) Grab a release version of `VDUClient.exe` and run (Debug version requires Visual Studio debug libraries)
+2.) Run a Release version of `VDUClient.exe` of the architecture of your machine (Win32 or x64)
 
 ## Setting up developing environment
 
 Requires Visual Studio 2019, Windows 10 SDK, Build tools v142, MFC+ATL for build tools v142
 
-1.) Install WinFsP with the Developer Option selected during installation
+1.) Install WinFsp with the Developer Option selected during installation
 
 2.) Download VDUClient repository, launch `.sln` file
 
-3.) Compile as Release/x64
+3.) Compile as Release, pick your architecture (Win32 or x64)
 
 4.) Run `VDUClient.exe`
 
@@ -38,17 +38,46 @@ NOTE: If the include file `winfsp.hpp` wont be pre-installed in some cases, you 
 - `-testmode`     Program starts in test mode, where it reads actions and executes them. For more information see contents of 'test.py'
 - `-insecure` Disables certificate validation - for debug/test purposes
 
-# VDU Mock Server
+## VDU URI protocol
+
+The application registers a new URI protocol in the format of `vdu://{token}`, which can be used to trigger the running application to access a file recognizable by `token`.
+
+Example: vdu://abcdef1234
+
+## How to use
+1.) Set server address with optional port 
+
+2.) Set username, and optionally set user certificate
+
+3.) Login; ensure the login was successful
+
+4.) Input the file token of the requested file or use hyperlinks to access files
+
+5.) Modify the file using the VDU Virtual Disk
+
+6.) When done with work on the file, delete it from the VDU Virtual Disk
+
+# VDU Simulated server
 
 ## Requirements
 
-Python3.
+Python 3.6.3 or newer
 
 ## Setting up the server
 
-1.) Edit server settings at the top of the file to your liking
-
 1.) Run `vdusrv.py` - Runs on all interfaces on port 4443 by default
+
+2.) To access the simulated server, run `VDUClient.exe` with `-insecure` launch option, to disable certificate verification
+
+Edit server settings at the top of the script if required.
+
+## Predefined data
+
+Users: `test@example.com`, `john`
+
+File tokens: `a`,`b`,`c`,`d`,`e`,`f`
+
+To test VDU protocol, use `test_links.html` webpage
 
 # Testing
 
@@ -83,7 +112,8 @@ In order to add custom tests, get familiar with the Action list, create your tes
 - `-write [token] [text]`     Writes text at the beginning of a file
 - `-read [token] [cmpText]`   Reads text of the length of 'cmpText' from the beginning of a file and compares them 
 
-All of the mentioned actions can be issued to a running instance of the VDU Client.
+All of the mentioned actions can be issued to a running instance of the VDU Client. This is true even when outside of testing mode.
+
 # Credits
 
 Client developed using Microsoft Visual Studio 2019 Community with valid Free Licence, using MFC/ATL Build tools v142 and Windows 10.0 SDK, at https://visualstudio.microsoft.com/cs/vs/community/
