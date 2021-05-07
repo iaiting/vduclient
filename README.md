@@ -120,9 +120,9 @@ Client developed using Microsoft Visual Studio 2019 Community with valid Free Li
 
 Server developed using Microsoft Visual Studio Code, with Python 3.9.4 environment, at https://code.visualstudio.com/
 
-WinFsP API usage in courtesy of `billziss-gh`, GitHub page at https://github.com/billziss-gh/winfsp, Website at www.secfs.net/winfsp/
+WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos. GitHub page at https://github.com/billziss-gh/winfsp, Website at www.secfs.net/winfsp/.
 
-WinFSP Virtual File System usage based on passthrough-cpp by `billziss-gh` at https://github.com/billziss-gh/winfsp/tree/master/tst/passthrough-cpp
+WinFsp Virtual File System usage based on passthrough-cpp by `billziss-gh` at https://github.com/billziss-gh/winfsp/tree/master/tst/passthrough-cpp
 
 Cloud Storage icon by https://icons8.com at https://icons8.com/icon/r8kHwiV6nVEd/cloud-storage
 
