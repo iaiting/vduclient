@@ -83,7 +83,6 @@ INT CVDUConnection::Process()
 		VDU_SESSION_LOCK;
 	}
 
-
 	INT result = EXIT_SUCCESS;
 	CHttpConnection* con = NULL;
 	CHttpFile* pFile = NULL;

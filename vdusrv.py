@@ -157,17 +157,20 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             if (apiKey not in ApiKeys):
                 self.send_response_only(401)
                 self.end_headers()
+                self.rfile.read(contentLen)
                 Log("POST %s (401)" % (self.path))
             else:
                 fileToken = self.path.split("/file/")[1]
                 if (fileToken not in FileTokens):
                     self.send_response_only(404)
                     self.end_headers()
+                    self.rfile.read(contentLen)
                     Log("POST %s From:%s (404)" % (self.path, ApiKeys[apiKey]["User"]))
                 else:
                     if (random.random() <= TIMEOUT_PROBABILITY):
                         self.send_response_only(408)
                         self.end_headers()
+                        self.rfile.read(contentLen)
                         Log("POST %s From:%s (408)" % (self.path, ApiKeys[apiKey]["User"]))
                         return
 
@@ -184,6 +187,7 @@ class VDUHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     else:
                         self.send_response_only(405)
                         self.end_headers()
+                        self.rfile.read(contentLen)
                         Log("POST %s From:%s (405)" % (self.path, ApiKeys[apiKey]["User"]))
                         return
 

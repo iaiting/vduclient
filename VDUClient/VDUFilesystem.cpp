@@ -312,11 +312,10 @@ NTSTATUS CVDUFileSystem::Open(
 
     CVDUFile vdufile = APP->GetFileSystemService()->GetVDUFileByName(PathFindFileName(FileName));
 
-    //Win8+ -> File is about to be deleted, (i.e. from explorer) FILE_DELETE_ON_CLOSE
-    //Win7 -> Three flags (from testing)
+    //File is about to be deleted when flag FILE_DELETE_ON_CLOSE is set
+    //Specific deletion -> Three flags (from testing)
     if (CreateOptions & FILE_DELETE_ON_CLOSE ||
-        (!IsWindows8OrGreater() &&
-            CreateOptions == (FILE_FLAG_POSIX_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT | FILE_NON_DIRECTORY_FILE)))
+        (CreateOptions == (FILE_FLAG_POSIX_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT | FILE_NON_DIRECTORY_FILE)))
     {
         //Send delete request and pretend file was deleted
         //If it wasnt, the file will reappear on explorer window refresh
@@ -332,7 +331,7 @@ NTSTATUS CVDUFileSystem::Open(
 
             INT result = APP->GetFileSystemService()->DeleteVDUFile(vdufile, FALSE);
             if (result != EXIT_SUCCESS)
-                return STATUS_UNSUCCESSFUL;
+                return STATUS_PNP_DEVICE_CONFIGURATION_PENDING;
         }
         
         //Allow files to be deleted normally using the delete on close flag

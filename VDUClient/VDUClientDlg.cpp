@@ -10,6 +10,7 @@
 #define WM_TRAY_AUTORUN_TOGGLE (WM_APP + 3)
 #define WM_TRAY_AUTOLOGIN_TOGGLE (WM_APP + 4)
 #define WM_TRAY_OPEN_DRIVE (WM_APP + 5)
+#define WM_ABOUTWINFSP (WM_USER + 1)
 
 // CVDUClientDlg dialog
 CVDUClientDlg::CVDUClientDlg(CWnd* pParent /*=nullptr*/) : CDialogEx(IDD_VDUCLIENT_DIALOG, pParent),
@@ -69,6 +70,8 @@ BOOL CVDUClientDlg::OnInitDialog()
 	m_trayData.hIcon = APP->LoadIcon(IDR_MAINFRAME);
 	m_trayData.uVersion = NOTIFYICON_VERSION_4;
 	Shell_NotifyIcon(NIM_ADD, &m_trayData);
+
+	GetSystemMenu(FALSE)->AppendMenu(MF_STRING, WM_ABOUTWINFSP, _T("About WinFsp"));
 
 	CString moduleFilePath;
 	AfxGetModuleFileName(NULL, moduleFilePath);
@@ -193,13 +196,15 @@ void CVDUClientDlg::UpdateStatus()
 	CVDUSession* session = APP->GetSession();
 	ASSERT(session);
 
+	ULONGLONG fileCnt = APP->GetFileSystemService()->GetVDUFileCount();
+
 	if (session->IsLoggedIn())
 	{
 		trayStatus += _T("\r\nLogged in as " + session->GetUser());
 		windowStatus += _T("User: ") + session->GetUser() + _T(" ");
 
 		CString fileCntStr;
-		fileCntStr.Format(_T("%llu"), APP->GetFileSystemService()->GetVDUFileCount());
+		fileCntStr.Format(_T("%llu"), fileCnt);
 
 		trayStatus += _T("\r\n" + fileCntStr + _T(" files"));
 		windowStatus += _T("| Files: ") + fileCntStr; 
@@ -215,8 +220,20 @@ void CVDUClientDlg::UpdateStatus()
 	}
 	else
 	{
-		windowStatus = _T("Not connected to the server");
-		trayStatus = _T("Not connected");
+		trayStatus += _T("\r\nNot connected");
+		windowStatus += _T("Not connected to the server");
+	}
+
+	//Decide whether to enable the drive letter selection box
+	if (fileCnt > 0)
+	{
+		GetDlgItem(IDC_COMBO_DRIVELETTER)->EnableWindow(FALSE);
+		GetDlgItem(IDC_STATIC_DRIVELETTER)->EnableWindow(FALSE);
+	}
+	else
+	{
+		GetDlgItem(IDC_COMBO_DRIVELETTER)->EnableWindow(TRUE);
+		GetDlgItem(IDC_STATIC_DRIVELETTER)->EnableWindow(TRUE);
 	}
 
 	if (trayStatus != m_trayData.szTip)
@@ -305,6 +322,11 @@ void CVDUClientDlg::OnSysCommand(UINT nID, LPARAM lParam)
 		ShowWindow(SW_MINIMIZE);
 		ShowWindow(SW_HIDE);
 		return;
+	}
+	else if ((nID) == WM_ABOUTWINFSP)
+	{
+		MessageBoxNB(_T("WinFsp - Windows File System Proxy, Copyright(C) Bill Zissimopoulos\r\nhttps://github.com/billziss-gh/winfsp"),
+			TITLENAME, MB_OK | MB_ICONINFORMATION);
 	}
 
 	CDialogEx::OnSysCommand(nID, lParam);
@@ -512,7 +534,6 @@ void CVDUClientDlg::OnBnClickedButtonLogin()
 	}
 
 	//VDU_SESSION_UNLOCK;
-
 
 	((CEdit*)GetDlgItem(IDC_SERVER_ADDRESS))->SetSel(-1, FALSE);
 	((CEdit*)GetDlgItem(IDC_USERNAME))->SetSel(-1, FALSE);

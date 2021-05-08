@@ -553,7 +553,8 @@ INT CVDUSession::CallbackInvalidateFileToken(CHttpFile* file)
 		}
 		else if (statusCode == HTTP_STATUS_DENIED)
 		{
-			WND->MessageBoxNB(_T("Invalid authorization token!\r\nPlease log in again."), TITLENAME, MB_ICONERROR);
+			//Dont use this message, deletion has custom message
+			//WND->MessageBoxNB(_T("Invalid authorization token!\r\nPlease log in again."), TITLENAME, MB_ICONERROR);
 		}
 		else
 		{
@@ -594,7 +595,7 @@ INT CVDUSession::Login(CString user, CString certPath, BOOL async)
 
 BOOL CVDUSession::IsLoggedIn()
 {
-	return !GetUser().IsEmpty();
+	return !GetUser().IsEmpty() && !GetAuthToken().IsEmpty();
 }
 
 INT CVDUSession::Logout(BOOL async)

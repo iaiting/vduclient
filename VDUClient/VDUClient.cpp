@@ -432,7 +432,7 @@ UINT VDUClient::ThreadProcMailslot(LPVOID slothandle)
 		DWORD nextSize;
 		DWORD msgCount;
 		if (!GetMailslotInfo(hSlot, 0, &nextSize, &msgCount, NULL))
-			continue; //Failed?
+			continue;
 
 		if (nextSize == MAILSLOT_NO_MESSAGE)
 			continue;
