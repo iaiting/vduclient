@@ -1,3 +1,10 @@
+/**
+*
+ * @author xferan00
+ * @file VDUFile.cpp
+ *
+ */
+
 #include "pch.h"
 #include "VDUFile.h"
 

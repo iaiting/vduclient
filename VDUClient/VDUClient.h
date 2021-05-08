@@ -1,4 +1,10 @@
-// VDUClient.h : main header file for the application
+/**
+*
+ * @author xferan00
+ * @file VDUClient.h
+ *
+ */
+
 #pragma once
 
 #ifndef __AFXWIN_H__

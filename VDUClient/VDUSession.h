@@ -1,3 +1,10 @@
+/**
+*
+ * @author xferan00
+ * @file VDUSession.h
+ *
+ */
+
 #pragma once
 
 #include "VDUConnection.h"

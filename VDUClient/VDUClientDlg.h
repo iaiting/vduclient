@@ -1,3 +1,10 @@
+/**
+*
+ * @author xferan00
+ * @file VDUClientDlg.h
+ *
+ */
+
 #pragma once
 
 #ifdef _DEBUG

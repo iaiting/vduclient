@@ -1,5 +1,9 @@
-// VDUClient.cpp : Defines the class behaviors for the application.
-//
+/**
+* 
+ * @author xferan00
+ * @file VDUClient.cpp
+ *
+ */
 
 #include "pch.h"
 #include "framework.h"

@@ -1,3 +1,10 @@
+/**
+*
+ * @author xferan00
+ * @file VDUSession.cpp
+ *
+ */
+
 #include "pch.h"
 #include "framework.h"
 #include "VDUSession.h"

@@ -1,3 +1,10 @@
+/**
+*
+ * @author xferan00
+ * @file VDUClientDlg.cpp
+ *
+ */
+
 #include "pch.h"
 #include "framework.h"
 #include "VDUClient.h"

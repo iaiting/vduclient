@@ -1,3 +1,10 @@
+/**
+*
+ * @author xferan00
+ * @file VDUConnection.cpp
+ *
+ */
+
 #include "pch.h"
 #include "framework.h"
 #include "VDUConnection.h"

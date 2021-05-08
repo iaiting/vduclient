@@ -1,3 +1,10 @@
+/**
+*
+ * @author xferan00
+ * @file VDUFile.h
+ *
+ */
+
 #pragma once
 
 #include <afxinet.h>
