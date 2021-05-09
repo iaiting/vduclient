@@ -1,3 +1,8 @@
+#
+# @author xferan00
+# @file test.py
+#
+
 import os, time, subprocess
 thispath = os.path.dirname(os.path.realpath(__file__))
 

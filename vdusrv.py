@@ -1,3 +1,8 @@
+#
+# @author xferan00
+# @file vdusrv.py
+#
+
 import os, ssl, http.server, time, random, hashlib, base64, mimetypes
 thispath = os.path.dirname(os.path.realpath(__file__))
 
