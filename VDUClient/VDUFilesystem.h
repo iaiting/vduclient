@@ -4,11 +4,22 @@
  * @copyright 2015-2020 Bill Zissimopoulos
  *
  * Modifications by
- * @author xferan00
+ * @author Adam Feranec
  * @file VDUFilesystem.h
  * 
+ * This project is licensed under GPLv3, as it includes a modification
+ * of work of WinFsp - Windows File System Proxy , Copyright (C) Bill Zissimopoulos.
+ * GitHub page at https://github.com/billziss-gh/winfsp, Website at https://www.secfs.net/winfsp/.
+ * The original file https://github.com/billziss-gh/winfsp/blob/master/tst/passthrough-cpp/passthrough-cpp.cpp
+ *  was modified into two:
+ * https://github.com/coolguy124/vduclient/blob/master/VDUClient/VDUFilesystem.cpp
+ * https://github.com/coolguy124/vduclient/blob/master/VDUClient/VDUFilesystem.h
+ * by Adam Feranec, dates and details noted in said files.
+ * @copyright 2015-2020 Bill Zissimopoulos
+ * 
  * @Changelist
- * 8. 5. 2021 18:23:10 +00:00	Add file preambles, winfsp copyright
+12. 5. 2021  More explicit copyright notices of WinFsp 
+8. 5. 2021 18:23:10 +00:00	Add file preambles, winfsp copyright
 5. 5. 2021 11:52:48 +00:00	Fix release builds, add x86 build
 27. 4. 2021 0:11:47 +00:00	Win7 support
 20. 4. 2021 23:16:44 +00:00	Fixed removing temp files
