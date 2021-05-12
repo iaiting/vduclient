@@ -127,3 +127,15 @@ WinFsp Virtual File System usage based on passthrough-cpp by `billziss-gh` at ht
 Cloud Storage icon by https://icons8.com at https://icons8.com/icon/r8kHwiV6nVEd/cloud-storage
 
 Function descriptions and help in various areas of Desktop Development using C++, Windows API and MFC/ATL API at https://docs.microsoft.com/
+
+# License
+
+This project is licensed under GPLv3, as it includes a modification
+of work of WinFsp - Windows File System Proxy , Copyright (C) Bill Zissimopoulos.
+GitHub page at https://github.com/billziss-gh/winfsp, Website at https://www.secfs.net/winfsp/.
+The original file https://github.com/billziss-gh/winfsp/blob/master/tst/passthrough-cpp/passthrough-cpp.cpp
+was modified into two:
+https://github.com/coolguy124/vduclient/blob/master/VDUClient/VDUFilesystem.cpp
+https://github.com/coolguy124/vduclient/blob/master/VDUClient/VDUFilesystem.h
+by Adam Feranec, dates and details noted in said files.
+@copyright 2015-2020 Bill Zissimopoulos
