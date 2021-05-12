@@ -452,7 +452,7 @@ UINT VDUClient::ThreadProcMailslot(LPVOID slothandle)
 			continue;
 
 		DWORD readBytes;
-		if (!ReadFile(hSlot, msgBuf, nextSize, &readBytes, NULL))
+		if (!ReadFile(hSlot, msgBuf, min(nextSize, ARRAYSIZE(msgBuf) - 1), &readBytes, NULL))
 			continue;
 
 		//Read all the launch options from message
