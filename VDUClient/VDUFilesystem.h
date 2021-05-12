@@ -6,6 +6,31 @@
  * Modifications by
  * @author xferan00
  * @file VDUFilesystem.h
+ * 
+ * @Changelist
+ * 8. 5. 2021 18:23:10 +00:00	Add file preambles, winfsp copyright
+5. 5. 2021 11:52:48 +00:00	Fix release builds, add x86 build
+27. 4. 2021 0:11:47 +00:00	Win7 support
+20. 4. 2021 23:16:44 +00:00	Fixed removing temp files
+18. 4. 2021 17:16:41 +00:00	filesystem improvements
+17. 4. 2021 18:08:13 +00:00	crash fix, minor changes
+1. 4. 2021 1:24:10 +00:00	Cleanup unused variables, thesis update
+3. 3. 2021 19:18:38 +00:00	Added testmode and test.py
+25. 2. 2021 11:48:27 +00:00	Improved md5 checks
+25. 2. 2021 1:25:23 +00:00	First version that works
+24. 2. 2021 22:10:31 +00:00	Uploading files works
+23. 2. 2021 21:45:31 +00:00	First filesystem hooks, deleting works, creating rules
+22. 2. 2021 19:44:59 +00:00	Progress bar, upload, and more
+20. 2. 2021 20:34:14 +00:00	md5 hash checking
+19. 2. 2021 15:12:07 +00:00	Better file ops
+18. 2. 2021 0:23:25 +00:00	File download + open
+16. 2. 2021 23:46:50 +00:00	CVDUfile
+16. 2. 2021 14:09:52 +00:00	Connection changes, MD5 prep, files soon
+13. 2. 2021 19:24:36 +00:00	first steps of filesystem
+2. 2. 2021 21:23:06 +00:00	Fixed text
+30. 12. 2020 16:55:10 +00:00	preparing login, file system service, threads
+19. 11. 2020 0:11:18 +00:00	Switched to MFC
+
  *
  */
  /*

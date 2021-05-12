@@ -7,6 +7,53 @@
  * @author xferan00
  * @file VDUFilesystem.cpp
  * 
+ * @Changelist
+8. 5. 2021 18:23:10 +00:00	Add file preambles, winfsp copyright
+8. 5. 2021 14:01:57 +00:00	Added winfsp copyright box, fixed server and client bugs
+5. 5. 2021 11:52:48 +00:00	Fix release builds, add x86 build
+4. 5. 2021 16:22:36 +00:00	Update thesis
+3. 5. 2021 1:18:53 +00:00	minor changes
+1. 5. 2021 13:13:23 +00:00	StartupApproved entry correction
+29. 4. 2021 13:07:08 +00:00	minor URL changes
+27. 4. 2021 12:27:17 +00:00	Rename bug fix
+27. 4. 2021 0:11:47 +00:00	Win7 support
+26. 4. 2021 11:39:21 +00:00	Thesis update
+20. 4. 2021 23:16:44 +00:00	Fixed removing temp files
+20. 4. 2021 13:11:26 +00:00	Bugfixes to filesystem and file selector
+20. 4. 2021 1:51:29 +00:00	Minor changes
+19. 4. 2021 21:46:27 +00:00	Update thesis
+19. 4. 2021 16:50:09 +00:00	Added insecure mode, more context menu options, fixes
+18. 4. 2021 17:16:41 +00:00	filesystem improvements
+17. 4. 2021 18:08:13 +00:00	crash fix, minor changes
+8. 4. 2021 0:46:25 +00:00	Changes to test files and readme
+1. 4. 2021 1:24:10 +00:00	Cleanup unused variables, thesis update
+14. 3. 2021 15:27:23 +00:00	replace wcs with _tcs
+3. 3. 2021 19:18:38 +00:00	Added testmode and test.py
+27. 2. 2021 14:39:23 +00:00	Safer critical sections
+25. 2. 2021 12:39:01 +00:00	Fixed server encoding error, support for office editors
+25. 2. 2021 11:48:27 +00:00	Improved md5 checks
+25. 2. 2021 1:25:23 +00:00	First version that works
+24. 2. 2021 22:10:31 +00:00	Uploading files works
+24. 2. 2021 13:35:15 +00:00	Small quality of life improvements
+23. 2. 2021 21:45:31 +00:00	First filesystem hooks, deleting works, creating rules
+22. 2. 2021 19:44:59 +00:00	Progress bar, upload, and more
+20. 2. 2021 22:19:20 +00:00	small fix for md5 check
+20. 2. 2021 20:34:14 +00:00	md5 hash checking
+19. 2. 2021 15:12:07 +00:00	Better file ops
+18. 2. 2021 23:53:38 +00:00	filesystem
+18. 2. 2021 0:23:25 +00:00	File download + open
+16. 2. 2021 23:46:50 +00:00	CVDUfile
+16. 2. 2021 14:09:52 +00:00	Connection changes, MD5 prep, files soon
+15. 2. 2021 14:49:46 +00:00	new S-C certs, session&con changes
+13. 2. 2021 19:24:36 +00:00	first steps of filesystem
+2. 2. 2021 21:23:06 +00:00	Fixed text
+30. 12. 2020 16:55:10 +00:00	preparing login, file system service, threads
+13. 12. 2020 1:35:08 +00:00	Added preferred drive , small fixes
+19. 11. 2020 0:11:18 +00:00	Switched to MFC
+9. 11. 2020 14:20:25 +00:00	window msgs
+31. 10. 2020 18:06:40 +00:00	test
+
+ * 
  */
  /*
   * This file is part of WinFsp.
