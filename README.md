@@ -130,6 +130,8 @@ Function descriptions and help in various areas of Desktop Development using C++
 
 # License
 
+WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos
+
 This project is licensed under GPLv3, as it includes a modification
 of work of WinFsp - Windows File System Proxy , Copyright (C) Bill Zissimopoulos.
 GitHub page at https://github.com/billziss-gh/winfsp, Website at https://www.secfs.net/winfsp/.
