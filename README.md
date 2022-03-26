@@ -2,25 +2,29 @@
 
 ![VDUClient UI](https://i.imgur.com/wLT9izo.png)
 
+## About
+
+This is a client for the VDU (Validated Data storage Unit) server. It allows users to store and retrieve documents from the server and creates a virtual disk containing a virtual file system where the documents are stored and handled automatically. It provides various features for version control, file sharing, and document management and customisation. All retrieved files are seamlessly available to the user inside the new virtual disk, and changes to them are transmitted to the server automatically without the need for manual intervention.
+
 ## Requirements
 
-Microsoft Visual C++ Redistributable 2015-2019
+Microsoft Visual C++ Redistributable 2015-2022
 
 WinFSP 1.8 or newer
 
-Windows 7 SP1 or newer
+Windows 7 SP1 or newer (Supports Windows 11)
 
 ## Installation
 
-1.) Download and install latest WinFSP (http://www.secfs.net/winfsp/rel/) and Visual C++ 15-19 Redistributable libraries (https://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0)
+1.) Download and install latest WinFSP (<http://www.secfs.net/winfsp/rel/>) and the latest Visual C++ 2015-2022 Redistributable libraries (<https://aka.ms/vs/17/release/vc_redist.x64.exe> or <https://aka.ms/vs/17/release/vc_redist.x86.exe>)
 
-1a.) For Windows 7 SP1 it might be required download and install https://www.microsoft.com/en-us/download/details.aspx?id=46148
+1a.) For Windows 7 SP1 it might be required download and install <https://www.microsoft.com/en-us/download/details.aspx?id=46148>
 
 2.) Run a Release version of `VDUClient.exe` of the architecture of your machine (Win32 or x64)
 
-## Setting up developing environment
+## Setting up development environment
 
-Requires Visual Studio 2019, Windows 10 SDK, Build tools v142, MFC+ATL for build tools v142
+Requires Visual Studio 2022, Windows 10 SDK, Build tools v143, MFC+ATL for build tools v143
 
 1.) Install WinFsp with the Developer Option selected during installation
 
@@ -30,7 +34,7 @@ Requires Visual Studio 2019, Windows 10 SDK, Build tools v142, MFC+ATL for build
 
 4.) Run `VDUClient.exe`
 
-NOTE: If the include file `winfsp.hpp` wont be pre-installed in some cases, you need to manually download it from https://raw.githubusercontent.com/billziss-gh/winfsp/master/inc/winfsp/winfsp.hpp and copy into your `WinFsp\inc\winfsp` installation folder!
+NOTE: If the include file `winfsp.hpp` wont be pre-installed in some cases, you need to manually download it from <https://raw.githubusercontent.com/winfsp/winfsp/master/inc/winfsp/winfsp.hpp> and copy into your `WinFsp\inc\winfsp` installation folder!
 
 ## Launch options
 
@@ -45,7 +49,8 @@ The application registers a new URI protocol in the format of `vdu://{token}`, w
 Example: vdu://abcdef1234
 
 ## How to use
-1.) Set server address with optional port 
+
+1.) Set server address with optional port
 
 2.) Set username, and optionally set user certificate
 
@@ -110,34 +115,30 @@ In order to add custom tests, get familiar with the Action list, create your tes
 - `-rename [token] [name]`    Renames file to 'name'
 - `-logout`                   Logs out current user
 - `-write [token] [text]`     Writes text at the beginning of a file
-- `-read [token] [cmpText]`   Reads text of the length of 'cmpText' from the beginning of a file and compares them 
+- `-read [token] [cmpText]`   Reads text of the length of 'cmpText' from the beginning of a file and compares them
 
 All of the mentioned actions can be issued to a running instance of the VDU Client. This is true even when outside of testing mode.
 
 # Credits
 
-Client developed using Microsoft Visual Studio 2019 Community with valid Free Licence, using MFC/ATL Build tools v142 and Windows 10.0 SDK, at https://visualstudio.microsoft.com/cs/vs/community/
+Client developed using Microsoft Visual Studio 2022 Community with valid Free Licence, using MFC/ATL Build tools v143 and Windows 10.0 SDK, at <https://visualstudio.microsoft.com/cs/vs/community/>
 
-Server developed using Microsoft Visual Studio Code, with Python 3.9.4 environment, at https://code.visualstudio.com/
+Server developed using Microsoft Visual Studio Code, with Python 3.9.4 environment, at <https://code.visualstudio.com/>
 
-WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos. GitHub page at https://github.com/billziss-gh/winfsp, Website at www.secfs.net/winfsp/.
+WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos. GitHub page at <https://github.com/winfsp/winfsp>, Website at <https://winfsp.dev/>,
 
-WinFsp Virtual File System usage based on passthrough-cpp by `billziss-gh` at https://github.com/billziss-gh/winfsp/tree/master/tst/passthrough-cpp
+WinFsp Virtual File System usage based on passthrough-cpp by `billziss-gh` at <https://github.com/winfsp/winfsp/tree/master/tst/passthrough-cpp>
 
-Cloud Storage icon by https://icons8.com at https://icons8.com/icon/r8kHwiV6nVEd/cloud-storage
+[Cloud Storage](https://icons8.com/icon/r8kHwiV6nVEd/cloud-storage) icon by [Icons8](https://icons8.com)
 
-Function descriptions and help in various areas of Desktop Development using C++, Windows API and MFC/ATL API at https://docs.microsoft.com/
+Function descriptions and help in various areas of Desktop Development using C++, Windows API and MFC/ATL API at <https://docs.microsoft.com/>
 
 # License
 
-WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos
+This project is licensed under the GPLv3 licence, as it includes a modification of work of:
 
-This project is licensed under GPLv3, as it includes a modification
-of work of WinFsp - Windows File System Proxy , Copyright (C) Bill Zissimopoulos.
-GitHub page at https://github.com/billziss-gh/winfsp, Website at https://www.secfs.net/winfsp/.
-The original file https://github.com/billziss-gh/winfsp/blob/master/tst/passthrough-cpp/passthrough-cpp.cpp
-was modified into two:
-https://github.com/coolguy124/vduclient/blob/master/VDUClient/VDUFilesystem.cpp
-https://github.com/coolguy124/vduclient/blob/master/VDUClient/VDUFilesystem.h
-by Adam Feranec, dates and details noted in said files.
-@copyright 2015-2020 Bill Zissimopoulos
+ `WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos.`
+
+GitHub page at <https://github.com/winfsp/winfsp>, Website at <https://winfsp.dev/>, with the knowledge of the original author.
+
+@Copyright (C) 2015-2022 Bill Zissimopoulos

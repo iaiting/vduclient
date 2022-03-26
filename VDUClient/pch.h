@@ -1,3 +1,14 @@
+/*
+ * @copyright 2015-2022 Bill Zissimopoulos
+ *
+ * @file pch.h
+ * This file is licensed under the GPLv3 licence.
+ *
+ * You can redistribute it and/or modify it under the terms of the GNU
+ * General Public License version 3 as published by the Free Software
+ * Foundation.
+ */
+
 // pch.h: This is a precompiled header file.
 // Files listed below are compiled only once, improving build performance for future builds.
 // This also affects IntelliSense performance, including code completion and many code browsing features.

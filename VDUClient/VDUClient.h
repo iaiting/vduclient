@@ -1,19 +1,14 @@
-/**
-*
- * @author xferan00
- * @file VDUClient.h
- * 
- * This project is licensed under GPLv3, as it includes a modification
- * of work of WinFsp - Windows File System Proxy , Copyright (C) Bill Zissimopoulos.
- * GitHub page at https://github.com/billziss-gh/winfsp, Website at https://www.secfs.net/winfsp/.
- * The original file https://github.com/billziss-gh/winfsp/blob/master/tst/passthrough-cpp/passthrough-cpp.cpp
- *  was modified into two:
- * https://github.com/coolguy124/vduclient/blob/master/VDUClient/VDUFilesystem.cpp
- * https://github.com/coolguy124/vduclient/blob/master/VDUClient/VDUFilesystem.h
- * by Adam Feranec, dates and details noted in said files.
- * @copyright 2015-2020 Bill Zissimopoulos
+/*
+ * @copyright 2015-2022 Bill Zissimopoulos
  *
+ * @file VDUClient.h
+ * This file is licensed under the GPLv3 licence.
+ *
+ * You can redistribute it and/or modify it under the terms of the GNU
+ * General Public License version 3 as published by the Free Software
+ * Foundation.
  */
+
 
 #pragma once
 
@@ -37,7 +32,7 @@
 //Locks the session to be used by current thread, use UNLOCK when done
 #define VDU_SESSION_LOCK CVDUSession* session = APP->GetSession();AcquireSRWLockExclusive(&session->m_lock)
 //Unlocks session for other threads to use, do not forget this
-#define VDU_SESSION_UNLOCK ReleaseSRWLockExclusive(&APP->GetSession()->m_lock);
+#define VDU_SESSION_UNLOCK ReleaseSRWLockExclusive(&APP->GetSession()->m_lock)
 //Block current thread until pWinThread exits, output the error code and delete the thread
 //pWinThread MUST be flagged CREATE_SUSPENDED
 #define WAIT_THREAD_EXITCODE(pWinThread, out_exitCode) ASSERT(pWinThread);pWinThread->m_bAutoDelete = FALSE; \
@@ -64,7 +59,7 @@ private:
 	BOOL m_insecure; //Whether or not to validate SSL certificates
 public:
 	VDUClient();
-	~VDUClient();
+	~VDUClient() override;
 
 	//Only use when you have exclusive access to the session by locking
 	//Otherwise you risk out-of-date information
@@ -90,10 +85,10 @@ public:
 //Overrides
 
 	//For initializing core of the program
-	virtual BOOL InitInstance();
+	BOOL InitInstance() override;
 
 	//Making sure window exits properly
-	virtual INT ExitInstance();
+	INT ExitInstance() override;
 
 //Thread Procedures
 

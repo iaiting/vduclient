@@ -1,18 +1,12 @@
-/**
-*
- * @author Adam Feranec
- * @file VDUFile.cpp
+/*
+ * @copyright 2015-2022 Bill Zissimopoulos
  *
- * This project is licensed under GPLv3, as it includes a modification
- * of work of WinFsp - Windows File System Proxy , Copyright (C) Bill Zissimopoulos.
- * GitHub page at https://github.com/billziss-gh/winfsp, Website at https://www.secfs.net/winfsp/.
- * The original file https://github.com/billziss-gh/winfsp/blob/master/tst/passthrough-cpp/passthrough-cpp.cpp
- *  was modified into two:
- * https://github.com/coolguy124/vduclient/blob/master/VDUClient/VDUFilesystem.cpp
- * https://github.com/coolguy124/vduclient/blob/master/VDUClient/VDUFilesystem.h
- * by Adam Feranec, dates and details noted in said files.
- * @copyright 2015-2020 Bill Zissimopoulos
- * 
+ * @file VDUFile.cpp
+ * This file is licensed under the GPLv3 licence.
+ *
+ * You can redistribute it and/or modify it under the terms of the GNU
+ * General Public License version 3 as published by the Free Software
+ * Foundation.
  */
 
 #include "pch.h"

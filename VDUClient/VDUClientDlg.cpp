@@ -1,19 +1,14 @@
-/**
-*
- * @author Adam Feranec
- * @file VDUClientDlg.cpp
- * 
- * This project is licensed under GPLv3, as it includes a modification
- * of work of WinFsp - Windows File System Proxy , Copyright (C) Bill Zissimopoulos.
- * GitHub page at https://github.com/billziss-gh/winfsp, Website at https://www.secfs.net/winfsp/.
- * The original file https://github.com/billziss-gh/winfsp/blob/master/tst/passthrough-cpp/passthrough-cpp.cpp
- *  was modified into two:
- * https://github.com/coolguy124/vduclient/blob/master/VDUClient/VDUFilesystem.cpp
- * https://github.com/coolguy124/vduclient/blob/master/VDUClient/VDUFilesystem.h
- * by Adam Feranec, dates and details noted in said files.
- * @copyright 2015-2020 Bill Zissimopoulos
+/*
+ * @copyright 2015-2022 Bill Zissimopoulos
  *
+ * @file VDUClientDlg.cpp
+ * This file is licensed under the GPLv3 licence.
+ *
+ * You can redistribute it and/or modify it under the terms of the GNU
+ * General Public License version 3 as published by the Free Software
+ * Foundation.
  */
+
 
 #include "pch.h"
 #include "framework.h"
@@ -199,6 +194,8 @@ BOOL CVDUClientDlg::OnInitDialog()
 		OnBnClickedButtonLogin();
 	}
 
+	GetDlgItem(IDC_STATICCOPYRIGHT)->EnableWindow(FALSE);
+
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -342,7 +339,7 @@ void CVDUClientDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	}
 	else if ((nID) == WM_ABOUTWINFSP)
 	{
-		MessageBoxNB(_T("WinFsp - Windows File System Proxy, Copyright(C) Bill Zissimopoulos\r\nhttps://github.com/billziss-gh/winfsp"),
+		MessageBoxNB(_T("Cloud Storage icon by Icons8\n\n https://icons8.com/icon/r8kHwiV6nVEd/cloud-storage\n\n https://icons8.com"),
 			TITLENAME, MB_OK | MB_ICONINFORMATION);
 	}
 
