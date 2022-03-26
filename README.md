@@ -1,6 +1,6 @@
 # VDUClient
 
-![VDUClient UI](https://i.imgur.com/wLT9izo.png)
+![VDUClient UI](https://i.imgur.com/5drCMmt.png)
 
 ## About
 
